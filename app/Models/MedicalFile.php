@@ -3,41 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class MedicalFile extends Model
 {
-    use HasFactory, Notifiable, HasRoles, HasApiTokens;
 
+
+    use HasFactory;
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'first_name',
-        'last_name',
-        'email',
-        // 'identification_number',
-        'password',
-        'adress',
-        'day_of_birth',
-        'call',
-
-    ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
+        'identification_number',
+        'user-id'
     ];
 
     /**
@@ -47,7 +28,7 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        // Creation automatique du numero d'identification unique
+        // Automatically generate identification_number when creating a new user
         static::creating(function ($user) {
             $user->identification_number = self::generateUniqueIdentificationNumber();
         });
@@ -69,16 +50,4 @@ class User extends Authenticatable
 
         return $identification_number;
     }
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-
-
 }
