@@ -50,4 +50,8 @@ class MedicalFile extends Model
 
         return $identification_number;
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

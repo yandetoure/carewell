@@ -188,11 +188,15 @@ class AuthController extends Controller
      */
     // private function createMedicalRecord(User $user): void
     // {
-    //     MedicalFile::create([
-    //         'user_id' => $user->id,
-    //         'record_number' => $user->identification_number, // Le numéro de dossier est le même que l'identification
-    //         'notes' => 'Dossier créé automatiquement.',
-    //     ]);
+    //     $user = User::find($user->id); // Récupérez l'utilisateur
+    //     if ($user) {
+    //         MedicalFile::create([
+    //             'user_id' => $user->id,
+    //             'identification_number' => 'test_id', // Utilisez un ID valide
+    //             'notes' => 'Dossier créé manuellement',
+    //         ]);
+    //     }
+        
     // }
         /**
      * Génère un numéro d'identification unique.

@@ -22,7 +22,7 @@ class User extends Authenticatable
         'first_name',
         'last_name',
         'email',
-        // 'identification_number',
+        'identification_number',
         'password',
         'adress',
         'day_of_birth',
@@ -80,5 +80,9 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function medicalFiles()
+    {
+        return $this->hasMany(MedicalFile::class);
+    }
 
 }
