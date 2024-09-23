@@ -11,7 +11,7 @@
             <img src="ressources/css/images/logo.png" alt="">
         </div>
         <h1 style="color: #333;">Introduction</h1>
-        <p>Bonjour {{ $user->first_name }},</p>
+        <h4>Bonjour, {{ $first_name }} {{ $last_name }}</h4>
         <p>Votre compte a bien été créé, vous pouvez utiliser votre email et mot de passe pour vous connecter.</p>
         <p>Merci et à bientôt,</p>
         <p>{{ config('app.name') }}</p>

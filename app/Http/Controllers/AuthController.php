@@ -66,7 +66,7 @@ class AuthController extends Controller
             }
     
             // Création automatique d'un dossier médical pour l'utilisateur
-            $this->createMedicalRecord($user);
+            // $this->createMedicalRecord($user);
     
             // Envoi d'un email de bienvenue
         // Envoi de l'email de notification
@@ -186,14 +186,14 @@ class AuthController extends Controller
        /**
      * Création d'un dossier médical pour l'utilisateur.
      */
-    private function createMedicalRecord(User $user): void
-    {
-        MedicalFile::create([
-            'user_id' => $user->id,
-            'record_number' => $user->identification_number, // Le numéro de dossier est le même que l'identification
-            'notes' => 'Dossier créé automatiquement.',
-        ]);
-    }
+    // private function createMedicalRecord(User $user): void
+    // {
+    //     MedicalFile::create([
+    //         'user_id' => $user->id,
+    //         'record_number' => $user->identification_number, // Le numéro de dossier est le même que l'identification
+    //         'notes' => 'Dossier créé automatiquement.',
+    //     ]);
+    // }
         /**
      * Génère un numéro d'identification unique.
      */
