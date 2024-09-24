@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('medical_files', function (Blueprint $table) {
             $table->id();
             $table->string('identification_number')->unique(); // Numéro unique d'identification
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade')->unique();
             $table->timestamps();
         });
     }

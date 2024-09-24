@@ -198,17 +198,23 @@ class AuthController extends Controller
        /**
      * Création d'un dossier médical pour l'utilisateur.
      */
-    private function createMedicalRecord(User $user): void
-    {
-        $user = User::find($user->id); // Récupérez l'utilisateur
-        if ($user) {
-            MedicalFile::create([
-                'user_id' => $user->id,
-                'identification_number' => $user->identification_number, // Utilisez un ID valide
-            ]);
-        }
-        
+/**
+ * Création d'un dossier médical pour l'utilisateur.
+ */
+private function createMedicalRecord(User $user): void
+{
+    // Vérifiez si l'utilisateur a déjà un dossier médical
+    $existingMedicalFile = MedicalFile::where('user_id', $user->id)->first();
+
+    // Si aucun dossier médical n'existe, créez-en un nouveau
+    if (!$existingMedicalFile) {
+        MedicalFile::create([
+            'user_id' => $user->id,
+            // L'identification_number sera généré automatiquement par le modèle
+        ]);
     }
+}
+
         /**
      * Génère un numéro d'identification unique.
      */
