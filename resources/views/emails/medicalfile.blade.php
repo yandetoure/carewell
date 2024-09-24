@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Création de compte</title>
+    <title>Création de dossier médical</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,12 +21,10 @@
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
         .logo img {
-            width: 150px;
+            display: block;
+            margin: 0 auto 20px auto;
+            width: 150px; /* Ajustez la taille du logo selon vos besoins */
         }
         h4 {
             color: #333;
@@ -40,7 +38,7 @@
         p {
             color: #555;
             margin: 10px 0;
-            text-align: justify;
+            text-align: justify; /* Pour un meilleur alignement du texte */
         }
         footer {
             margin-top: 20px;
@@ -52,12 +50,12 @@
 </head>
 <body>
     <div class="container">
-
-        <h4>Inscription Reussie</h4>
-        <!-- <img src="{{ asset('images/logo.png') }}" alt="Welcome Image" style="width: 100%; height: auto; margin-bottom: 20px;"> -->
+        <h4>Nouveau dossier médical</h4>
+        <!-- <img src="{{ asset('images/wellogo.png') }}" alt="Welcome Image" style="width: 100%; height: auto; margin-bottom: 20px;"> -->
         <h3>Bonjour, {{ $first_name }} {{ $last_name }}</h3>
-        <p>Votre compte a bien été créé, vous pouvez utiliser votre email et mot de passe pour vous connecter.</p>
-        <p>Merci et à bientôt,</p>
+        <p>Votre dossier médical est disponible sur votre application CareWell. N'hésitez pas à le consulter régulièrement.</p>
+        <h3>Numéro de dossier : {{ $identification_number }}</h3>
+        <p>Merci et à bientôt !</p>
         <footer>
             <p>{{ config('app.name') }}</p>
         </footer>

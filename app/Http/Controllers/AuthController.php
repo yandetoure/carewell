@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use App\Mail\WelcomeMail;
+use App\Mail\MedicalFileMail;
+
 use App\Models\MedicalFile;
 
 class AuthController extends Controller
@@ -140,6 +142,9 @@ class AuthController extends Controller
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
             
+                    // Envoi de l'email de notification
+        Mail::to($user->email)->send(new \App\Mail\MedicalfileMail($user));
+
             // Création du token
             $token = $user->createToken("API TOKEN")->plainTextToken;
 
@@ -227,6 +232,17 @@ private function createMedicalRecord(User $user): void
 
         return $identification_number;
     }
+
+//     public function sendWelcomeEmail($userId)
+// {
+//     // Récupérer l'utilisateur avec son dossier médical
+//     $user = User::with('medicalFile')->findOrFail($userId);
+
+//     // Envoyer l'e-mail
+//     Mail::to($user->email)->send(new WelcomeMail($user));
+
+//     return response()->json(['message' => 'E-mail de bienvenue envoyé avec succès.']);
+// }
 }
 
 

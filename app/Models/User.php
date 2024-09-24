@@ -87,5 +87,9 @@ class User extends Authenticatable
         return $this->hasMany(MedicalFile::class);
     }
 
-
+    public function getMedicalFile()
+    {
+        // Récupération du dossier médical
+        return $this->hasOne(MedicalFile::class);
+    }
 }
