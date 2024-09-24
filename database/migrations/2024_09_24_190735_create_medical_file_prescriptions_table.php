@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('medical_file_prescriptions', function (Blueprint $table) {
             $table->id();
-            $table->string('photo')->nullable(); 
-            $table->string('name');
+            $table->foreignId('medical_files_id')->constrained()->onDelete('cascade');
+            $table->foreignId('prescription_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_done');
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('medical_file_prescriptions');
     }
 };

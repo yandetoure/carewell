@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Service extends Model
+class Prescription extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'name',
-        'photo',
+        'quantity',
+        'price',
+        'service_id'
     ];
 }

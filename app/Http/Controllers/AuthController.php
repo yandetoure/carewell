@@ -30,7 +30,14 @@ class AuthController extends Controller
             'call' => 'required|string|max:15',
             'day_of_birth' => 'required|date',
             'password' => 'required|string|min:8',
+            'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
         ]);
+    
+        // Gestion du fichier
+        $path = null;
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+        }
     
         // Retourner les erreurs de validation si présentes
         if ($validateUser->fails()) {
@@ -57,6 +64,7 @@ class AuthController extends Controller
                 'identification_number' => $identification_number,
                 'day_of_birth' => $validated['day_of_birth'],
                 'password' => Hash::make($validated['password']),
+                'photo' => $path,
             ]);
     
             // Assigner le rôle 'patient' par défaut
@@ -66,7 +74,7 @@ class AuthController extends Controller
             }
     
             // Création automatique d'un dossier médical pour l'utilisateur
-            // $this->createMedicalRecord($user);
+            $this->createMedicalRecord($user);
     
             // Envoi d'un email de bienvenue
         // Envoi de l'email de notification
@@ -186,18 +194,17 @@ class AuthController extends Controller
        /**
      * Création d'un dossier médical pour l'utilisateur.
      */
-    // private function createMedicalRecord(User $user): void
-    // {
-    //     $user = User::find($user->id); // Récupérez l'utilisateur
-    //     if ($user) {
-    //         MedicalFile::create([
-    //             'user_id' => $user->id,
-    //             'identification_number' => 'test_id', // Utilisez un ID valide
-    //             'notes' => 'Dossier créé manuellement',
-    //         ]);
-    //     }
+    private function createMedicalRecord(User $user): void
+    {
+        $user = User::find($user->id); // Récupérez l'utilisateur
+        if ($user) {
+            MedicalFile::create([
+                'user_id' => $user->id,
+                'identification_number' => $user->identification_number, // Utilisez un ID valide
+            ]);
+        }
         
-    // }
+    }
         /**
      * Génère un numéro d'identification unique.
      */

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'adress',
         'day_of_birth',
         'call',
+        'photo',
 
     ];
 
@@ -80,9 +81,11 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    // Définir la relation avec le modèle MedicalFile
     public function medicalFiles()
     {
         return $this->hasMany(MedicalFile::class);
     }
+
 
 }

@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Service extends Model
+class MedicalHistory extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'photo',
+        'content',
+        'medical_file_id',
     ];
 }

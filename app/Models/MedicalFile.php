@@ -18,7 +18,7 @@ class MedicalFile extends Model
      */
     protected $fillable = [
         'identification_number',
-        'user-id'
+        'user_id'
     ];
 
     /**
@@ -50,6 +50,7 @@ class MedicalFile extends Model
 
         return $identification_number;
     }
+    // Définir la relation avec le modèle User
     public function user()
     {
         return $this->belongsTo(User::class);

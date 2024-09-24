@@ -11,11 +11,21 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:services',
+            'name' => 'required|string|max:255|unique:services',   
+            'photo' => 'nullable|file|image|max:2048',
         ]);
-
-        $service = Service::create($request->all());
-
+    
+        // Gestion du fichier
+        $path = null;
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('service_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+        }
+    
+        $service = Service::create([
+            'name' => $request->name,
+            'photo' => $path,
+        ]);
+    
         return response()->json([
             'status' => true,
             'message' => 'Service créé avec succès',
