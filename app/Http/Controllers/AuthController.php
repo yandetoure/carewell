@@ -73,8 +73,7 @@ class AuthController extends Controller
                 $user->assignRole($rolePatient);
             }
     
-            // Création automatique d'un dossier médical pour l'utilisateur
-            $this->createMedicalRecord($user);
+
     
             // Envoi d'un email de bienvenue
         // Envoi de l'email de notification
@@ -133,9 +132,14 @@ class AuthController extends Controller
                 ], 401);
             }
 
+
+
             // Récupération de l'utilisateur authentifié
             $user = User::where('email', $request->email)->first();
 
+            // Création automatique d'un dossier médical pour l'utilisateur
+            $this->createMedicalRecord($user);
+            
             // Création du token
             $token = $user->createToken("API TOKEN")->plainTextToken;
 
