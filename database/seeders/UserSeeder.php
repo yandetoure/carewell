@@ -21,11 +21,11 @@ class UserSeeder extends Seeder
             'email' => 'ndeyeyandemouhamma@gmail.com',
             'password' => Hash::make('password'), // Hachage du mot de passe
             'adress' => '1234 Main St',
-            'call' => '+1234567890',
+            'phone_number' => '+1234567890',
             'day_of_birth' => '1990-01-01',
             'status' => true,
         ]);
-        $user1->assignRole('Patient'); // Assigner le rôle par nom
+        $user1->assignRole('Admin'); // Assigner le rôle par nom
 
         $user2 = User::create([
             'first_name' => 'Jane',
@@ -33,11 +33,11 @@ class UserSeeder extends Seeder
             'email' => 'jane.smith@example.com',
             'password' => Hash::make('password'), // Hachage du mot de passe
             'adress' => '5678 Oak St',
-            'call' => '+0987654321',
+            'phone_number' => '+0987654321',
             'day_of_birth' => '1995-02-15',
             'status' => false,
         ]);
-        $user2->assignRole('Patient'); // Assigner le rôle par nom
+        $user2->assignRole('Secretary'); // Assigner le rôle par nom
 
         $user3 = User::create([
             'first_name' => 'John',
@@ -45,7 +45,7 @@ class UserSeeder extends Seeder
             'email' => 'john.doe@example.com',
             'password' => Hash::make('password'), // Hachage du mot de passe
             'adress' => '1234 Main St',
-            'call' => '+1234567890',
+            'phone_number' => '+1234567890',
             'day_of_birth' => '1990-01-01',
             'status' => true,
         ]);

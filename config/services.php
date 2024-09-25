@@ -1,6 +1,14 @@
 <?php
 
 return [
+    // config/services.php
+
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from' => env('TWILIO_PHONE_NUMBER'),
+    ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -34,5 +42,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    
 
 ];

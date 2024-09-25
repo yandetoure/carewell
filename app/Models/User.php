@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace App\Models;
 
@@ -7,10 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles; // Utilisation du trait HasRoles pour Spatie
+    use HasFactory, Notifiable, HasRoles, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -18,15 +19,16 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'first_name', 
-        'last_name', 
-        'email', 
-        'identification_number', 
-        'password', 
-        'adress', 
-        'call', 
-        'day_of_birth', 
-        'status'
+        'first_name',
+        'last_name',
+        'email',
+        'identification_number',
+        'password',
+        'adress',
+        'day_of_birth',
+        'phone_number',
+        'photo',
+
     ];
 
     /**
@@ -46,7 +48,7 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        // Automatically generate identification_number when creating a new user
+        // Creation automatique du numero d'identification unique
         static::creating(function ($user) {
             $user->identification_number = self::generateUniqueIdentificationNumber();
         });
@@ -78,4 +80,16 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    // Définir la relation avec le modèle MedicalFile
+    public function medicalFiles()
+    {
+        return $this->hasMany(MedicalFile::class);
+    }
+
+    public function getMedicalFile()
+    {
+        // Récupération du dossier médical
+        return $this->hasOne(MedicalFile::class);
+    }
 }
