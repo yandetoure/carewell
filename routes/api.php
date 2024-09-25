@@ -7,6 +7,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFilePrescriptionController;
 
 
@@ -14,6 +15,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::apiResource('services', ServiceController::class);
+Route::apiResource('appointments', AppointmentController::class);
 Route::apiResource('articles', ArticleController::class);
 Route::apiResource('examens', ExamController::class);
 Route::apiResource('users', AuthController::class);

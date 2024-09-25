@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
             $table->date('date');
             $table->time('time');
-            $table->boolean('is_visited'); //état d'apparition du patient (visité ou non)
+            $table->boolean('is_visited')->default(false); //état d'apparition du patient (visité ou non)
             $table->softDeletes(); //permet de supprimer l'entrée sans supprimer le champ deleted_at de la table
 
             $table->timestamps();
