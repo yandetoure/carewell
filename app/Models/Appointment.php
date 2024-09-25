@@ -18,4 +18,16 @@ class Appointment extends Model
         'date',
         'time',
     ];
+
+        // Relation avec le modèle User
+        public function user()
+        {
+            return $this->belongsTo(User::class);
+        }
+    
+        // Relation avec le modèle Service
+        public function service()
+        {
+            return $this->belongsTo(Service::class);
+        }
 }
