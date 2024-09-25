@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('identification_number')->unique(); // Numéro unique d'identification
             $table->string('first_name');
             $table->string('last_name');
-            $table->integer('call');
+            $table->string('phone_number');
             $table->string('adress');
             $table->date('day_of_birth');
             $table->string('email')->unique();
