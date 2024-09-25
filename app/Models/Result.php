@@ -8,4 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Result extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'exam_id',
+        'image',
+    ];
+
+    public function exam(){
+        return $this->belongsTo(Exam::class); // Association avec l'examen
+    }
 }

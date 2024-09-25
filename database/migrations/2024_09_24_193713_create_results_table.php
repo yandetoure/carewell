@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('exam_id')->constrained()->onDelete('cascade');
+            $table->string('image')->nullable(); // Assuming the 'image' column stores the file path to the uploaded image
             $table->timestamps();
         });
     }

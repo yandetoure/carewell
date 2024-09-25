@@ -21,4 +21,8 @@ class Exam extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function results(){
+        return $this->hasMany(Result::class); // Association avec les résultats
+    }
 }

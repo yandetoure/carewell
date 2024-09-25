@@ -12,7 +12,7 @@ use App\Http\Controllers\MedicalFilePrescriptionController;
 use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NoteController;
-
+use App\Http\Controllers\ResultController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -26,6 +26,10 @@ Route::apiResource('users', AuthController::class);
 Route::apiResource('prescriptions', PrescriptionController::class);
 Route::apiResource('medicalfileprescriptions', MedicalFilePrescriptionController::class);
 Route::apiResource('tickets', TicketController::class);
+
+
+
+Route::apiResource('results', ResultController::class);
 
 // Route pour afficher les disponibilités d'un médecin pour un service donné
 Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
