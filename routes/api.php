@@ -10,6 +10,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::apiResource('services', ServiceController::class);
+Route::apiResource('articles', ArticleController::class);
 // Route::middleware('auth:api')->get('/services/{id}/details', [ServiceController::class, 'showDetails']);
 // Route::middleware('auth:api')->patch('/services/{id}', [ServiceController::class, 'update']);
 // Route::middleware('auth:api')->delete('/services/{id}', [ServiceController::class, 'destroy']);
@@ -24,4 +25,3 @@ Route::apiResource('services', ServiceController::class);
 // Route::middleware('auth:api')->post('/refresh-token', [AuthController::class, 'refresh']);
 
 
-Route::apiResource('article', ArticleController::class);

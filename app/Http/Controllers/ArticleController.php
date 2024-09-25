@@ -25,13 +25,29 @@ class ArticleController extends Controller
     public function store(Request $request)
     {
         //creer une nouvelle instance de l'article
-        $article = new Article();
-        $article->title = $request->input('title');
-        $article->image = $request->file('image')->store('articles', 'public');
-        $article->content = $request->input('content');
-        $article->save();
+            $request->validate([
+                'title' => 'required|string|max:255|unique:articles',  
+                'content' => 'required|string|min:50',  
+                'photo' => 'nullable|file|image|max:2048',
+            ]);
+        
+            // Gestion du fichier
+            $path = null;
+            if ($request->hasFile('photo')) {
+                $path = $request->file('photo')->store('articles_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+            }
+        
+            $article = Article::create([
+                'title' => $request->title,
+                'content' => $request->content,
+                'photo' => $path,
+            ]);
 
-        return response()->json(['data' => $article], 201);
+            return response()->json([
+                'status' => true,
+                'message' => 'Article créé avec succès',
+                'data' => $article,
+            ], 201);
     }
 
     /**
