@@ -92,4 +92,17 @@ class User extends Authenticatable
         // Récupération du dossier médical
         return $this->hasOne(MedicalFile::class);
     }
+
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function availabilities()
+{
+    return $this->hasMany(Availability::class, 'doctor_id');
+}
+
+
 }

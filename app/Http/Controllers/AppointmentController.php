@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Models\Availability;
 
 class AppointmentController extends Controller
 {
@@ -29,25 +30,44 @@ class AppointmentController extends Controller
         try {
             // Validation des données
             $request->validate([
-                'user_id' => 'required|exists:users,id', // Vérifie que l'utilisateur existe
-                'service_id' => 'required|exists:services,id', // Vérifie que le service existe
+                'user_id' => 'required|exists:users,id', // Utilisateur existant
+                'service_id' => 'required|exists:services,id', // Service existant
                 'reason' => 'required|string|max:255',
                 'symptoms' => 'nullable|string',
-                'date' => 'required|date', // Validation de la date
-                'time' => 'required|date_format:H:i', // Format d'heure : HH:MM
+                'date' => 'required|date', // Date du rendez-vous
+                'time' => 'required|date_format:H:i', // Heure du rendez-vous
             ]);
-
-            // Création du rendez-vous
+    
+            // Recherche des disponibilités des médecins pour ce service
+            $availableDoctor = Availability::where('service_id', $request->service_id)
+                ->where('available_date', $request->date)
+                ->where('start_time', '<=', $request->time)
+                ->where('end_time', '>=', $request->time)
+                ->whereHas('doctor', function ($query) {
+                    $query->where('role', 'doctor'); // Filtrer uniquement les médecins
+                })
+                ->first();
+    
+            if (!$availableDoctor) {
+                // Si aucun médecin n'est disponible
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Aucun médecin n\'est disponible à cette date ou heure. Veuillez choisir une autre date.',
+                ], 422);
+            }
+    
+            // Si un médecin est disponible, création du rendez-vous
             $appointment = Appointment::create([
                 'user_id' => $request->user_id,
                 'service_id' => $request->service_id,
+                'doctor_id' => $availableDoctor->doctor_id, // Associe le médecin disponible
                 'reason' => $request->reason,
                 'symptoms' => $request->symptoms,
                 'is_visited' => false, // Initialement, le patient n'a pas encore visité
                 'date' => $request->date,
                 'time' => $request->time,
             ]);
-
+    
             return response()->json([
                 'status' => true,
                 'message' => 'Rendez-vous créé avec succès',
@@ -60,15 +80,15 @@ class AppointmentController extends Controller
                 'errors' => $e->validator->errors(),
             ], 422);
         }
-    }
-
-    /**
+    }    
+    
+  /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
         // Récupérer les détails d'un rendez-vous
-        $appointment = Appointment::with(['user', 'service'])->find($id);
+        $appointment = Appointment::with(['user', 'service', 'doctor'])->find($id);
 
         if (!$appointment) {
             return response()->json([

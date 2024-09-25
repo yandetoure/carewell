@@ -190,18 +190,20 @@ class AuthController extends Controller
         ], 200);
     }
 
+
     /**
      * Déconnexion de l'utilisateur.
      */
     public function logout()
     {
-        auth::user()->tokens()->delete();
+        Auth::user()->tokens()->delete(); // Utiliser 'Auth' avec une majuscule
         return response()->json([
-           'status' => true,
-           'message' => "Vous êtes déconnecté",
-           'data' => [],
+        'status' => true,
+        'message' => "Vous êtes déconnecté",
+        'data' => [],
         ], 200);
     }
+
 
     /**
      * Obtenir tous les utilisateurs.
