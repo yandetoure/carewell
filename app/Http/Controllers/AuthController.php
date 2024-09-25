@@ -87,7 +87,7 @@ class AuthController extends Controller
             ]);
     
             // Assigner le rôle 'patient' par défaut
-            $rolePatient = Role::firstWhere('name', 'patient');
+            $rolePatient = Role::firstWhere('name', 'Patient');
             if ($rolePatient) {
                 $user->assignRole($rolePatient);
             }

@@ -40,13 +40,13 @@ class AppointmentController extends Controller
     
             // Recherche des disponibilités des médecins pour ce service
             $availableDoctor = Availability::where('service_id', $request->service_id)
-                ->where('available_date', $request->date)
-                ->where('start_time', '<=', $request->time)
-                ->where('end_time', '>=', $request->time)
-                ->whereHas('doctor', function ($query) {
-                    $query->where('role', 'doctor'); // Filtrer uniquement les médecins
-                })
-                ->first();
+            ->where('available_date', $request->date)
+            ->where('start_time', '<=', $request->time)
+            ->where('end_time', '>=', $request->time)
+            // ->whereHas('doctor', function ($query) {
+            //     $query->role('Doctor'); // Filtrer uniquement les médecins
+            // })
+            ->first();        
     
             if (!$availableDoctor) {
                 // Si aucun médecin n'est disponible
