@@ -10,8 +10,15 @@ class MedicalFilePrescription extends Model
     use HasFactory;
 
     protected $fillable = [
-        'medical_file_id',
+        'medical_files_id',
         'prescription_id',
-        'status',
+        'is_done',
     ];
+
+        // Déclaration de la relation avec MedicalFile
+        public function medicalFile()
+        {
+            return $this->belongsTo(MedicalFile::class);
+        }
+    
 }

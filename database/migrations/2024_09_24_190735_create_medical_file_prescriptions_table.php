@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('medical_files_id')->constrained()->onDelete('cascade');
             $table->foreignId('prescription_id')->constrained()->onDelete('cascade');
-            $table->boolean('is_done');
+            $table->boolean('is_done')->default(false); 
             $table->timestamps();
         });
     }

@@ -55,4 +55,16 @@ class MedicalFile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+        // Déclaration de la relation avec MedicalFilePrescription
+        public function prescriptions()
+        {
+            return $this->hasMany(MedicalFilePrescription::class);
+        }
+                // Déclaration de la relation avec Examen
+         public function examens()
+                {
+          return $this->hasMany(Exam::class);
+        }
+
 }

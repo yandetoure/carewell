@@ -24,42 +24,54 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Validation des données
-               // Validation des données
-               $validateUser = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'adress' => 'required|string|max:255',
-                'phone_number' => 'required|regex:/^[0-9]{9}$/', // Suppression de l'indicatif dans la regex
-                'day_of_birth' => 'required|date',
-                'password' => 'required|string|min:8',
-                'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
-            ]);
-        
-            // Gestion du fichier
-            $path = null;
-            if ($request->hasFile('photo')) {
-                $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+        $validateUser = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'adress' => 'required|string|max:255',
+            'phone_number' => 'required|regex:/^[0-9]{9}$/', // Suppression de l'indicatif dans la regex
+            'day_of_birth' => 'required', // Peut être soit un âge soit une date
+            'password' => 'required|string|min:8',
+            'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
+        ]);
+    
+        if ($validateUser->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'errors' => $validateUser->errors()
+            ], 400);
+        }
+    
+        $validated = $validateUser->validated();
+    
+        // Convertir l'âge en date de naissance si nécessaire
+        if (is_numeric($validated['day_of_birth'])) {
+            // Si c'est un nombre, on considère que c'est un âge
+            $age = (int)$validated['day_of_birth'];
+            $validated['day_of_birth'] = now()->subYears($age)->format('Y-m-d');
+        } elseif (strtotime($validated['day_of_birth']) === false) {
+            // Si ce n'est pas une date valide, renvoyer une erreur
+            return response()->json([
+                'status' => false,
+                'message' => 'Le champ day_of_birth doit être une date ou un âge valide.',
+            ], 400);
+        }
+    
+        // Gestion du fichier photo
+        $path = null;
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+        }
+    
+        try {
+            // Vérification et ajout de l'indicatif téléphonique si nécessaire
+            if (!Str::startsWith($validated['phone_number'], '+221')) {
+                $validated['phone_number'] = '+221' . $validated['phone_number'];
             }
-        
-            if ($validateUser->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validateUser->errors()
-                ], 400);
-            }
-        
-            try {
-                $validated = $validateUser->validated();
-        
-                // Vérification et ajout de l'indicatif téléphonique si nécessaire
-                if (!Str::startsWith($validated['phone_number'], '+221')) {
-                    $validated['phone_number'] = '+221' . $validated['phone_number'];
-                }
-        
-                // Génération du numéro d'identification unique
-                $identification_number = $this->generateUniqueIdentificationNumber();
+    
+            // Génération du numéro d'identification unique
+            $identification_number = $this->generateUniqueIdentificationNumber();
     
             // Création de l'utilisateur si la validation passe
             $user = User::create([
@@ -69,7 +81,7 @@ class AuthController extends Controller
                 'adress' => $validated['adress'],
                 'phone_number' => $validated['phone_number'],
                 'identification_number' => $identification_number,
-                'day_of_birth' => $validated['day_of_birth'],
+                'day_of_birth' => $validated['day_of_birth'], // Stockage de la date de naissance
                 'password' => Hash::make($validated['password']),
                 'photo' => $path,
             ]);
@@ -80,12 +92,8 @@ class AuthController extends Controller
                 $user->assignRole($rolePatient);
             }
     
-
-    
             // Envoi d'un email de bienvenue
-        // Envoi de l'email de notification
-        Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user));
-
+            Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user));
     
             // Authentification de l'utilisateur après l'inscription
             Auth::login($user);
@@ -99,6 +107,7 @@ class AuthController extends Controller
                 'message' => 'Le compte a été créé avec succès',
                 'token' => $token
             ], 201);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -107,6 +116,8 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    
+    
     
 
         

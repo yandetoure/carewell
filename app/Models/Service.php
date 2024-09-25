@@ -18,4 +18,11 @@ class Service extends Model
     {
         return $this->hasMany(Exam::class);
     }
+
+        // Déclaration de la relation avec MedicalFilePrescription
+        public function prescriptions()
+        {
+            return $this->hasMany(MedicalFilePrescription::class);
+        }
+        
 }

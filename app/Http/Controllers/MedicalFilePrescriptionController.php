@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MedicalFilePrescription;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class MedicalFilePrescriptionController extends Controller
 {
@@ -11,7 +13,12 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function index()
     {
-        //
+        // Affichage des prescriptions médicales
+        $medicalFilePrescriptions = MedicalFilePrescription::with('medical_files')->get(); // Récupérer les prescriptions avec leurs services
+        return response()->json([
+            'status' => true,
+            'data' => $medicalFilePrescriptions,
+        ]);
     }
 
     /**
@@ -19,7 +26,32 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        try {
+            // Validation des données
+            $request->validate([
+                'prescription_id' => 'required|exists:prescription,id',
+                'medical_files_id' => 'required|exists:medical_files,id',
+            ]);
+            
+            // Création d'une nouvelle instance de prescription médicale
+            $medicalFilePrescription = MedicalFilePrescription::create([
+                'is_done' => false, // Définit is_done à false par défaut
+                'prescription_id' => $request->prescription_id,
+                'medical_files_id' => $request->medical_files_id,
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Prescription créée avec succès',
+                'data' => $medicalFilePrescription,
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->validator->errors(),
+            ], 422);
+        }
     }
 
     /**
@@ -27,7 +59,20 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function show(string $id)
     {
-        //
+        // Affichage des détails d'une prescription médicale
+        $medicalFilePrescription = MedicalFilePrescription::with('service')->find($id);
+        
+        if (!$medicalFilePrescription) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Prescription non trouvée',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $medicalFilePrescription,
+        ]);
     }
 
     /**
@@ -35,7 +80,31 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        // Validation des données
+        $request->validate([
+            'is_done' => 'required|boolean',
+            'prescription_id' => 'required|exists:prescription,id',
+        ]);
+
+        // Modifier une prescription
+        $medicalFilePrescription = MedicalFilePrescription::find($id);
+        
+        if (!$medicalFilePrescription) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Prescription non trouvée',
+            ], 404);
+        }
+
+        $medicalFilePrescription->is_done = $request->is_done;
+        $medicalFilePrescription->service_id = $request->service_id;
+        $medicalFilePrescription->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'La prescription a été modifiée avec succès',
+            'data' => $medicalFilePrescription,
+        ]);
     }
 
     /**
@@ -43,6 +112,21 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        // Supprimer une prescription
+        $medicalFilePrescription = MedicalFilePrescription::find($id);
+        
+        if (!$medicalFilePrescription) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Prescription non trouvée',
+            ], 404);
+        }
+
+        $medicalFilePrescription->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'La prescription a été supprimée avec succès',
+        ]);
     }
 }
