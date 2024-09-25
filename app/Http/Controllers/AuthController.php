@@ -116,10 +116,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-    
-    
-    
-
         
     /**
      * Connexion d'un utilisateur.

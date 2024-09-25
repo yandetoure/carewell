@@ -14,7 +14,7 @@ class MedicalFilePrescriptionController extends Controller
     public function index()
     {
         // Affichage des prescriptions médicales
-        $medicalFilePrescriptions = MedicalFilePrescription::with('medical_files')->get(); // Récupérer les prescriptions avec leurs services
+        $medicalFilePrescriptions = MedicalFilePrescription::with(['medicalFile', 'p'])->get(); // Récupérer les prescriptions avec leurs fichiers médicaux et services
         return response()->json([
             'status' => true,
             'data' => $medicalFilePrescriptions,
@@ -29,15 +29,15 @@ class MedicalFilePrescriptionController extends Controller
         try {
             // Validation des données
             $request->validate([
-                'prescription_id' => 'required|exists:prescription,id',
-                'medical_files_id' => 'required|exists:medical_files,id',
+                'prescription_id' => 'required|exists:prescriptions,id', // Corrigez le nom de la table ici
+                'medical_files_id' => 'required|exists:medical_files,id', // Correction du nom de la colonne
             ]);
             
             // Création d'une nouvelle instance de prescription médicale
             $medicalFilePrescription = MedicalFilePrescription::create([
                 'is_done' => false, // Définit is_done à false par défaut
                 'prescription_id' => $request->prescription_id,
-                'medical_files_id' => $request->medical_files_id,
+                'medical_files_id' => $request->medical_files_id, // Correction du nom de la colonne
             ]);
 
             return response()->json([
@@ -60,7 +60,7 @@ class MedicalFilePrescriptionController extends Controller
     public function show(string $id)
     {
         // Affichage des détails d'une prescription médicale
-        $medicalFilePrescription = MedicalFilePrescription::with('service')->find($id);
+        $medicalFilePrescription = MedicalFilePrescription::with(['service', 'medicalFile'])->find($id);
         
         if (!$medicalFilePrescription) {
             return response()->json([
@@ -83,7 +83,7 @@ class MedicalFilePrescriptionController extends Controller
         // Validation des données
         $request->validate([
             'is_done' => 'required|boolean',
-            'prescription_id' => 'required|exists:prescription,id',
+            'prescription_id' => 'required|exists:prescriptions,id', // Correction du nom de la table ici
         ]);
 
         // Modifier une prescription
@@ -97,7 +97,8 @@ class MedicalFilePrescriptionController extends Controller
         }
 
         $medicalFilePrescription->is_done = $request->is_done;
-        $medicalFilePrescription->service_id = $request->service_id;
+        $medicalFilePrescription->prescription_id = $request->prescription_id; // Assurez-vous que cela est correct
+        $medicalFilePrescription->service_id = $request->service_id; // Vérifiez si service_id est inclus dans la requête
         $medicalFilePrescription->save();
 
         return response()->json([

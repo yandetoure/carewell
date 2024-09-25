@@ -20,5 +20,10 @@ class MedicalFilePrescription extends Model
         {
             return $this->belongsTo(MedicalFile::class);
         }
-    
+
+        public function p() 
+        {
+            return $this->belongsTo(Prescription::class); 
+        }
+
 }
