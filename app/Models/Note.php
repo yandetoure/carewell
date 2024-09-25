@@ -8,4 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Note extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'content', 
+        'medical_files_id'];
+
+            // Relation avec le modèle MedicalFile
+    public function medicalFile()
+    {
+        return $this->belongsTo(MedicalFile::class, 'medical_files_id');
+    }
 }

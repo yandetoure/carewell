@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MedicalFilePrescription;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Models\Ticket;
+
 
 class MedicalFilePrescriptionController extends Controller
 {
@@ -38,6 +40,12 @@ class MedicalFilePrescriptionController extends Controller
                 'is_done' => false, // Définit is_done à false par défaut
                 'prescription_id' => $request->prescription_id,
                 'medical_files_id' => $request->medical_files_id, // Correction du nom de la colonne
+            ]);
+
+            // Création du ticket associé à la prescription
+            $ticket = Ticket::create([
+                'prescription_id' => $request->prescription_id, // Utilisation correcte de la prescription_id
+                'is_paid' => false, // Initialement, le ticket n'est pas payé
             ]);
 
             return response()->json([

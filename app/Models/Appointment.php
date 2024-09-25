@@ -30,4 +30,11 @@ class Appointment extends Model
         {
             return $this->belongsTo(Service::class);
         }
+
+            // Relation avec le modèle Ticket
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+    
 }

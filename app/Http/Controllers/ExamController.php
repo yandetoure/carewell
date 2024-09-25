@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Exam;
 use Illuminate\Validation\ValidationException;
+use App\Models\Ticket;
 
 class ExamController extends Controller
 {
@@ -42,6 +43,13 @@ class ExamController extends Controller
                 'price' => $request->price,
                 'service_id' => $request->service_id,
             ]);
+
+            // Création du ticket associé à la prescription
+            $ticket = Ticket::create([
+            'exam_id' => $request->exam_id, // Utilisation correcte de la exam_id
+            'is_paid' => false, // Initialement, le ticket n'est pas payé
+        ]);
+
 
             return response()->json([
                 'status' => true,

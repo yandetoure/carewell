@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('appointment_id')->constrained()->onDelete('cascade');
-            $table->foreignId('prescription_id')->constrained()->onDelete('cascade');
-            $table->foreignId('exam_id')->constrained()->onDelete('cascade');
-            $table->boolean('is_paid');
+            $table->foreignId('appointment_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('prescription_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('exam_id')->nullable()->constrained()->onDelete('cascade');
+            $table->boolean('is_paid')->default(false); // Par défaut à false
             $table->timestamps();
         });
     }

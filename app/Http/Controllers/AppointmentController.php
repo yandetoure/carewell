@@ -6,6 +6,8 @@ use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Models\Availability;
+use App\Models\Ticket;
+
 
 class AppointmentController extends Controller
 {
@@ -68,19 +70,28 @@ class AppointmentController extends Controller
                 'time' => $request->time,
             ]);
     
-            return response()->json([
-                'status' => true,
-                'message' => 'Rendez-vous créé avec succès',
-                'data' => $appointment,
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors(),
-            ], 422);
-        }
-    }    
+    // Création du ticket associé au rendez-vous
+    $ticket = Ticket::create([
+        'appointment_id' => $appointment->id,
+        'is_paid' => false, // Initialement, le ticket n'est pas payé
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Rendez-vous créé avec succès',
+        'data' => [
+            'appointment' => $appointment,
+            'ticket' => $ticket
+        ],
+    ], 201);
+    } catch (ValidationException $e) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Erreur de validation',
+        'errors' => $e->validator->errors(),
+    ], 422);
+    }
+    }  
     
   /**
      * Display the specified resource.
