@@ -12,6 +12,7 @@ class Ticket extends Model
     protected $fillable = [
         'appointment_id',
         'prescription_id',
+        'doctor_id',
         'exam_id',
         'is_paid'
     ];
@@ -32,4 +33,10 @@ class Ticket extends Model
         {
             return $this->belongsTo(Exam::class);
         }
+
+        public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_id');
+    }
+
 }

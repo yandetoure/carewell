@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('appointment_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('doctor_id')->nullable();
             $table->foreignId('prescription_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('exam_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');            
             $table->boolean('is_paid')->default(false); // Par défaut à false
             $table->timestamps();
         });

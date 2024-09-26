@@ -10,7 +10,7 @@ class MedicalFileMail extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
-    public $medical_file; // Ajoutez cette ligne
+    public $medical_file_prescription; // Ajoutez cette ligne
 
     /**
      * Create a new message instance.
@@ -20,7 +20,7 @@ class MedicalFileMail extends Mailable
         $this->user = $user;
 
         // Récupérer la fiche médicale de l'utilisateur
-        $this->medical_file = $user->medicalFile; // Assurez-vous que la relation est bien définie
+        $this->medical_file_prescription = $user->medicalFilePrescription; // Assurez-vous que la relation est bien définie
     }
 
     /**
@@ -28,12 +28,13 @@ class MedicalFileMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Bravo, votre dossier medical a ete cree')
-                    ->view('emails.medicalfile') // Assurez-vous de créer la vue
+        return $this->subject('Bonjour,vous avez une nouvelle prescription medicale')
+                    ->view('emails.prescription') // Assurez-vous de créer la vue
                     ->attach(public_path('images/logo.png')) // Chemin de l'image
                     ->with([
                         'first_name' => $this->user->first_name,
                         'last_name' => $this->user->last_name,
+                        'name' => $this->medical_file_prescription ->name,
                         // 'identification_number' => $this->medical_file ? $this->medical_file->identification_number : null, // Vérifiez si la fiche médicale existe
                     ]);
     }

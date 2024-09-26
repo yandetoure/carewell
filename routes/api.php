@@ -13,6 +13,7 @@ use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\MedicalFileController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -25,8 +26,10 @@ Route::apiResource('examens', ExamController::class);
 Route::apiResource('users', AuthController::class);
 Route::apiResource('prescriptions', PrescriptionController::class);
 Route::apiResource('medicalfileprescriptions', MedicalFilePrescriptionController::class);
+Route::apiResource('medicalfiles', MedicalFileController::class);
 Route::apiResource('tickets', TicketController::class);
 
+Route::put('/profile/update', [AuthController::class, 'updateProfile']);
 
 
 Route::apiResource('results', ResultController::class);

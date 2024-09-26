@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Models\Availability;
 use App\Models\Ticket;
+use App\Models\User; // Ajoutez ceci
+use Exception; // Ajoutez ceci
+
 
 
 class AppointmentController extends Controller
@@ -40,58 +43,84 @@ class AppointmentController extends Controller
                 'time' => 'required|date_format:H:i', // Heure du rendez-vous
             ]);
     
-            // Recherche des disponibilités des médecins pour ce service
-            $availableDoctor = Availability::where('service_id', $request->service_id)
-            ->where('available_date', $request->date)
-            ->where('start_time', '<=', $request->time)
-            ->where('end_time', '>=', $request->time)
-            // ->whereHas('doctor', function ($query) {
-            //     $query->role('Doctor'); // Filtrer uniquement les médecins
-            // })
-            ->first();        
+            // Recherche des disponibilités des médecins pour ce service à cette date et heure
+            $availableDoctors = Availability::where('service_id', $request->service_id)
+                ->where('available_date', $request->date)
+                ->where('start_time', '<=', $request->time)
+                ->where('end_time', '>=', $request->time)
+                ->get(); // Récupérer toutes les disponibilités
     
-            if (!$availableDoctor) {
-                // Si aucun médecin n'est disponible
+            // Filtrer les médecins ayant le rôle 'Doctor' et moins de 15 rendez-vous
+            $eligibleDoctors = [];
+            foreach ($availableDoctors as $availability) {
+                $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
+    
+                // Vérifier si le médecin a le rôle 'Doctor'
+                if ($doctor && $doctor->hasRole('Doctor')) {
+                    // Compter le nombre de rendez-vous pour cette date
+                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+                        ->where('date', $request->date)
+                        ->count();
+    
+                    if ($appointmentCount < 15) {
+                        $eligibleDoctors[] = $doctor; // Ajouter le médecin éligible
+                    }
+                }
+            }
+    
+            // Vérifier s'il y a des médecins éligibles
+            if (empty($eligibleDoctors)) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Aucun médecin n\'est disponible à cette date ou heure. Veuillez choisir une autre date.',
+                    'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date.',
                 ], 422);
             }
+    
+            // Choisir un médecin au hasard parmi ceux qui sont éligibles
+            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
     
             // Si un médecin est disponible, création du rendez-vous
             $appointment = Appointment::create([
                 'user_id' => $request->user_id,
                 'service_id' => $request->service_id,
-                'doctor_id' => $availableDoctor->doctor_id, // Associe le médecin disponible
+                'doctor_id' => $selectedDoctor->id, // Associe l'ID du médecin choisi
                 'reason' => $request->reason,
                 'symptoms' => $request->symptoms,
-                'is_visited' => false, // Initialement, le patient n'a pas encore visité
+                'is_visited' => false,
                 'date' => $request->date,
                 'time' => $request->time,
             ]);
     
-    // Création du ticket associé au rendez-vous
-    $ticket = Ticket::create([
-        'appointment_id' => $appointment->id,
-        'is_paid' => false, // Initialement, le ticket n'est pas payé
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Rendez-vous créé avec succès',
-        'data' => [
-            'appointment' => $appointment,
-            'ticket' => $ticket
-        ],
-    ], 201);
-    } catch (ValidationException $e) {
-    return response()->json([
-        'status' => false,
-        'message' => 'Erreur de validation',
-        'errors' => $e->validator->errors(),
-    ], 422);
+            // Création du ticket associé avec l'ID du docteur
+            $ticket = Ticket::create([
+                'appointment_id' => $appointment->id,
+                'doctor_id' => $selectedDoctor->id, // Associe l'ID du médecin choisi
+                'is_paid' => false, // Ticket non payé initialement
+            ]);
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Rendez-vous créé avec succès',
+                'data' => [
+                    'appointment' => $appointment,
+                    'ticket' => $ticket
+                ],
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->validator->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la création du rendez-vous',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-    }  
+    
     
   /**
      * Display the specified resource.

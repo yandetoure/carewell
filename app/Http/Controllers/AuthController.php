@@ -33,6 +33,7 @@ class AuthController extends Controller
             'day_of_birth' => 'required', // Peut être soit un âge soit une date
             'password' => 'required|string|min:8',
             'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
+            'service_id' => 'required_if:role,Doctor|exists:services,id', // Validation pour le champ service_id
         ]);
     
         if ($validateUser->fails()) {
@@ -84,6 +85,7 @@ class AuthController extends Controller
                 'day_of_birth' => $validated['day_of_birth'], // Stockage de la date de naissance
                 'password' => Hash::make($validated['password']),
                 'photo' => $path,
+                'service_id' => $request->service_id, // Ajout du service_id
             ]);
     
             // Assigner le rôle 'patient' par défaut
@@ -155,7 +157,7 @@ class AuthController extends Controller
             $this->createMedicalRecord($user);
             
                     // Envoi de l'email de notification
-        Mail::to($user->email)->send(new \App\Mail\MedicalfileMail($user));
+        Mail::to($user->email)->send(new \App\Mail\MedicalFileMail($user));
 
             // Création du token
             $token = $user->createToken("API TOKEN")->plainTextToken;
@@ -257,6 +259,85 @@ private function createMedicalRecord(User $user): void
 
 //     return response()->json(['message' => 'E-mail de bienvenue envoyé avec succès.']);
 // }
+
+public function updateProfile(Request $request)
+{
+    // Validation des données d'entrée
+    $validateUser = Validator::make($request->all(), [
+        'first_name' => 'nullable|string|max:255',
+        'last_name' => 'nullable|string|max:255',
+        'email' => 'nullable|string|email|max:255|unique:users,email,' . Auth::id(),
+        'adress' => 'nullable|string|max:255',
+        'phone_number' => 'nullable|regex:/^[0-9]{9}$/', // Assurez-vous que le numéro ne contient que 9 chiffres sans indicatif
+        'day_of_birth' => 'nullable|date',
+        'password' => 'nullable|string|min:8|confirmed', // Optionnel, mais doit être confirmé si fourni
+        'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
+    ]);
+
+    if ($validateUser->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation error',
+            'errors' => $validateUser->errors()
+        ], 400);
+    }
+
+    try {
+        // Récupérer l'utilisateur authentifié
+        $user = Auth::user();
+
+        // Si une photo est uploadée, la stocker et mettre à jour le chemin
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('user_photos', 'public');
+            $user->photo = $path;
+        }
+
+        // Mettre à jour les champs si fournis
+        if ($request->has('first_name')) {
+            $user->first_name = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $user->last_name = $request->last_name;
+        }
+        if ($request->has('email')) {
+            $user->email = $request->email;
+        }
+        if ($request->has('adress')) {
+            $user->adress = $request->adress;
+        }
+        if ($request->has('phone_number')) {
+            // Ajouter l'indicatif +221 si nécessaire
+            $phone_number = $request->phone_number;
+            if (!Str::startsWith($phone_number, '+221')) {
+                $phone_number = '+221' . $phone_number;
+            }
+            $user->phone_number = $phone_number;
+        }
+        if ($request->has('day_of_birth')) {
+            $user->day_of_birth = $request->day_of_birth;
+        }
+        if ($request->has('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        // Enregistrer les modifications
+        // $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profil mis à jour avec succès',
+            'user' => $user
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la mise à jour du profil',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }
 
 

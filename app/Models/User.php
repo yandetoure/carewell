@@ -28,6 +28,7 @@ class User extends Authenticatable
         'day_of_birth',
         'phone_number',
         'photo',
+        'service_id',
 
     ];
 
@@ -99,10 +100,14 @@ class User extends Authenticatable
         return $this->belongsTo(User::class);
     }
 
-    public function availabilities()
-{
-    return $this->hasMany(Availability::class, 'doctor_id');
-}
+        public function availabilities()
+    {
+        return $this->hasMany(Availability::class, 'doctor_id');
+    }
 
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
 
 }

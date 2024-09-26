@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Création de dossier médical</title>
+    <title>Nouvelle Prescription</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -50,11 +50,12 @@
 </head>
 <body>
     <div class="container">
-        <h4>Nouveau dossier médical</h4>
+        <h4>Nouvelle Prescription</h4>
         <!-- <img src="{{ asset('images/wellogo.png') }}" alt="Welcome Image" style="width: 100%; height: auto; margin-bottom: 20px;"> -->
         <h3>Bonjour, {{ $first_name }} {{ $last_name }}</h3>
-        <p>Votre dossier médical est disponible sur votre application CareWell. N'hésitez pas à le consulter régulièrement.</p>
-        <p>Merci et à bientôt !</p>
+        <p>Votre medecin vous a fait une nouvelle prescription, veuillez verifier votre ticket sur l'application.</p>
+        <!-- <h3>Numéro de dossier : {{ $identification_number }}</h3> -->
+        <p>Prenez bien soin de vous !</p>
         <footer>
             <p>{{ config('app.name') }}</p>
         </footer>

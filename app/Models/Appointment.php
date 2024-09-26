@@ -15,6 +15,7 @@ class Appointment extends Model
         'reason',
         'symptoms',
         'is_visited',
+        'doctor_id',
         'date',
         'time',
     ];
@@ -37,4 +38,9 @@ class Appointment extends Model
         return $this->hasMany(Ticket::class);
     }
     
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_id');
+    }
+
 }

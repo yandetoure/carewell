@@ -47,8 +47,22 @@ class UserSeeder extends Seeder
             'adress' => '1234 Main St',
             'phone_number' => '+1234567890',
             'day_of_birth' => '1990-01-01',
+            // 'service_id' => '1',
             'status' => true,
         ]);
         $user3->assignRole('Doctor'); // Assigner le rôle par nom
+
+        $user4 = User::create([
+            'first_name' => 'Mareme',
+            'last_name' => 'Thiaw',
+            'email' => 'thiaw@gmail.com',
+            'password' => Hash::make('password'), // Hachage du mot de passe
+            'adress' => '1234 Main St',
+            'phone_number' => '+1234567890',
+            'day_of_birth' => '1990-01-01',
+            // 'service_id' => '1',
+            'status' => true,
+        ]);
+        $user4->assignRole('Doctor'); // Assigner le rôle par nom
     }
 }

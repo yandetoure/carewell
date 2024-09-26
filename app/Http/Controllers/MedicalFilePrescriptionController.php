@@ -6,6 +6,13 @@ use App\Models\MedicalFilePrescription;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Models\Ticket;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PrescriptionMail;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+
+
+
 
 
 class MedicalFilePrescriptionController extends Controller
@@ -47,6 +54,9 @@ class MedicalFilePrescriptionController extends Controller
                 'prescription_id' => $request->prescription_id, // Utilisation correcte de la prescription_id
                 'is_paid' => false, // Initialement, le ticket n'est pas payé
             ]);
+
+            // Envoi d'un email de bienvenue
+            Mail::to($user->email)->send(new \App\Mail\PrescriptionMail($user));
 
             return response()->json([
                 'status' => true,
