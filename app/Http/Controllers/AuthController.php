@@ -33,7 +33,7 @@ class AuthController extends Controller
             'day_of_birth' => 'required', // Peut être soit un âge soit une date
             'password' => 'required|string|min:8',
             'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
-            'service_id' => 'required_if:role,Doctor|exists:services,id', // Validation pour le champ service_id
+            // 'service_id' => 'required_if:role,Doctor|exists:services,id', // Validation pour le champ service_id
         ]);
     
         if ($validateUser->fails()) {
@@ -153,6 +153,10 @@ class AuthController extends Controller
             // Récupération de l'utilisateur authentifié
             $user = User::where('email', $request->email)->first();
 
+            // Récupérer les rôles de l'utilisateur
+            $roles = $user->getRoleNames(); // Méthode fournie par Spatie
+
+
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
             
@@ -166,7 +170,8 @@ class AuthController extends Controller
                 'status' => true,
                 'message' => 'Vous êtes connecté',
                 'token' => $token,
-                'user' => $user
+                'user' => $user,
+                'roles' => $roles, // Retourner les rôles de l'utilisateur
             ], 200);
 
         } catch (\Exception $e) {
@@ -338,9 +343,20 @@ public function updateProfile(Request $request)
     }
 }
 
+    // public function getUserRole(Request $request)
+    // {
+    //     // Récupérer l'utilisateur connecté
+    //     $user = Auth::user();
+
+    //     // Récupérer le rôle de l'utilisateur
+    //     $roles = $user->getRoleNames(); // Cela retourne un tableau de rôles
+
+    //     // Retourner le premier rôle trouvé
+    //     return response()->json([
+    //         'role' => $roles->first(),
+    //     ], 200);
+    // }
+
+
 }
-
-
-
-
 

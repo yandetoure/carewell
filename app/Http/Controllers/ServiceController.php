@@ -13,6 +13,7 @@ class ServiceController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:services',   
             'photo' => 'nullable|file|image|max:2048',
+            'description' => 'required|string|max:255|unique:services',
         ]);
     
         // Gestion du fichier
@@ -24,6 +25,7 @@ class ServiceController extends Controller
         $service = Service::create([
             'name' => $request->name,
             'photo' => $path,
+            'description' => $request->description,
         ]);
     
         return response()->json([
@@ -53,6 +55,8 @@ class ServiceController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255|unique:services,name,' . $id,
+            'photo' => 'nullable|file|image|max:2048',
+            'description' => 'required|string|max:255|unique:services,description,' . $id,
         ]);
 
         $service->update($request->all());

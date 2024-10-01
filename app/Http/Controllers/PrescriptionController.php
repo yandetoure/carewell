@@ -13,12 +13,8 @@ class PrescriptionController extends Controller
      */
     public function index()
     {
-        // Affichage des examens
-        $prescriptions = Prescription::with('service')->get(); // Récupérer les examens avec leurs services
-        return response()->json([
-            'status' => true,
-            'data' => $prescriptions,
-        ]);
+        $prescriptions = Prescription::all();
+        return response()->json(['data' => $prescriptions]);
     }
 
     /**

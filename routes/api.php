@@ -41,7 +41,6 @@ Route::apiResource('availabilities', AvailabilityController::class);
 Route::apiResource('notes', NoteController::class);
 
 
-
 // Route::middleware('auth:api')->get('/services/{id}/details', [ServiceController::class, 'showDetails']);
 // Route::middleware('auth:api')->patch('/services/{id}', [ServiceController::class, 'update']);
 // Route::middleware('auth:api')->delete('/services/{id}', [ServiceController::class, 'destroy']);

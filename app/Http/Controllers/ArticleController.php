@@ -31,6 +31,8 @@ class ArticleController extends Controller
                 'title' => 'required|string|max:255|unique:articles',  
                 'content' => 'required|string|min:50',  
                 'photo' => 'nullable|file|image|max:2048',
+                'symptoms' => 'required|string|max:255',
+                'advices' => 'required|string|max:255',
             ]);
         
             // Gestion du fichier
@@ -43,6 +45,8 @@ class ArticleController extends Controller
                 'title' => $request->title,
                 'content' => $request->content,
                 'photo' => $path,
+                'symptoms' => $request->symptoms,
+                'advices' => $request->advices,
             ]);
 
             return response()->json([

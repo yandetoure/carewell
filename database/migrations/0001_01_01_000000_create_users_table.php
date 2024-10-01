@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('status')->default(true);
             $table->string('photo')->nullable(); // Champ pour la photo
+            $table->string('biographie')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
