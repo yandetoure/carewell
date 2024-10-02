@@ -154,7 +154,7 @@ class AuthController extends Controller
             $user = User::where('email', $request->email)->first();
 
             // Récupérer les rôles de l'utilisateur
-            $roles = $user->getRoleNames(); // Méthode fournie par Spatie
+            $roles = $user->getRoleNames()->toArray(); // Méthode fournie par Spatie
 
 
             // Création automatique d'un dossier médical pour l'utilisateur
@@ -171,7 +171,6 @@ class AuthController extends Controller
                 'message' => 'Vous êtes connecté',
                 'token' => $token,
                 'user' => $user,
-                'roles' => $roles, // Retourner les rôles de l'utilisateur
             ], 200);
 
         } catch (\Exception $e) {

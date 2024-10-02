@@ -13,11 +13,8 @@ class AvailabilityController extends Controller
      */
     public function index()
     {
-        $availabilities = Availability::with(['doctor', 'service'])->get();
-        return response()->json([
-            'status' => true,
-            'data' => $availabilities,
-        ]);
+        $availabilities = Availability::all();
+        return response()->json(['data' => $availabilities]);
     }
     
     /**

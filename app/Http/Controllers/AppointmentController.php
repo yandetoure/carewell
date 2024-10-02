@@ -33,9 +33,11 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         try {
+            // Récupérer l'utilisateur connecté
+            $userId = auth()->id(); // ID de l'utilisateur authentifié
+
             // Validation des données
             $request->validate([
-                'user_id' => 'required|exists:users,id', // Utilisateur existant
                 'service_id' => 'required|exists:services,id', // Service existant
                 'reason' => 'required|string|max:255',
                 'symptoms' => 'nullable|string',
@@ -81,7 +83,7 @@ class AppointmentController extends Controller
     
             // Si un médecin est disponible, création du rendez-vous
             $appointment = Appointment::create([
-                'user_id' => $request->user_id,
+                'user_id' => $userId,
                 'service_id' => $request->service_id,
                 'doctor_id' => $selectedDoctor->id, // Associe l'ID du médecin choisi
                 'reason' => $request->reason,
