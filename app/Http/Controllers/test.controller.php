@@ -13,8 +13,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Validator;
 
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -122,102 +122,34 @@ class AuthController extends Controller
     /**
      * Connexion d'un utilisateur.
      */
-    public function login(Request $request)
-    {
-        try {
-            // Validation des données
-            $validator = validator($request->all(), [
-                'email' => 'required|email|string',
-                'password' => 'required|string|min:8',
-            ]);
-    
-            if ($validator->fails()) {
-                return response()->json(['error' => $validator->errors()], 422);
-            }
-    
-            $credentials = $request->only('email', 'password');
-            // $token = auth()->attempt($credentials);
-    
-            // if (!$token) {
-            //     return response()->json(['message' => 'Information de connexion incorrectes'], 401);
-            // }
+    public function login(Request $request){
 
+        // Validation
+        $request->validate([
+            "email" => "required|email",
+            "password" => "required"
+        ]);
 
-            $user = User::where('email', $request->email)->first();
+        $token = auth()->attempt([
+            "email" => $request->email,
+            "password" => $request->password
+        ]);
 
-            if (!$user || !Hash::check($request->password,  $user->password)) {
-                throw ValidationEception::withMessages(
-                    [
-                        'email' => ['Le mot de passe est incorrect'],
-                    ]
-                    );
-            }
-
-            $access_token = $user->createToken($user->id)->plainTextToken;
-
-            
-
-            // Récupération de l'utilisateur authentifié
-            //$user = User::where('email', $request->email)->first();
-
-            // Récupérer les rôles de l'utilisateur
-            $roles = $user->getRoleNames(); // Méthode fournie par Spatie
-
-
-            // Création automatique d'un dossier médical pour l'utilisateur
-            //$this->createMedicalRecord($user);
-            
+        if(!$token){
 
             return response()->json([
-
-                "access_token" => $access_token,
-                "token_type" => "bearer",
-                "user" => $user,   
-                "user_id" => $user->id,
-                "role" => $roles,
-                "expires_in" => env("JWT_TTL") * 60 . ' seconds'
-                
+                "status" => false,
+                "message" => "Invalid login details"
             ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur lors de la connexion',
-                'error' => $e->getMessage()
-            ], 500);
         }
-    }
-
-
-    /**
-     * Obtenir le profil de l'utilisateur connecté.
-     */
-    public function profile(){
-
-        //$userData = auth()->user();
-        $userData = request()->user();
 
         return response()->json([
             "status" => true,
-            "message" => "Profile data",
-            "data" => $userData,
-            //"user_id" => request()->user()->id,
-            //"email" => request()->user()->email
+            "message" => "User logged in succcessfully",
+            "token" => $token,
+            //"expires_in" => auth()->factory()->getTTL() * 60
         ]);
-    }
 
-
-    /**
-     * Déconnexion de l'utilisateur.
-     */
-    public function logout()
-    {
-        Auth::user()->tokens()->delete(); // Utiliser 'Auth' avec une majuscule
-        return response()->json([
-        'status' => true,
-        'message' => "Vous êtes déconnecté",
-        'data' => [],
-        ], 200);
     }
 
 
@@ -247,9 +179,6 @@ private function createMedicalRecord(User $user): void
             'user_id' => $user->id,
             // L'identification_number sera généré automatiquement par le modèle
         ]);
-        
-        // Envoi de l'email de notification
-        Mail::to($user->email)->send(new \App\Mail\MedicalFileMail($user));
     }
 }
 
@@ -266,16 +195,16 @@ private function createMedicalRecord(User $user): void
         return $identification_number;
     }
 
-    public function sendWelcomeEmail($userId)
-{
-    // Récupérer l'utilisateur avec son dossier médical
-    $user = User::with('medicalFile')->findOrFail($userId);
+//     public function sendWelcomeEmail($userId)
+// {
+//     // Récupérer l'utilisateur avec son dossier médical
+//     $user = User::with('medicalFile')->findOrFail($userId);
 
-    // Envoyer l'e-mail
-    Mail::to($user->email)->send(new WelcomeMail($user));
+//     // Envoyer l'e-mail
+//     Mail::to($user->email)->send(new WelcomeMail($user));
 
-    return response()->json(['message' => 'E-mail de bienvenue envoyé avec succès.']);
-}
+//     return response()->json(['message' => 'E-mail de bienvenue envoyé avec succès.']);
+// }
 
 public function updateProfile(Request $request)
 {

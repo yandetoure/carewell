@@ -9,30 +9,21 @@ class Appointment extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'service_id',
-        'reason',
-        'symptoms',
-        'is_visited',
-        'doctor_id',
-        'date',
-        'time',
+    protected $guarded = [
+       
     ];
 
-        // Relation avec le modèle User
-        public function user()
-        {
-            return $this->belongsTo(User::class);
-        }
+        
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     
-        // Relation avec le modèle Service
-        public function service()
-        {
-            return $this->belongsTo(Service::class);
-        }
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
 
-            // Relation avec le modèle Ticket
     public function tickets()
     {
         return $this->hasMany(Ticket::class);

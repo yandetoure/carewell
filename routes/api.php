@@ -3,24 +3,23 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ServiceController;
-use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\ExamController;
-use App\Http\Controllers\PrescriptionController;
-use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\MedicalFilePrescriptionController;
-use App\Http\Controllers\AvailabilityController;
-use App\Http\Controllers\TicketController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFileController;
+use App\Http\Controllers\AvailabilityController;
+use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\MedicalFilePrescriptionController;
 
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::apiResource('services', ServiceController::class);
-Route::apiResource('appointments', AppointmentController::class);
 Route::apiResource('articles', ArticleController::class);
 Route::apiResource('examens', ExamController::class);
 Route::apiResource('users', AuthController::class);
@@ -35,10 +34,18 @@ Route::put('/profile/update', [AuthController::class, 'updateProfile']);
 Route::apiResource('results', ResultController::class);
 
 // Route pour afficher les disponibilités d'un médecin pour un service donné
-Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
+// Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
 Route::apiResource('availabilities', AvailabilityController::class);
+Route::apiResource('user', AuthController::class);
 
 Route::apiResource('notes', NoteController::class);
+
+
+Route::middleware('auth:sanctum')->group(function(){
+
+    Route::apiResource('appointments', AppointmentController::class);
+
+});
 
 
 // Route::middleware('auth:api')->get('/services/{id}/details', [ServiceController::class, 'showDetails']);

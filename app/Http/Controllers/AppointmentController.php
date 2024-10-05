@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Appointment;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use App\Models\Availability;
+use Exception;
+use App\Models\User;
 use App\Models\Ticket;
-use App\Models\User; // Ajoutez ceci
-use Exception; // Ajoutez ceci
+use App\Models\Appointment;
+use App\Models\Availability;
+use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\Auth; 
+use Illuminate\Validation\ValidationException;
 
 
 
 class AppointmentController extends Controller
 {
+
     /**
+     * 
      * Display a listing of the resource.
      */
     public function index()
@@ -32,72 +35,83 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
+        // Récupérer l'utilisateur authentifié
+        $user = Auth::user();
+        $userId = Auth::id(); 
+        $teste = $user;
+        // dd($teste);
+        // Vérification si l'utilisateur est authentifié
+        // if (Auth::check()) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Utilisateur non authentifié',
+        //     ], 401);
+        // }
+
+
         try {
-            // Récupérer l'utilisateur connecté
-            $userId = auth()->id(); // ID de l'utilisateur authentifié
+            $userId = Auth::id(); 
 
             // Validation des données
             $request->validate([
                 'service_id' => 'required|exists:services,id', // Service existant
                 'reason' => 'required|string|max:255',
                 'symptoms' => 'nullable|string',
-                'date' => 'required|date', // Date du rendez-vous
-                'time' => 'required|date_format:H:i', // Heure du rendez-vous
+                'date' => 'required|date', 
+                'time' => 'required|date_format:H:i',
             ]);
     
             // Recherche des disponibilités des médecins pour ce service à cette date et heure
             $availableDoctors = Availability::where('service_id', $request->service_id)
-                ->where('available_date', $request->date)
-                ->where('start_time', '<=', $request->time)
-                ->where('end_time', '>=', $request->time)
-                ->get(); // Récupérer toutes les disponibilités
-    
-            // Filtrer les médecins ayant le rôle 'Doctor' et moins de 15 rendez-vous
-            $eligibleDoctors = [];
-            foreach ($availableDoctors as $availability) {
-                $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
-    
-                // Vérifier si le médecin a le rôle 'Doctor'
-                if ($doctor && $doctor->hasRole('Doctor')) {
-                    // Compter le nombre de rendez-vous pour cette date
-                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
-                        ->where('date', $request->date)
-                        ->count();
-    
-                    if ($appointmentCount < 15) {
-                        $eligibleDoctors[] = $doctor; // Ajouter le médecin éligible
-                    }
+            ->where('available_date', $request->date)
+            ->where('start_time', '<=', $request->time)
+            ->where('end_time', '>=', $request->time)
+            ->get();
+        
+        $eligibleDoctors = [];
+        foreach ($availableDoctors as $availability) {
+            $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
+        
+            if ($doctor && $doctor->hasRole('Doctor')) { // Vérifier si le médecin existe et a le rôle 'Doctor'
+                $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+                    ->where('date', $request->date)
+                    ->count();
+        
+                if ($appointmentCount < 15) {
+                    $eligibleDoctors[] = $doctor; // Ajouter le médecin éligible
                 }
             }
-    
-            // Vérifier s'il y a des médecins éligibles
-            if (empty($eligibleDoctors)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date.',
-                ], 422);
-            }
-    
-            // Choisir un médecin au hasard parmi ceux qui sont éligibles
-            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
-    
+        }
+        
+        // Vérifier s'il y a des médecins éligibles
+        if (empty($eligibleDoctors)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date.',
+            ], 422);
+        }
+        
+        // Choisir un médecin au hasard parmi ceux qui sont éligibles
+        $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
+        
             // Si un médecin est disponible, création du rendez-vous
             $appointment = Appointment::create([
-                'user_id' => $userId,
+                'user_id' => $request->user_id,
                 'service_id' => $request->service_id,
-                'doctor_id' => $selectedDoctor->id, // Associe l'ID du médecin choisi
+                'doctor_id' => $selectedDoctor->id,
                 'reason' => $request->reason,
                 'symptoms' => $request->symptoms,
                 'is_visited' => false,
                 'date' => $request->date,
                 'time' => $request->time,
             ]);
+        // dd($teste);
     
             // Création du ticket associé avec l'ID du docteur
             $ticket = Ticket::create([
                 'appointment_id' => $appointment->id,
-                'doctor_id' => $selectedDoctor->id, // Associe l'ID du médecin choisi
-                'is_paid' => false, // Ticket non payé initialement
+                'doctor_id' => $selectedDoctor->id, 
+                'is_paid' => false, 
             ]);
     
             return response()->json([
