@@ -36,7 +36,7 @@ Route::apiResource('results', ResultController::class);
 // Route pour afficher les disponibilités d'un médecin pour un service donné
 // Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
 Route::apiResource('availabilities', AvailabilityController::class);
-Route::apiResource('user', AuthController::class);
+// Route::apiResource('users', AuthController::class);
 
 Route::apiResource('notes', NoteController::class);
 
@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->get('/profile', [AuthController::class, 'prof
 Route::middleware('auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
 Route::post('/add-user', [AuthController::class, 'registerUser']);
 
+Route::middleware('auth:sanctum')->get('/users', [AuthController::class, 'getUsers']);
 
 
 // Route::middleware('auth:api')->get('/services/{id}/details', [ServiceController::class, 'showDetails']);

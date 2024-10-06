@@ -225,16 +225,6 @@ class AuthController extends Controller
         ], 200);
     }
 
-
-    /**
-     * Obtenir tous les utilisateurs.
-     */
-    public function getUsers()
-    {
-        $users = User::all();
-        return response()->json(['data' => $users]);
-    }
-
        /**
      * Création d'un dossier médical pour l'utilisateur.
      */
@@ -367,11 +357,26 @@ public function updateProfile(Request $request)
 
 
 
-public function getUser(Request $request)
+public function getUsers()
 {
-    // Retourner les détails de l'utilisateur connecté
-    return response()->json(Auth::user());
+    $users = User::with('roles') // Charger les rôles associés à chaque utilisateur
+        ->get()
+        ->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number, // Inclure le numéro de téléphone
+                'status' => $user->status, // Inclure le statut du compte
+                'roles' => $user->getRoleNames(), // Récupérer les noms des rôles avec Spatie
+            ];
+        });
+
+    return response()->json(['data' => $users]); // Assurez-vous que les utilisateurs sont dans 'data'
 }
+
+
 
     // public function getUserRole(Request $request)
     // {
