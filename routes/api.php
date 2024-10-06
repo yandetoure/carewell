@@ -47,6 +47,11 @@ Route::middleware('auth:sanctum')->group(function(){
 
 });
 
+Route::middleware('auth:sanctum')->get('/profile', [AuthController::class, 'profile']);
+Route::middleware('auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
+Route::post('/add-user', [AuthController::class, 'registerUser']);
+
+
 
 // Route::middleware('auth:api')->get('/services/{id}/details', [ServiceController::class, 'showDetails']);
 // Route::middleware('auth:api')->patch('/services/{id}', [ServiceController::class, 'update']);

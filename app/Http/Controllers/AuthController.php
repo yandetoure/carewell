@@ -102,6 +102,17 @@ class AuthController extends Controller
     
             // Création du token
             $token = $user->createToken("API TOKEN")->plainTextToken;
+
+
+            // Récupération de l'utilisateur authentifié
+            $user = User::where('email', $request->email)->first();
+
+            // Récupérer les rôles de l'utilisateur
+            $roles = $user->getRoleNames(); // Méthode fournie par Spatie
+
+
+            // Création automatique d'un dossier médical pour l'utilisateur
+            $this->createMedicalRecord($user);
     
             // Retourner une réponse JSON avec un token
             return response()->json([
@@ -162,10 +173,6 @@ class AuthController extends Controller
 
             // Récupérer les rôles de l'utilisateur
             $roles = $user->getRoleNames(); // Méthode fournie par Spatie
-
-
-            // Création automatique d'un dossier médical pour l'utilisateur
-            //$this->createMedicalRecord($user);
             
 
             return response()->json([
@@ -194,16 +201,14 @@ class AuthController extends Controller
      */
     public function profile(){
 
-        //$userData = auth()->user();
-        $userData = request()->user();
+        $userData = auth()->user();
 
         return response()->json([
             "status" => true,
-            "message" => "Profile data",
+            "message" => "Information de l'utilisateur",
             "data" => $userData,
-            //"user_id" => request()->user()->id,
-            //"email" => request()->user()->email
-        ]);
+            'id' => Auth::user()->id,
+        ],200);
     }
 
 
@@ -338,7 +343,11 @@ public function updateProfile(Request $request)
         }
 
         // Enregistrer les modifications
-        // $user->save();
+        $user->save();
+
+        // Création automatique d'un dossier médical pour l'utilisateur
+        $this->createMedicalRecord($user);
+
 
         return response()->json([
             'status' => true,
@@ -355,6 +364,15 @@ public function updateProfile(Request $request)
     }
 }
 
+
+
+
+public function getUser(Request $request)
+{
+    // Retourner les détails de l'utilisateur connecté
+    return response()->json(Auth::user());
+}
+
     // public function getUserRole(Request $request)
     // {
     //     // Récupérer l'utilisateur connecté
@@ -368,6 +386,75 @@ public function updateProfile(Request $request)
     //         'role' => $roles->first(),
     //     ], 200);
     // }
+
+
+
+
+    public function registerUser(Request $request)
+{
+    // Validation des données
+    $validateUser = Validator::make($request->all(), [
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'adress' => 'required|string|max:255',
+        'phone_number' => 'required|regex:/^[0-9]{9}$/',
+        'day_of_birth' => 'required',
+        'password' => 'required|string|min:8',
+        'role' => 'required|in:Doctor,Secretaire,Comptable',
+        'photo' => 'nullable|file|image|max:2048',
+    ]);
+
+    if ($validateUser->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation error',
+            'errors' => $validateUser->errors()
+        ], 400);
+    }
+
+    $validated = $validateUser->validated();
+
+    try {
+        // Création de l'utilisateur
+        $user = User::create([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'adress' => $validated['adress'],
+            'phone_number' => '+221' . $validated['phone_number'],
+            'day_of_birth' => $validated['day_of_birth'],
+            'password' => Hash::make($validated['password']),
+            'photo' => $path ?? null,
+        ]);
+
+        // Assigner le rôle selon l'entrée du formulaire
+        $role = Role::firstWhere('name', $validated['role']);
+        if ($role) {
+            $user->assignRole($role);
+        }
+
+        // Envoyer l'email de bienvenue
+        Mail::to($user->email)->send(new WelcomeMail($user));
+
+        Auth::login($user);
+
+        $token = $user->createToken("API TOKEN")->plainTextToken;
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Le compte a été créé avec succès',
+            'token' => $token,
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la création de l\'utilisateur',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 
 
 }
