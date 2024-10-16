@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('status')->default(true);
             $table->string('photo')->nullable(); 
-            $table->foreignId('grade_id')->constrained()->onDelete('cascade')->nullable();
+            // $table->foreignId('grade_id')->constrained()->onDelete('cascade')->nullable();
             $table->string('biographie')->nullable();
             $table->integer('weight')->nullable();
             $table->integer('height')->nullable();

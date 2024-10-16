@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('exam_id')->constrained()->onDelete('cascade');
             $table->string('image')->nullable();
-            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreignId('doctor_id')->constrained('users')->onDelete('cascade');            
             $table->timestamps();
         });
     }

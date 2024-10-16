@@ -15,16 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('content');
             $table->foreignId('medical_files_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('doctor_id'); 
             $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('notes');
-    }
+            });
+        }
+    
+        public function down()
+        {
+            Schema::table('notes', function (Blueprint $table) {
+                $table->dropForeign(['doctor_id']);
+            });
+    
+            Schema::dropIfExists('notes');
+        }
 };

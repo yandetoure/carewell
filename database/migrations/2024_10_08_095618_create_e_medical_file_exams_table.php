@@ -15,10 +15,9 @@ return new class extends Migration
             $table->id();     
             $table->foreignId('medical_file_id')->constrained()->onDelete('cascade');       
             $table->foreignId('exam_id')->constrained()->onDelete('cascade');
-            $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreignId('doctor_id')->constrained('users')->onDelete('cascade');            
             $table->boolean('is_done')->default(false); 
             $table->timestamps();
-            $table->id();
         });
     }
 
