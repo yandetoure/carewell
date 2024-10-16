@@ -16,10 +16,9 @@ class ServiceController extends Controller
             'description' => 'required|string|max:255|unique:services',
         ]);
     
-        // Gestion du fichier
         $path = null;
         if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('service_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+            $path = $request->file('photo')->store('service_photos', 'public');
         }
     
         $service = Service::create([
@@ -35,17 +34,14 @@ class ServiceController extends Controller
         ], 201);
     }
 
-    // Obtenir tous les services
     public function index()
     {
         $services = Service::all();
         return response()->json(['data' => $services]);
     }
 
-    // Mettre à jour un service
     public function update(Request $request, $id)
     {
-         // Vérifier si l'article existe
          $service = Service::findOrFail($id);
         if (!$service) {
              return response()->json(['message' => 'Service non trouvé'], 404);

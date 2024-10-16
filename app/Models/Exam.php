@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Exam extends Model
 {
@@ -25,4 +25,10 @@ class Exam extends Model
     public function results(){
         return $this->hasMany(Result::class); // Association avec les résultats
     }
+    
+    //relation avec medical file
+    public function medicalFile(){
+        return $this->belongsTo(MedicalFile::class);
+    }
+    
 }

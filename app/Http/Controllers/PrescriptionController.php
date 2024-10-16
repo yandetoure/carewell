@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Prescription;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class PrescriptionController extends Controller
@@ -11,10 +11,14 @@ class PrescriptionController extends Controller
     /**
      * Display a listing of the resource.
      */
+
     public function index()
     {
-        $prescriptions = Prescription::all();
-        return response()->json(['data' => $prescriptions]);
+        $prescriptions = Prescription::with(['service'])->get();
+        return response()->json([
+            'status' => true,
+            'data' => $prescriptions,
+        ]);
     }
 
     /**

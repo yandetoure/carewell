@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Article;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -61,7 +61,6 @@ class ArticleController extends Controller
      */
     public function show(string $id)
     {
-        //Afficher les details d'un article
         $article = Article::find($id);
         return response()->json(['data' => $article]);
 
@@ -80,7 +79,7 @@ class ArticleController extends Controller
     
         // Valider les données d'entrée
         $request->validate([
-            'title' => 'required|string|max:255|unique:articles,title,' . $article->id,  
+            'title' => 'required|string|max:255|unique:articles,title,',  
             'content' => 'required|string|min:50',
             'photo' => 'nullable|file|image|max:2048',
         ]);

@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('availabilities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('doctor_id')->constrained('users'); // Associe la disponibilité à l'utilisateur médecin
-            $table->foreignId('service_id')->constrained('services'); // Service associé
-            $table->date('available_date');
+            $table->foreignId('doctor_id')->constrained('users');
+            $table->foreignId('service_id')->constrained('services');
+            $table->enum('day_of_week', ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']);
             $table->time('start_time');
             $table->time('end_time');
+            $table->integer('appointment_duration'); 
             $table->timestamps();
         });
     }

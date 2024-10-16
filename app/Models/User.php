@@ -32,7 +32,10 @@ class User extends Authenticatable  implements JWTSubject
         'photo',
         'service_id',
         'biographie',
-
+        'height',
+        'weight',
+        'blood_type',
+        'grade_id',
     ];
 
     /**
@@ -116,6 +119,13 @@ class User extends Authenticatable  implements JWTSubject
     public function appointments(){
         return $this->hasMany(Appointment::class);
     }
+
+    //relation avec grade
+    public function grade(){
+    return $this->belongsTo(Grade::class);
+}
+
+    
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.

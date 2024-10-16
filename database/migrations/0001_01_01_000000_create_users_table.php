@@ -1,7 +1,7 @@
 <?php
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -12,8 +12,8 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('identification_number')->unique(); // Numéro unique d'identification
-            $table->unsignedBigInteger('service_id')->nullable(); // Champ pour le service_id
+            $table->string('identification_number')->unique();
+            $table->unsignedBigInteger('service_id')->nullable();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('phone_number');
@@ -23,8 +23,12 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->boolean('status')->default(true);
-            $table->string('photo')->nullable(); // Champ pour la photo
+            $table->string('photo')->nullable(); 
+            $table->foreignId('grade_id')->constrained()->onDelete('cascade')->nullable();
             $table->string('biographie')->nullable();
+            $table->integer('weight')->nullable();
+            $table->integer('height')->nullable();
+            $table->string('blood_type')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

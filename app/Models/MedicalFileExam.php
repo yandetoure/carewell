@@ -5,17 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Note extends Model
+class MedicalFileExam extends Model
 {
     use HasFactory;
-
+    
     protected $fillable = [
-        'content', 
-        'medical_files_id'];
-
-            // Relation avec le modèle MedicalFile
+        'medical_files_id',
+        'exam_id',
+        'is_done',
+    ];
+    
     public function medicalFile()
     {
         return $this->belongsTo(MedicalFile::class);
     }
+
+    public function exam() 
+    {
+        return $this->belongsTo(Exam::class); 
+    }
+    
 }

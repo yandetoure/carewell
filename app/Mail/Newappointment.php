@@ -6,14 +6,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class WelcomeMail extends Mailable
+class Newappointment extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $user;
-    public $email;
-    public $password;
-    
+    public $appointment_id; 
 
     /**
      * Create a new message instance.
@@ -21,9 +19,6 @@ class WelcomeMail extends Mailable
     public function __construct($user)
     {
         $this->user = $user;
-        $this->email = $email;
-        $this->password = $password;
-        
     }
 
     /**
@@ -31,14 +26,14 @@ class WelcomeMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Bienvenue sur notre plateforme !')
-                    ->view('emails.welcome')
-                    ->attach(public_path('images/logo.png'))
+        return $this->subject('Bonjour, votre rendez-vous a été enregistré')
+                    ->view('emails.appointment') 
+                    ->attach(public_path('images/logo.png')) 
                     ->with([
                         'first_name' => $this->user->first_name,
                         'last_name' => $this->user->last_name,
-                        'email' => $this->email,
-                        'password' => $this->password,
+                        // 'appointment_id' => $this->appointment->id,
+                        // 'appointmentservice' => $this->appointment->service->name,
                     ]);
     }
 }

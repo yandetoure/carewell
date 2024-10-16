@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MedicalFilePrescription;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use App\Models\Ticket;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\PrescriptionMail;
 use App\Models\User;
+use App\Models\Ticket;
+use Illuminate\Http\Request;
+use App\Mail\PrescriptionMail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Models\MedicalFilePrescription;
+use Illuminate\Validation\ValidationException;
 
 
 
@@ -23,7 +23,7 @@ class MedicalFilePrescriptionController extends Controller
     public function index()
     {
         // Affichage des prescriptions médicales
-        $medicalFilePrescriptions = MedicalFilePrescription::with(['medicalFile', 'p'])->get(); // Récupérer les prescriptions avec leurs fichiers médicaux et services
+        $medicalFilePrescriptions = MedicalFilePrescription::with(['medicalFile', 'prescription'])->get(); // Récupérer les prescriptions avec leurs fichiers médicaux et services
         return response()->json([
             'status' => true,
             'data' => $medicalFilePrescriptions,
@@ -36,28 +36,34 @@ class MedicalFilePrescriptionController extends Controller
     public function store(Request $request)
     {
         try {
+            // Assurez-vous que l'utilisateur est un médecin
+            $user = Auth::user();
+            if (!$user || !$user->hasRole('doctor')) {
+                return response()->json(['status' => false, 'message' => 'Unauthorized'], 403);
+            }
+    
             // Validation des données
             $request->validate([
-                'prescription_id' => 'required|exists:prescriptions,id', // Corrigez le nom de la table ici
-                'medical_files_id' => 'required|exists:medical_files,id', // Correction du nom de la colonne
+                'prescription_id' => 'required|exists:prescriptions,id',
+                'medical_files_id' => 'required|exists:medical_files,id',
             ]);
             
             // Création d'une nouvelle instance de prescription médicale
             $medicalFilePrescription = MedicalFilePrescription::create([
-                'is_done' => false, // Définit is_done à false par défaut
+                'is_done' => false,
                 'prescription_id' => $request->prescription_id,
-                'medical_files_id' => $request->medical_files_id, // Correction du nom de la colonne
+                'medical_files_id' => $request->medical_files_id,
             ]);
-
+    
             // Création du ticket associé à la prescription
             $ticket = Ticket::create([
-                'prescription_id' => $request->prescription_id, // Utilisation correcte de la prescription_id
-                'is_paid' => false, // Initialement, le ticket n'est pas payé
+                'prescription_id' => $request->prescription_id,
+                'is_paid' => false,
             ]);
-
-            // Envoi d'un email de bienvenue
-            Mail::to($user->email)->send(new \App\Mail\PrescriptionMail($user));
-
+    
+            // Envoi d'un email (si besoin, ici il faut récupérer l'utilisateur)
+            Mail::to($user->email)->send(new PrescriptionMail($user));
+    
             return response()->json([
                 'status' => true,
                 'message' => 'Prescription créée avec succès',
@@ -69,8 +75,15 @@ class MedicalFilePrescriptionController extends Controller
                 'message' => 'Erreur de validation',
                 'errors' => $e->validator->errors(),
             ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la création de la prescription',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+    
 
     /**
      * Display the specified resource.

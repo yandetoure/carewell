@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Création de compte</title>
+    <title>Création de rendez-vous</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,12 +21,10 @@
             border-radius: 5px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        .logo {
-            text-align: center;
-            margin-bottom: 20px;
-        }
         .logo img {
-            width: 150px;
+            display: block;
+            margin: 0 auto 20px auto;
+            width: 150px; 
         }
         h4 {
             color: #333;
@@ -52,17 +50,11 @@
 </head>
 <body>
     <div class="container">
-
-        <h4>Inscription Reussie</h4>
-        <!-- <img src="{{ asset('images/logo.png') }}" alt="Welcome Image" style="width: 100%; height: auto; margin-bottom: 20px;"> -->
+        <h4>Nouveau rendez-vous</h4>
+        <!-- <img src="{{ asset('images/wellogo.png') }}" alt="Welcome Image" style="width: 100%; height: auto; margin-bottom: 20px;"> -->
         <h3>Bonjour, {{ $first_name }} {{ $last_name }}</h3>
-        <p>Votre compte a bien été créé, vous pouvez utiliser votre email et mot de passe pour vous connecter.</p>
-        <p>Voici vos informations de connexion :</p>
-    <ul>
-        <li><strong>Email :</strong> {{ $email }}</li>
-        <li><strong>Mot de passe :</strong> {{ $password }}</li>
-    </ul>
-        <p>Merci et à bientôt,</p>
+        <p>Votre rendez-vous a été enregistré avec succes, enregistrez la date dans votre agenda pour ne pas le manquer.</p>
+        <p>Merci et à bientôt !</p>
         <footer>
             <p>{{ config('app.name') }}</p>
         </footer>

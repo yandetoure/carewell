@@ -29,11 +29,10 @@ class AuthController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'adress' => 'required|string|max:255',
-            'phone_number' => 'required|regex:/^[0-9]{9}$/', // Suppression de l'indicatif dans la regex
-            'day_of_birth' => 'required', // Peut être soit un âge soit une date
+            'phone_number' => 'required|regex:/^[0-9]{9}$/',
+            'day_of_birth' => 'required', 
             'password' => 'required|string|min:8',
             'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
-            // 'service_id' => 'required_if:role,Doctor|exists:services,id', // Validation pour le champ service_id
         ]);
     
         if ($validateUser->fails()) {
@@ -217,7 +216,7 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        Auth::user()->tokens()->delete(); // Utiliser 'Auth' avec une majuscule
+        Auth::user()->tokens()->delete();
         return response()->json([
         'status' => true,
         'message' => "Vous êtes déconnecté",
@@ -278,12 +277,10 @@ public function updateProfile(Request $request)
     $validateUser = Validator::make($request->all(), [
         'first_name' => 'nullable|string|max:255',
         'last_name' => 'nullable|string|max:255',
-        'email' => 'nullable|string|email|max:255|unique:users,email,' . Auth::id(),
         'adress' => 'nullable|string|max:255',
-        'phone_number' => 'nullable|regex:/^[0-9]{9}$/', // Assurez-vous que le numéro ne contient que 9 chiffres sans indicatif
+        'phone_number' => 'nullable|regex:/^[0-9]{9}$/', 
         'day_of_birth' => 'nullable|date',
-        'password' => 'nullable|string|min:8|confirmed', // Optionnel, mais doit être confirmé si fourni
-        'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
+        'password' => 'nullable|string|min:8|confirmed', 
     ]);
 
     if ($validateUser->fails()) {
@@ -359,7 +356,7 @@ public function updateProfile(Request $request)
 
 public function getUsers()
 {
-    $users = User::with('roles') // Charger les rôles associés à chaque utilisateur
+    $users = User::with('roles') 
         ->get()
         ->map(function ($user) {
             return [
@@ -376,6 +373,28 @@ public function getUsers()
     return response()->json(['data' => $users]); // Assurez-vous que les utilisateurs sont dans 'data'
 }
 
+
+public function destroy(string $id)
+{
+    // Vérifier si l'article existe
+    $user = User::find($id);
+    if (!$user) {
+        return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+    }
+
+    // Supprimer l'image associée si elle existe
+    if ($user->photo) {
+        Storage::disk('public')->delete($user->photo);
+    }
+
+    // Supprimer l'utilisateur
+    $user->delete();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Utilissateur supprimé avec succès'
+    ], 200);
+}
 
 
     // public function getUserRole(Request $request)
@@ -408,6 +427,9 @@ public function getUsers()
         'password' => 'required|string|min:8',
         'role' => 'required|in:Doctor,Secretaire,Comptable',
         'photo' => 'nullable|file|image|max:2048',
+        // 'grade_id' => 'required|exists:grades,id',
+        // 'service_id' => 'required_if:role,Doctor|exists:services,id',
+
     ]);
 
     if ($validateUser->fails()) {
@@ -419,6 +441,24 @@ public function getUsers()
     }
 
     $validated = $validateUser->validated();
+    
+
+            // Gestion du fichier photo
+            // $path = null;
+            // if ($request->hasFile('photo')) {
+            //     $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
+            // }
+        
+            // try {
+            //     // Vérification et ajout de l'indicatif téléphonique si nécessaire
+            //     if (!Str::startsWith($validated['phone_number'], '+221')) {
+            //         $validated['phone_number'] = '+221' . $validated['phone_number'];
+            //     }
+        
+        // Génération du numéro d'identification unique
+        $identification_number = $this->generateUniqueIdentificationNumber();
+
+                
 
     try {
         // Création de l'utilisateur
@@ -431,6 +471,9 @@ public function getUsers()
             'day_of_birth' => $validated['day_of_birth'],
             'password' => Hash::make($validated['password']),
             'photo' => $path ?? null,
+            // 'grade_id' => $request->grade_id,
+            'service_id' => $request->service_id,
+            
         ]);
 
         // Assigner le rôle selon l'entrée du formulaire
@@ -460,7 +503,6 @@ public function getUsers()
         ], 500);
     }
 }
-
 
 }
 

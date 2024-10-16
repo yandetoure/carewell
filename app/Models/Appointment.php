@@ -2,15 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Appointment extends Model
 {
     use HasFactory;
 
-    protected $guarded = [
-       
+
+    protected $fillable = [
+        'user_id',
+        'service_id',
+        'reason',
+        'symptoms',
+        'is_visited',
+        'doctor_id',
+        'date',
+        'time',
     ];
 
         

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MedicalFilePrescription extends Model
 {
@@ -21,7 +21,7 @@ class MedicalFilePrescription extends Model
             return $this->belongsTo(MedicalFile::class);
         }
 
-        public function p() 
+        public function prescription() 
         {
             return $this->belongsTo(Prescription::class); 
         }

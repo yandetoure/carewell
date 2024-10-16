@@ -13,12 +13,9 @@ class NoteController extends Controller
      */
     public function index()
     {
-        // Récupération de toutes les notes
-        $notes = Note::with('medicalFile')->get(); // Assurez-vous que la relation est définie dans le modèle Note
-        return response()->json([
-            'status' => true,
-            'data' => $notes,
-        ]);
+        $note = Note::all();
+        return response()->json(['data' => $note]);
+
     }
 
     /**

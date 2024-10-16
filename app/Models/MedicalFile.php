@@ -1,10 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MedicalFile extends Model
 {
@@ -57,14 +57,24 @@ class MedicalFile extends Model
     }
 
         // Déclaration de la relation avec MedicalFilePrescription
-        public function prescriptions()
+        public function medicalprescription()
         {
-            return $this->hasMany(MedicalFilePrescription::class);
+            return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
         }
                 // Déclaration de la relation avec Examen
-         public function examens()
+         public function exam()
                 {
-          return $this->hasMany(Exam::class);
+          return $this->hasMany(Exam::class, 'medical_files_id');
         }
 
+        // Déclaration de la relation avec MedicalHistory
+        public function medicalHistory()
+        {
+            return $this->hasOne(MedicalHistory::class, 'medical_files_id');
+        }
+
+        public function note()
+        {
+            return $this->hasMany(Note::class, 'medical_files_id');
+        }        
 }

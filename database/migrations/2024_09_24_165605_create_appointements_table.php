@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('doctor_id')->nullable();
             $table->foreign('doctor_id')->references('id')->on('users')->onDelete('cascade');
-            $table->string('reason'); //raison de l'apparition du patient
-            $table->string('symptoms'); //symptomes du patient
+            $table->string('reason')->nullable();
+            $table->string('symptoms')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
             $table->date('date');
             $table->time('time');
-            $table->boolean('is_visited')->default(false); //état d'apparition du patient (visité ou non)
-            $table->softDeletes(); //permet de supprimer l'entrée sans supprimer le champ deleted_at de la table
+            $table->boolean('is_visited')->default(false);
+            $table->softDeletes();
 
             $table->timestamps();
         });
