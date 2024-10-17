@@ -11,8 +11,6 @@ class WelcomeMail extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
-    public $email;
-    public $password;
     
 
     /**
@@ -21,8 +19,6 @@ class WelcomeMail extends Mailable
     public function __construct($user)
     {
         $this->user = $user;
-        $this->email = $email;
-        $this->password = $password;
         
     }
 
@@ -38,7 +34,6 @@ class WelcomeMail extends Mailable
                         'first_name' => $this->user->first_name,
                         'last_name' => $this->user->last_name,
                         'email' => $this->email,
-                        'password' => $this->password,
                     ]);
     }
 }

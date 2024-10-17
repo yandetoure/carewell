@@ -58,10 +58,6 @@
         <h3>Bonjour, {{ $first_name }} {{ $last_name }}</h3>
         <p>Votre compte a bien été créé, vous pouvez utiliser votre email et mot de passe pour vous connecter.</p>
         <p>Voici vos informations de connexion :</p>
-    <ul>
-        <li><strong>Email :</strong> {{ $email }}</li>
-        <li><strong>Mot de passe :</strong> {{ $password }}</li>
-    </ul>
         <p>Merci et à bientôt,</p>
         <footer>
             <p>{{ config('app.name') }}</p>
