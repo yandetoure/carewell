@@ -323,5 +323,41 @@ class AppointmentController extends Controller
             'data' => $appointments,
         ]);
     }
+    public function doctorAppointmentStats()
+    {
+        $doctor = Auth::user();
+    
+        if ($doctor && $doctor->hasRole('Doctor')) {
+            // Récupérer la date du jour
+            $today = now()->format('Y-m-d');
+    
+            // Nombre de rendez-vous pour aujourd'hui
+            $appointmentsToday = Appointment::where('doctor_id', $doctor->id)
+                ->whereDate('date', $today)
+                ->count();
+    
+            // Total des rendez-vous pour le docteur
+            $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
+    
+            // Nombre de rendez-vous effectués (is_visited = true)
+            $completedAppointments = Appointment::where('doctor_id', $doctor->id)
+                ->where('is_visited', true)
+                ->count();
+    
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'appointments_today' => $appointmentsToday,
+                    'total_appointments' => $totalAppointments,
+                    'completed_appointments' => $completedAppointments,
+                ],
+            ]);
+        }
+    
+        return response()->json([
+            'status' => false,
+            'message' => 'Utilisateur non autorisé ou rôle incorrect',
+        ], 403);
+    }
 
 }

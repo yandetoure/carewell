@@ -11,7 +11,9 @@ class Note extends Model
 
     protected $fillable = [
         'content', 
-        'medical_files_id'];
+        'medical_files_id',
+        'doctor_id',
+    ];
 
             // Relation avec le modèle MedicalFile
     public function medicalFile()

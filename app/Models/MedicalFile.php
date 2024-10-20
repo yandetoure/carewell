@@ -61,16 +61,16 @@ class MedicalFile extends Model
         {
             return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
         }
-                // Déclaration de la relation avec Examen
-         public function exam()
+        // Déclaration de la relation avec Examen
+         public function medicalexam()
                 {
           return $this->hasMany(Exam::class, 'medical_files_id');
         }
 
         // Déclaration de la relation avec MedicalHistory
-        public function medicalHistory()
+        public function medicalHistories()
         {
-            return $this->hasOne(MedicalHistory::class, 'medical_files_id');
+            return $this->hasMany(MedicalHistory::class,  'medical_files_id');
         }
 
         public function note()

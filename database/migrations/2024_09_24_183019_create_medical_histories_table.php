@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('medicale_histories', function (Blueprint $table) {
             $table->id();
             $table->string('content');
-            $table->string('allergy');
+            $table->string('allergy')->nullable();
             $table->foreignId('medical_files_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

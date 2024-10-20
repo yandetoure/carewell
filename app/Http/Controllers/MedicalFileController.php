@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Model;
+use App\Models\Exam;
 use App\Models\Service;
 use App\Models\MedicalFile;
 use App\Models\Prescription;
@@ -17,7 +18,7 @@ class MedicalFileController extends Controller
      */
     public function index()
     {
-        $medicalFiles = MedicalFile::with(['note', 'medicalHistory', 'medicalprescription', 'user'  ])->get();
+        $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription',  'user'  ])->get();
         return response()->json(['data' => $medicalFiles]);
     }
 
@@ -40,7 +41,7 @@ class MedicalFileController extends Controller
      */
     public function show(string $id)
     {
-        $medicalFile = MedicalFile::with(['note', 'medicalHistory', 'medicalprescription', 'user'])->find($id);
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])->find($id);
     
         if (!$medicalFile) {
             return response()->json(['message' => 'Dossier médical non trouvé'], 404);
@@ -54,7 +55,7 @@ class MedicalFileController extends Controller
     public function showAuthMedicalFile()
     {
         $user = Auth::user();
-        $medicalFile = MedicalFile::with(['note', 'medicalHistory', 'medicalprescription', 'user'])
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
             ->where('user_id', $user->id) 
             ->first();
 
@@ -112,61 +113,82 @@ class MedicalFileController extends Controller
             'content' => 'required|string',
         ]);
     
-        $note = $medicalFile->note()->create($validated);
+        // Vérifier si l'utilisateur connecté a le rôle "doctor"
+        // if (Auth::user()->role !== 'Doctor') {
+        //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter une note.'], 403);
+        // }
+    
+        // Ajouter l'ID du docteur
+        $note = $medicalFile->note()->create([
+            'content' => $validated['content'],
+            'doctor_id' => Auth::id(), // Enregistrer l'ID du docteur
+        ]);
     
         return response()->json(['message' => 'Note ajoutée avec succès', 'data' => $note]);
     }
     
     
+    
     public function addPrescription(Request $request, string $id)
     {
-        // Validation des données d'entrée
         $validated = $request->validate([
             'prescription_id' => 'required|exists:prescriptions,id',
         ]);
     
-        // Récupération du dossier médical
         $medicalFile = MedicalFile::find($id);
     
         if (!$medicalFile) {
             return response()->json(['message' => 'Dossier médical non trouvé'], 404);
         }
     
-        // Récupération de la prescription
+        // if (Auth::user()->role !== 'doctor') {
+        //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter une prescription.'], 403);
+        // }
+    
         $prescription = Prescription::find($validated['prescription_id']);
         
         if (!$prescription) {
             return response()->json(['message' => 'Prescription non trouvée'], 404);
         }
     
-        // Ajout de la prescription à la table de jointure
-        $medicalFile->medicalprescription()->create(['prescription_id' => $prescription->id]);
+        // Ajouter l'ID du docteur
+        $medicalFile->medicalprescription()->create([
+            'prescription_id' => $prescription->id,
+            'doctor_id' => Auth::id(),
+        ]);
     
         return response()->json(['message' => 'Prescription ajoutée avec succès']);
     }
+    
     
     
 
     public function addExam(Request $request, string $id)
     {
         $medicalFile = MedicalFile::find($id);
-
+    
         if (!$medicalFile) {
             return response()->json(['message' => 'Dossier médical non trouvé'], 404);
         }
-
+    
+        // if (Auth::user()->role !== 'doctor') {
+        //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter un examen.'], 403);
+        // }
+    
         $exam = Exam::find($request->exam_id);
         if (!$exam) {
             return response()->json(['message' => 'Examen non trouvé'], 404);
         }
-
-        $medicalFile->exams()->attach($exam);
-
+    
+        // Ajouter l'ID du docteur dans la table d'association
+        $medicalFile->medicalexam()->attach($exam, ['doctor_id' => Auth::id()]);
+    
         return response()->json(['message' => 'Examen ajouté avec succès']);
     }
+    
 
 
-    public function addMedicalHistory(Request $request, string $id)
+    public function addMedicalHistories(Request $request, string $id)
     {
         $medicalFile = MedicalFile::find($id);
     
@@ -178,9 +200,9 @@ class MedicalFileController extends Controller
             'content' => 'nullable|string',
         ]);
     
-        $medicalHistory = $medicalFile->medicalHistory()->create($validated);
+        $medicalHistories = $medicalFile->medicalHistories()->create($validated);
     
-        return response()->json(['message' => 'Antecedent ajoutée avec succès', 'data' => $medicalHistory]);
+        return response()->json(['message' => 'Antecedent ajoutée avec succès', 'data' => $medicalHistories]);
     }
 
 }

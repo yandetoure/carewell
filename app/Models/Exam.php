@@ -27,8 +27,9 @@ class Exam extends Model
     }
     
     //relation avec medical file
-    public function medicalFile(){
-        return $this->belongsTo(MedicalFile::class);
+    public function medicalFileExam(){
+        return $this->hasMany(MedicalFileExam::class);
     }
+
     
 }

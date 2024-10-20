@@ -504,5 +504,32 @@ public function destroy(string $id)
     }
 }
 
+public function getUserStatistics()
+{
+    try {
+        $statistics = [
+            'Doctor' => User::role('Doctor')->count(),
+            'Patient' => User::role('Patient')->count(),
+            'Admin' => User::role('Admin')->count(),
+            'Secretary' => User::role('Secretary')->count(),
+            'Accountant' => User::role('Accountant')->count(),
+        ];
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Statistiques des utilisateurs récupérées avec succès',
+            'data' => $statistics,
+        ], 200);
+    } catch (\Exception $e) {
+        // Log l'erreur pour déboguer
+        \Log::error('Erreur lors de la récupération des statistiques des utilisateurs : ' . $e->getMessage());
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la récupération des statistiques : ' . $e->getMessage(),
+        ], 500);
+    }
+}
+
 }
 

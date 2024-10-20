@@ -33,7 +33,6 @@ class WelcomeMail extends Mailable
                     ->with([
                         'first_name' => $this->user->first_name,
                         'last_name' => $this->user->last_name,
-                        'email' => $this->email,
                     ]);
     }
 }

@@ -13,6 +13,7 @@ class MedicalFilePrescription extends Model
         'medical_files_id',
         'prescription_id',
         'is_done',
+        'doctor_id',
     ];
 
         // Déclaration de la relation avec MedicalFile

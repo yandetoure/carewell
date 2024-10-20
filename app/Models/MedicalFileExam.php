@@ -13,6 +13,7 @@ class MedicalFileExam extends Model
         'medical_files_id',
         'exam_id',
         'is_done',
+        'doctor_id',
     ];
     
     public function medicalFile()
@@ -24,5 +25,5 @@ class MedicalFileExam extends Model
     {
         return $this->belongsTo(Exam::class); 
     }
-    
+
 }

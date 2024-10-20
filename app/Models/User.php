@@ -88,11 +88,6 @@ class User extends Authenticatable  implements JWTSubject
         'password' => 'hashed',
     ];
 
-    // Définir la relation avec le modèle MedicalFile
-    public function medicalFiles()
-    {
-        return $this->hasMany(MedicalFile::class);
-    }
 
     public function getMedicalFile()
     {

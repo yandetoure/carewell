@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Availability;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException; 
+use Illuminate\Validation\ValidationException;
 
 class AvailabilityController extends Controller
 {
@@ -14,35 +14,38 @@ class AvailabilityController extends Controller
      */
     public function index()
     {
-        // Trier par date disponible et heure de début, du plus récent au plus ancien
         $availabilities = Availability::orderBy('available_date', 'desc')
             ->orderBy('start_time', 'desc')
             ->get();
         return response()->json(['data' => $availabilities]);
     }
-    
+
     /**
      * Store a newly created availability in storage.
      */
     public function store(Request $request)
     {
         try {
-            // Validation des données
             $request->validate([
                 'doctor_id' => 'required|exists:users,id',
-                'service_id' => 'required|exists:services,id', 
-                'available_date' => 'required|date', 
-                'start_time' => 'required|date_format:H:i', 
+                'service_id' => 'required|exists:services,id',
+                'available_date' => 'required|date',
+                'day_of_week' => 'required|in:0,1,2,3,4,5,6', // 0=Sunday, 6=Saturday
+                'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
+                'appointment_duration' => 'required|integer|min:15', // Minimum 15 min
+                'recurrence_type' => 'nullable|string|in:none,daily,weekly', // optional, defaults to none
             ]);
 
-            // Création de la disponibilité
             $availability = Availability::create([
                 'doctor_id' => $request->doctor_id,
                 'service_id' => $request->service_id,
                 'available_date' => $request->available_date,
+                'day_of_week' => $request->day_of_week,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
+                'appointment_duration' => $request->appointment_duration,
+                'recurrence_type' => $request->recurrence_type ?? 'none',
             ]);
 
             return response()->json([
@@ -64,7 +67,6 @@ class AvailabilityController extends Controller
      */
     public function show($doctorId, $serviceId)
     {
-        // Trier les disponibilités par date et heure, du plus récent au plus ancien
         $availabilities = Availability::where('doctor_id', $doctorId)
             ->where('service_id', $serviceId)
             ->with(['doctor', 'service'])
@@ -90,7 +92,7 @@ class AvailabilityController extends Controller
      */
     public function getServiceByDoctor($doctorId)
     {
-        $doctor = User::with('service')->find($doctorId); 
+        $doctor = User::with('service')->find($doctorId);
 
         if (!$doctor) {
             return response()->json(['status' => false, 'message' => 'Médecin non trouvé'], 404);
@@ -98,7 +100,7 @@ class AvailabilityController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $doctor->service, 
+            'data' => $doctor->service,
         ]);
     }
 
@@ -107,7 +109,7 @@ class AvailabilityController extends Controller
      */
     public function getAuthenticatedDoctorDetails()
     {
-        $doctor = Auth::user(); 
+        $doctor = Auth::user();
 
         if (!$doctor) {
             return response()->json(['status' => false, 'message' => 'Médecin non trouvé'], 404);
@@ -122,35 +124,40 @@ class AvailabilityController extends Controller
         ]);
     }
 
+    /**
+     * Store availability for authenticated doctor.
+     */
     public function storeSelfAvailability(Request $request)
     {
         try {
-            // Validation des données
             $request->validate([
                 'available_date' => 'required|date',
+                'day_of_week' => 'required|in:0,1,2,3,4,5,6',
                 'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time', 
+                'end_time' => 'required|date_format:H:i|after:start_time',
+                'appointment_duration' => 'required|integer|min:15',
+                'recurrence_type' => 'nullable|string|in:none,daily,weekly',
             ]);
 
-            // Récupérer le médecin authentifié
             $doctor = Auth::user();
 
             if (!$doctor) {
                 return response()->json(['status' => false, 'message' => 'Médecin non trouvé'], 404);
             }
 
-            // Vérifier que le médecin a un service
             if (!$doctor->service) {
                 return response()->json(['status' => false, 'message' => 'Le médecin n\'a pas de service associé'], 404);
             }
 
-            // Création de la disponibilité
             $availability = Availability::create([
                 'doctor_id' => $doctor->id,
                 'service_id' => $doctor->service->id,
                 'available_date' => $request->available_date,
+                'day_of_week' => $request->day_of_week,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
+                'appointment_duration' => $request->appointment_duration,
+                'recurrence_type' => $request->recurrence_type ?? 'none',
             ]);
 
             return response()->json([
@@ -159,14 +166,12 @@ class AvailabilityController extends Controller
                 'data' => $availability,
             ], 201);
         } catch (ValidationException $e) {
-            // Gérer les erreurs de validation
             return response()->json([
                 'status' => false,
                 'message' => 'Erreur de validation',
                 'errors' => $e->validator->errors(),
             ], 422);
         } catch (\Exception $e) {
-            // Gérer d'autres erreurs
             return response()->json([
                 'status' => false,
                 'message' => 'Une erreur est survenue. Veuillez réessayer plus tard.',
@@ -186,9 +191,8 @@ class AvailabilityController extends Controller
             return response()->json(['status' => false, 'message' => 'Médecin non trouvé'], 404);
         }
 
-        // Récupérer les disponibilités du médecin, triées du plus récent au plus ancien
         $availabilities = Availability::where('doctor_id', $doctor->id)
-            ->with('service') // Charge les services associés
+            ->with('service')
             ->orderBy('available_date', 'desc')
             ->orderBy('start_time', 'desc')
             ->get();
