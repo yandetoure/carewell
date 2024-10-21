@@ -30,11 +30,11 @@ class AvailabilityController extends Controller
                 'doctor_id' => 'required|exists:users,id',
                 'service_id' => 'required|exists:services,id',
                 'available_date' => 'required|date',
-                'day_of_week' => 'required|in:0,1,2,3,4,5,6', // 0=Sunday, 6=Saturday
+                'day_of_week' => 'required|in:0,1,2,3,4,5,6', // Ajout de day_of_week pour la vérification
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
-                'appointment_duration' => 'required|integer|min:15', // Minimum 15 min
-                'recurrence_type' => 'nullable|string|in:none,daily,weekly', // optional, defaults to none
+                'appointment_duration' => 'required|integer|min:15',
+                'recurrence_type' => 'nullable|string|in:none,daily,weekly',
             ]);
 
             $availability = Availability::create([
@@ -60,6 +60,33 @@ class AvailabilityController extends Controller
                 'errors' => $e->validator->errors(),
             ], 422);
         }
+    }
+
+    /**
+     * Generate weekly recurrences.
+     */
+    public function generateWeeklyRecurrences($startDate, $endDate)
+    {
+        $recurrences = [];
+        $currentDate = $startDate;
+
+        while ($currentDate <= $endDate) {
+            // Utilisation de day_of_week pour générer les récursions hebdomadaires
+            if ($currentDate->dayOfWeek == $this->day_of_week) {
+                $recurrences[] = [
+                    'doctor_id' => $this->doctor_id,
+                    'service_id' => $this->service_id,
+                    'day_of_week' => $this->day_of_week,
+                    'start_time' => $this->start_time,
+                    'end_time' => $this->end_time,
+                    'appointment_duration' => $this->appointment_duration,
+                    'date' => $currentDate->toDateString(),
+                ];
+            }
+            $currentDate->addWeek();
+        }
+
+        return $recurrences;
     }
 
     /**
@@ -130,25 +157,30 @@ class AvailabilityController extends Controller
     public function storeSelfAvailability(Request $request)
     {
         try {
+            // Validation des champs
             $request->validate([
                 'available_date' => 'required|date',
-                'day_of_week' => 'required|in:0,1,2,3,4,5,6',
+                'day_of_week' => 'required|in:0,1,2,3,4,5,6', // Ajout de day_of_week pour la vérification
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
-                'appointment_duration' => 'required|integer|min:15',
+                'appointment_duration' => 'required|integer|min:20',
                 'recurrence_type' => 'nullable|string|in:none,daily,weekly',
             ]);
 
+            // Récupérer le médecin connecté
             $doctor = Auth::user();
 
+            // Vérifier que le médecin est authentifié
             if (!$doctor) {
                 return response()->json(['status' => false, 'message' => 'Médecin non trouvé'], 404);
             }
 
+            // Vérifier que le médecin est associé à un service
             if (!$doctor->service) {
                 return response()->json(['status' => false, 'message' => 'Le médecin n\'a pas de service associé'], 404);
             }
 
+            // Créer une nouvelle disponibilité
             $availability = Availability::create([
                 'doctor_id' => $doctor->id,
                 'service_id' => $doctor->service->id,

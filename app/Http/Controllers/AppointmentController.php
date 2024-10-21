@@ -34,7 +34,6 @@ class AppointmentController extends Controller
     {
         $doctor = Auth::user();
     
-        // Vérifier si l'utilisateur est un docteur
         if ($doctor && $doctor->hasRole('Doctor')) {
             // Récupérer les rendez-vous du docteur connecté du plus récent au plus ancien
             $appointments = Appointment::with(['user', 'service'])
@@ -58,7 +57,6 @@ class AppointmentController extends Controller
     {
         $patient = Auth::user();
 
-        // Vérifier si l'utilisateur est un docteur
         if ($patient && $patient->hasRole('Patient')) {
             // Récupérer les rendez-vous du Patient connecté
             $appointments = Appointment::with(['user', 'service'])
@@ -82,71 +80,89 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-        // Récupérer l'utilisateur authentifié
         $user = Auth::user();
-        
+
         try {
             // Validation des données
             $request->validate([
                 'service_id' => 'required|exists:services,id', // Service existant
                 'reason' => 'nullable|string|max:255',
                 'symptoms' => 'nullable|string',
-                'date' => 'required|date', 
-                'time' => 'required|date_format:H:i',
+                'date' => 'required|date',
             ]);
 
-            // Recherche des disponibilités des médecins pour ce service à cette date et heure
-            $availableDoctors = Availability::where('service_id', $request->service_id)
+            // Récupérer les disponibilités du médecin pour ce service à cette date
+            $availabilities = Availability::where('service_id', $request->service_id)
                 ->where('available_date', $request->date)
-                ->where('start_time', '<=', $request->time)
-                ->where('end_time', '>=', $request->time)
                 ->get();
-        
-            $eligibleDoctors = [];
-            foreach ($availableDoctors as $availability) {
-                $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
-        
-                if ($doctor && $doctor->hasRole('Doctor')) { // Vérifier si le médecin existe et a le rôle 'Doctor'
-                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
-                        ->where('date', $request->date)
-                        ->count();
-        
-                    if ($appointmentCount < 15) {
-                        $eligibleDoctors[] = $doctor; // Ajouter le médecin éligible
-                    }
-                }
-            }
-        
-            // Vérifier s'il y a des médecins éligibles
-            if (empty($eligibleDoctors)) {
+
+            // Vérifier s'il y a des disponibilités
+            if ($availabilities->isEmpty()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date.',
+                    'message' => 'Aucune disponibilité trouvée pour ce médecin à cette date.',
+                ], 404);
+            }
+
+            $slots = [];
+            
+            // Créer des créneaux horaires en fonction de la durée définie dans la disponibilité
+            foreach ($availabilities as $availability) {
+                $startTime = \Carbon\Carbon::parse($availability->start_time);
+                $endTime = \Carbon\Carbon::parse($availability->end_time);
+                $duration = $availability->duration; // Durée du rendez-vous
+
+                while ($startTime->addMinutes($duration)->lessThanOrEqualTo($endTime)) {
+                    $slots[] = $startTime->copy(); // Ajouter le créneau à la liste
+                }
+            }
+
+            // Filtrer les créneaux disponibles en vérifiant les rendez-vous existants
+            $availableSlots = [];
+            foreach ($slots as $slot) {
+                $doctorId = $availability->doctor_id; // Récupérer l'ID du médecin
+
+                $appointmentCount = Appointment::where('doctor_id', $doctorId)
+                    ->where('date', $request->date)
+                    ->where('time', $slot->format('H:i'))
+                    ->count();
+
+                // Si le médecin a moins de 15 rendez-vous, ajouter le créneau à la liste
+                if ($appointmentCount < 15) {
+                    $availableSlots[] = $slot->format('H:i');
+                }
+            }
+
+            // Vérifier s'il y a des créneaux disponibles
+            if (empty($availableSlots)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Aucun créneau disponible pour ce médecin à cette date.',
                 ], 422);
             }
-        
-            // Choisir un médecin au hasard parmi ceux qui sont éligibles
-            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
-        
-            // Si un médecin est disponible, création du rendez-vous
+
+            // Choisir un créneau aléatoire parmi ceux disponibles
+            $selectedTime = $availableSlots[array_rand($availableSlots)];
+
+            // Création du rendez-vous
             $appointment = Appointment::create([
-                'user_id' => $request->user_id,
+                'user_id' => $user->id,
                 'service_id' => $request->service_id,
-                'doctor_id' => $selectedDoctor->id,
+                'doctor_id' => $availability->doctor_id, // Prendre le médecin de la disponibilité
                 'reason' => $request->reason,
                 'symptoms' => $request->symptoms,
                 'is_visited' => false,
                 'date' => $request->date,
-                'time' => $request->time,
+                'time' => $selectedTime,
             ]);
-    
-            // Création du ticket associé avec l'ID du docteur
+
+            // Création du ticket associé
             $ticket = Ticket::create([
                 'appointment_id' => $appointment->id,
-                'doctor_id' => $selectedDoctor->id, 
-                'is_paid' => false, 
+                'doctor_id' => $availability->doctor_id,
+                'is_paid' => false,
             ]);
-            
+
             Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
 
             return response()->json([
@@ -154,7 +170,7 @@ class AppointmentController extends Controller
                 'message' => 'Rendez-vous créé avec succès',
                 'data' => [
                     'appointment' => $appointment,
-                    'ticket' => $ticket
+                    'ticket' => $ticket,
                 ],
             ], 201);
         } catch (ValidationException $e) {
@@ -278,43 +294,7 @@ class AppointmentController extends Controller
         if ($appointments->isEmpty()) {
             return response()->json([
                 'status' => false,
-                'message' => 'Aucun patient n\'a de rendez-vous',
-            ], 404);
-        }
-
-        // Transformer les rendez-vous pour n'afficher que les informations pertinentes des patients
-        $patients = $appointments->map(function ($appointment) {
-            return [
-                'patient_id' => $appointment->user->id,
-                'patient_first_name' => $appointment->user->first_name,
-                'patient_last_name' => $appointment->user->last_name,
-                'service' => $appointment->service->name,
-                'appointment_date' => $appointment->date,
-                'appointment_time' => $appointment->time,
-                'is_visited' => $appointment->is_visited,
-                // 'doctor_first_name' => $appointment->docter_id->first_name,
-                'patient_email'=>$appointment->user->email,
-            ];
-        });
-
-        return response()->json([
-            'status' => true,
-            'data' => $patients,
-        ]);
-    }
-
-    public function getAppointmentByDoctor($id)
-    {
-        // Récupérer tous les rendez-vous associés à un médecin spécifique
-        $appointments = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $id)
-            ->get();
-
-        // Vérifier s'il y a des rendez-vous
-        if ($appointments->isEmpty()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Aucun rendez-vous trouvé pour ce médecin',
+                'message' => 'Aucun rendez-vous trouvé.',
             ], 404);
         }
 
@@ -323,41 +303,85 @@ class AppointmentController extends Controller
             'data' => $appointments,
         ]);
     }
+
     public function doctorAppointmentStats()
-    {
-        $doctor = Auth::user();
-    
-        if ($doctor && $doctor->hasRole('Doctor')) {
-            // Récupérer la date du jour
-            $today = now()->format('Y-m-d');
-    
-            // Nombre de rendez-vous pour aujourd'hui
-            $appointmentsToday = Appointment::where('doctor_id', $doctor->id)
-                ->whereDate('date', $today)
-                ->count();
-    
-            // Total des rendez-vous pour le docteur
-            $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
-    
-            // Nombre de rendez-vous effectués (is_visited = true)
-            $completedAppointments = Appointment::where('doctor_id', $doctor->id)
-                ->where('is_visited', true)
-                ->count();
-    
-            return response()->json([
-                'status' => true,
-                'data' => [
-                    'appointments_today' => $appointmentsToday,
-                    'total_appointments' => $totalAppointments,
-                    'completed_appointments' => $completedAppointments,
-                ],
-            ]);
-        }
-    
+{
+    $doctor = Auth::user();
+
+    if ($doctor && $doctor->hasRole('Doctor')) {
+        // Récupérer la date du jour
+        $today = now()->format('Y-m-d');
+
+        // Nombre de rendez-vous pour aujourd'hui
+        $appointmentsToday = Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('date', $today)
+            ->count();
+
+        // Total des rendez-vous pour le docteur
+        $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
+
+        // Nombre de rendez-vous effectués (is_visited = true)
+        $completedAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('is_visited', true)
+            ->count();
+
         return response()->json([
-            'status' => false,
-            'message' => 'Utilisateur non autorisé ou rôle incorrect',
-        ], 403);
+            'status' => true,
+            'data' => [
+                'appointments_today' => $appointmentsToday,
+                'total_appointments' => $totalAppointments,
+                'completed_appointments' => $completedAppointments,
+            ],
+        ]);
     }
 
+    return response()->json([
+        'status' => false,
+        'message' => 'Utilisateur non autorisé ou rôle incorrect',
+    ], 403);
+}
+
+public function getDoctorStatsForCurrentMonth(Request $request)
+{
+    try {
+        $currentMonth = Carbon::now()->month;
+        $currentYear = Carbon::now()->year;
+
+        // Récupération des rendez-vous pour le mois courant
+        $dailyAppointments = [];
+        for ($day = 1; $day <= 31; $day++) {
+            $date = Carbon::createFromDate($currentYear, $currentMonth, $day);
+            if ($date->isMonth($currentMonth)) {
+                $dailyAppointments[] = Appointment::whereDate('date', $date)->count();
+            } else {
+                $dailyAppointments[] = 0; // Pas de rendez-vous pour les jours en dehors du mois
+            }
+        }
+
+        $totalAppointments = Appointment::whereMonth('date', $currentMonth)
+                                         ->whereYear('date', $currentYear)
+                                         ->count();
+
+        $completedAppointments = Appointment::where('status', 'completed') // Assurez-vous d'avoir une colonne 'status'
+                                             ->whereMonth('date', $currentMonth)
+                                             ->whereYear('date', $currentYear)
+                                             ->count();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'daily_appointments' => $dailyAppointments,
+                'total_appointments' => $totalAppointments,
+                'completed_appointments' => $completedAppointments,
+            ]
+        ]);
+    } catch (\Exception $e) {
+        // Gérer les erreurs ici
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la récupération des statistiques',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

@@ -46,13 +46,13 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('/doctor/stats', [AppointmentController::class, 'doctorAppointmentStats']);
     Route::apiResource('availabilities', AvailabilityController::class);
 
-    Route::post('medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
-    Route::post('medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
-    Route::post('medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription']);
-    Route::post('medical-files/{id}/addexam', [MedicalFileController::class, 'addExam']);
+    Route::post('/medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
+    Route::post('/medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
+    Route::post('/medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription']);
+    Route::post('/medical-files/{id}/addexam', [MedicalFileController::class, 'addExam']);
     
     Route::middleware('auth:sanctum')->get('/profile', [AuthController::class, 'profile']);
-    Route::middleware('auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
+    Route::middleware('/auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
     Route::post('/add-user', [AuthController::class, 'registerUser']);
 
     
@@ -61,10 +61,10 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('/patient', [AppointmentController::class, 'getPatientsWithAppointments']);
 
 
-    Route::apiResource('exams', ExamController::class);
-    Route::apiResource('users', AuthController::class);
+    Route::apiResource('/exams', ExamController::class);
+    Route::apiResource('/users', AuthController::class);
     Route::apiResource('medicalfileprescriptions', MedicalFilePrescriptionController::class);
-    Route::apiResource('medicalfiles', MedicalFileController::class);
+    Route::apiResource('/medicalfiles', MedicalFileController::class);
     Route::apiResource('tickets', TicketController::class);
 
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
