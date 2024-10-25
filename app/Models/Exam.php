@@ -23,13 +23,15 @@ class Exam extends Model
     }
 
     public function results(){
-        return $this->hasMany(Result::class); // Association avec les résultats
+        return $this->hasMany(Result::class); 
     }
     
-    //relation avec medical file
     public function medicalFileExam(){
         return $this->hasMany(MedicalFileExam::class);
     }
 
-    
+    public function tickets()
+    {
+        return $this->hasOne(Ticket::class);
+    }
 }

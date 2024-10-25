@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Model;
 use App\Models\Exam;
+use App\Models\Ticket;
 use App\Models\Service;
 use App\Models\MedicalFile;
 use App\Models\Prescription;
@@ -41,7 +42,7 @@ class MedicalFileController extends Controller
      */
     public function show(string $id)
     {
-        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])->find($id);
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription.prescription', 'user', 'medicalexam.exam'])->find($id);
     
         if (!$medicalFile) {
             return response()->json(['message' => 'Dossier médical non trouvé'], 404);
@@ -55,7 +56,7 @@ class MedicalFileController extends Controller
     public function showAuthMedicalFile()
     {
         $user = Auth::user();
-        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription.prescription', 'user', 'medicalexam.exam'])
             ->where('user_id', $user->id) 
             ->first();
 
@@ -151,12 +152,17 @@ class MedicalFileController extends Controller
             return response()->json(['message' => 'Prescription non trouvée'], 404);
         }
     
-        // Ajouter l'ID du docteur
         $medicalFile->medicalprescription()->create([
             'prescription_id' => $prescription->id,
             'doctor_id' => Auth::id(),
         ]);
     
+        $ticket = Ticket::create([
+            'prescription_id' => $prescription->id,
+            'doctor_id' => Auth::id(),            
+            'is_paid' => false, 
+        ]);
+        
         return response()->json(['message' => 'Prescription ajoutée avec succès']);
     }
     
@@ -180,9 +186,17 @@ class MedicalFileController extends Controller
             return response()->json(['message' => 'Examen non trouvé'], 404);
         }
     
-        // Ajouter l'ID du docteur dans la table d'association
-        $medicalFile->medicalexam()->attach($exam, ['doctor_id' => Auth::id()]);
-    
+        $medicalFile->medicalexam()->create([
+            'exam_id' => $exam->id,
+            'doctor_id' => Auth::id(),
+        ]);    
+
+
+        $ticket = Ticket::create([
+            'exam_id' => $exam->id,
+            'doctor_id' => Auth::id(),            
+            'is_paid' => false, 
+        ]);
         return response()->json(['message' => 'Examen ajouté avec succès']);
     }
     

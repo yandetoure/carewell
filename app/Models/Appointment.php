@@ -34,7 +34,7 @@ class Appointment extends Model
 
     public function tickets()
     {
-        return $this->hasMany(Ticket::class);
+        return $this->hasOne(Ticket::class);
     }
     
     public function doctor()

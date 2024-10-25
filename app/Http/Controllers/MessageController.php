@@ -31,7 +31,9 @@ class MessageController extends Controller
 
         $result[] = [
             'user_id' => $userId,
-            'user_name' => $user->name,
+            'user_first_name' => $user->first_name,
+            'user_last_name' => $user->last_name,
+            'user_photo' => $user->photo ? asset('storage/' . $user->photo) : null,            
             'last_message' => $lastMessage->message,
             'last_message_time' => $lastMessage->created_at->format('H:i'),
             'unread_count' => $unreadCount,

@@ -31,8 +31,8 @@ class ArticleController extends Controller
                 'title' => 'required|string|max:255|unique:articles',  
                 'content' => 'required|string|min:50',  
                 'photo' => 'nullable|file|image|max:2048',
-                'symptoms' => 'required|string|max:255',
-                'advices' => 'required|string|max:255',
+                'symptoms' => 'required|string|',
+                'advices' => 'required|string',
             ]);
         
             // Gestion du fichier

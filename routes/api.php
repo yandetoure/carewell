@@ -8,6 +8,7 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFileController;
@@ -19,11 +20,14 @@ use App\Http\Controllers\MedicalFilePrescriptionController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::apiResource('tickets', TicketController::class);
+
 Route::apiResource('services', ServiceController::class);
 Route::apiResource('articles', ArticleController::class);
 
 Route::apiResource('prescriptions', PrescriptionController::class);
 Route::get('/user-statistics', [AuthController::class, 'getUserStatistics']);
+Route::apiResource('exams', ExamController::class);
 
 // Route pour afficher les disponibilités d'un médecin pour un service donné
 // Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
@@ -34,25 +38,27 @@ Route::get('/appointments/current-month', [AppointmentController::class, 'getDoc
 Route::apiResource('notes', NoteController::class);
 Route::get('/users/{id}', [UserController::class, 'show']);
 
-    Route::put('/update/{id}', [AppointmentController::class, 'update']);
+Route::put('/update/{id}', [AppointmentController::class, 'update']);
 
 Route::middleware('auth:sanctum')->group(function(){
 
-    Route::apiResource('appointments', AppointmentController::class);
+    Route::apiResource('/appointments', AppointmentController::class);
     Route::apiResource('grades', GradeController::class);
     Route::get('/doctor/appointments', [AppointmentController::class, 'getPatientsWithAppointmentsDoctor']);
     Route::post('availability', [AvailabilityController::class, 'storeSelfAvailability']);
     Route::get('/user/appointments', [AppointmentController::class, 'userAppointments']);
     Route::get('/doctor/stats', [AppointmentController::class, 'doctorAppointmentStats']);
-    Route::apiResource('availabilities', AvailabilityController::class);
+    Route::get('/user/stats', [AppointmentController::class, 'userAppointmentsStats']);
 
-    Route::post('/medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
-    Route::post('/medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
-    Route::post('/medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription']);
-    Route::post('/medical-files/{id}/addexam', [MedicalFileController::class, 'addExam']);
+    Route::apiResource('availabilities', AvailabilityController::class);
+ 
+    Route::post('medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
+    Route::post('medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
+    Route::post('medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription']);
+    Route::post('medical-files/{id}/addexam', [MedicalFileController::class, 'addExam']);
     
     Route::middleware('auth:sanctum')->get('/profile', [AuthController::class, 'profile']);
-    Route::middleware('/auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
+    Route::middleware('auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
     Route::post('/add-user', [AuthController::class, 'registerUser']);
 
     
@@ -61,11 +67,9 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('/patient', [AppointmentController::class, 'getPatientsWithAppointments']);
 
 
-    Route::apiResource('/exams', ExamController::class);
-    Route::apiResource('/users', AuthController::class);
+    Route::apiResource('users', AuthController::class);
     Route::apiResource('medicalfileprescriptions', MedicalFilePrescriptionController::class);
-    Route::apiResource('/medicalfiles', MedicalFileController::class);
-    Route::apiResource('tickets', TicketController::class);
+    Route::apiResource('medicalfiles', MedicalFileController::class);
 
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
 
@@ -74,7 +78,18 @@ Route::middleware('auth:sanctum')->group(function(){
 
     Route::get('/doctor/availability', [AvailabilityController::class, 'getAuthenticatedDoctorAvailability']);
 
-    Route::get('/user/medicalfileshow/{id}', [MedicalFileController::class, 'showAuthMedicalFile']);
+    Route::get('user/medicalfileshow/{id}', [MedicalFileController::class, 'showAuthMedicalFile']);
+    Route::get('user/tickets',  [TicketController::class, 'showTickets']);
+
+
+//Routes des messages
+Route::get('/discussions', [MessageController::class, 'getAllDiscussions']);
+Route::get('/messages/{userId}', [MessageController::class, 'getMessages']);
+Route::put('/messages/{messageId}', [MessageController::class, 'updateMessage']);
+Route::delete('/messages/{messageId}', [MessageController::class, 'deleteMessage']);
+
+Route::patch('messages/read/{id}', [MessageController::class, 'markAsRead']);
+Route::post('messages/read/{userId}', [MessageController::class, 'markMessagesAsRead']);
 
 });
 Route::middleware('auth:sanctum')->get('/users', [AuthController::class, 'getUsers']);

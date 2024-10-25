@@ -1,8 +1,10 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Ticket;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
@@ -12,7 +14,6 @@ class TicketController extends Controller
      */
     public function index()
     {
-        // Code pour lister les tickets
         $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])->get();
         return response()->json(['data' => $tickets]);
     }
@@ -67,6 +68,27 @@ class TicketController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Ticket non trouvé',
+            ], 404);
+        }
+    }
+
+
+    //Rcuperer les ticket de l'utlisateur connecé
+    public function showTickets(){
+        $user = auth()->user();
+        $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
+            ->where('user_id', $user->id)
+            ->get();
+
+        if ($tickets) {
+            return response()->json([
+               'status' => true,
+                'data' => $tickets,
+            ]);
+        } else {
+            return response()->json([
+               'status' => false,
+               'message' => 'Tickets non trouvés',
             ], 404);
         }
     }

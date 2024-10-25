@@ -50,7 +50,6 @@ class MedicalFile extends Model
 
         return $identification_number;
     }
-    // Définir la relation avec le modèle User
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -64,7 +63,7 @@ class MedicalFile extends Model
         // Déclaration de la relation avec Examen
          public function medicalexam()
                 {
-          return $this->hasMany(Exam::class, 'medical_files_id');
+          return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
         }
 
         // Déclaration de la relation avec MedicalHistory

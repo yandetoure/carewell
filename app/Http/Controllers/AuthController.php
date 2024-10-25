@@ -32,7 +32,7 @@ class AuthController extends Controller
             'phone_number' => 'required|regex:/^[0-9]{9}$/',
             'day_of_birth' => 'required', 
             'password' => 'required|string|min:8',
-            'photo' => 'nullable|file|image|max:2048', // Limite de 2 Mo pour les images
+            'photo' => 'nullable|file|image|max:2048',
         ]);
     
         if ($validateUser->fails()) {

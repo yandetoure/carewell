@@ -33,7 +33,7 @@ class AppointmentController extends Controller
     public function doctorAppointment()
     {
         $doctor = Auth::user();
-    
+
         if ($doctor && $doctor->hasRole('Doctor')) {
             // Récupérer les rendez-vous du docteur connecté du plus récent au plus ancien
             $appointments = Appointment::with(['user', 'service'])
@@ -78,91 +78,185 @@ class AppointmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+    // public function store(Request $request)
+    // {
+    //     $user = Auth::user();
+
+    //     try {
+            // Validation des données
+            // $request->validate([
+                // 'service_id' => 'required|exists:services,id', // Service existant
+                // 'reason' => 'nullable|string|max:255',
+                // 'symptoms' => 'nullable|string',
+                // 'date' => 'required|date',
+            // ]);
+
+            // Récupérer les disponibilités du médecin pour ce service à cette date
+            // $availabilities = Availability::where('service_id', $request->service_id)
+            //     ->where('available_date', $request->date)
+            //     ->get();
+
+            // Vérifier s'il y a des disponibilités
+            // if ($availabilities->isEmpty()) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => 'Aucune disponibilité trouvée pour ce médecin à cette date.',
+            //     ], 404);
+            // }
+
+            // $slots = [];
+            
+            // Créer des créneaux horaires en fonction de la durée définie dans la disponibilité
+            // foreach ($availabilities as $availability) {
+            //     $startTime = \Carbon\Carbon::parse($availability->start_time);
+            //     $endTime = \Carbon\Carbon::parse($availability->end_time);
+            //     $duration = $availability->duration; // Durée du rendez-vous
+
+            //     while ($startTime->addMinutes($duration)->lessThanOrEqualTo($endTime)) {
+            //         $slots[] = $startTime->copy(); // Ajouter le créneau à la liste
+            //     }
+            // }
+
+            // Filtrer les créneaux disponibles en vérifiant les rendez-vous existants
+            // $availableSlots = [];
+            // foreach ($slots as $slot) {
+            //     $doctorId = $availability->doctor_id; // Récupérer l'ID du médecin
+
+            //     $appointmentCount = Appointment::where('doctor_id', $doctorId)
+            //         ->where('date', $request->date)
+            //         ->where('time', $slot->format('H:i'))
+            //         ->count();
+
+                // Si le médecin a moins de 15 rendez-vous, ajouter le créneau à la liste
+                // if ($appointmentCount < 15) {
+                    // $availableSlots[] = $slot->format('H:i');
+            //     }
+            // }
+
+            // // Vérifier s'il y a des créneaux disponibles
+            // if (empty($availableSlots)) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => 'Aucun créneau disponible pour ce médecin à cette date.',
+            //     ], 422);
+            // }
+
+            // Choisir un créneau aléatoire parmi ceux disponibles
+            // $selectedTime = $availableSlots[array_rand($availableSlots)];
+
+            // Création du rendez-vous
+    //         $appointment = Appointment::create([
+    //             'user_id' => $user->id,
+    //             'service_id' => $request->service_id,
+    //             'doctor_id' => $availability->doctor_id, // Prendre le médecin de la disponibilité
+    //             'reason' => $request->reason,
+    //             'symptoms' => $request->symptoms,
+    //             'is_visited' => false,
+    //             'date' => $request->date,
+    //             'time' => $request->time,
+    //         ]);
+
+    //         // Création du ticket associé
+    //         $ticket = Ticket::create([
+    //             'appointment_id' => $appointment->id,
+    //             'doctor_id' => $availability->doctor_id,
+    //             'is_paid' => false,
+    //         ]);
+
+    //         Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Rendez-vous créé avec succès',
+    //             'data' => [
+    //                 'appointment' => $appointment,
+    //                 'ticket' => $ticket,
+    //             ],
+    //         ], 201);
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Erreur de validation',
+    //             'errors' => $e->validator->errors(),
+    //         ], 422);
+    //     } catch (Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Erreur lors de la création du rendez-vous',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+
+
     public function store(Request $request)
     {
+        // Récupérer l'utilisateur authentifié
         $user = Auth::user();
-
+        
         try {
             // Validation des données
             $request->validate([
                 'service_id' => 'required|exists:services,id', // Service existant
                 'reason' => 'nullable|string|max:255',
                 'symptoms' => 'nullable|string',
-                'date' => 'required|date',
+                'date' => 'required|date', 
+                'time' => 'required|date_format:H:i',
             ]);
 
-            // Récupérer les disponibilités du médecin pour ce service à cette date
-            $availabilities = Availability::where('service_id', $request->service_id)
+            // Recherche des disponibilités des médecins pour ce service à cette date et heure
+            $availableDoctors = Availability::where('service_id', $request->service_id)
                 ->where('available_date', $request->date)
+                ->where('start_time', '<=', $request->time)
+                ->where('end_time', '>=', $request->time)
                 ->get();
-
-            // Vérifier s'il y a des disponibilités
-            if ($availabilities->isEmpty()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Aucune disponibilité trouvée pour ce médecin à cette date.',
-                ], 404);
-            }
-
-            $slots = [];
-            
-            // Créer des créneaux horaires en fonction de la durée définie dans la disponibilité
-            foreach ($availabilities as $availability) {
-                $startTime = \Carbon\Carbon::parse($availability->start_time);
-                $endTime = \Carbon\Carbon::parse($availability->end_time);
-                $duration = $availability->duration; // Durée du rendez-vous
-
-                while ($startTime->addMinutes($duration)->lessThanOrEqualTo($endTime)) {
-                    $slots[] = $startTime->copy(); // Ajouter le créneau à la liste
+        
+            $eligibleDoctors = [];
+            foreach ($availableDoctors as $availability) {
+                $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
+        
+                if ($doctor && $doctor->hasRole('Doctor')) { // Vérifier si le médecin existe et a le rôle 'Doctor'
+                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+                        ->where('date', $request->date)
+                        ->count();
+        
+                    if ($appointmentCount < 15) {
+                        $eligibleDoctors[] = $doctor;
+                    }
                 }
             }
-
-            // Filtrer les créneaux disponibles en vérifiant les rendez-vous existants
-            $availableSlots = [];
-            foreach ($slots as $slot) {
-                $doctorId = $availability->doctor_id; // Récupérer l'ID du médecin
-
-                $appointmentCount = Appointment::where('doctor_id', $doctorId)
-                    ->where('date', $request->date)
-                    ->where('time', $slot->format('H:i'))
-                    ->count();
-
-                // Si le médecin a moins de 15 rendez-vous, ajouter le créneau à la liste
-                if ($appointmentCount < 15) {
-                    $availableSlots[] = $slot->format('H:i');
-                }
-            }
-
-            // Vérifier s'il y a des créneaux disponibles
-            if (empty($availableSlots)) {
+        
+            // Vérifier s'il y a des médecins éligibles
+            if (empty($eligibleDoctors)) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Aucun créneau disponible pour ce médecin à cette date.',
+                    'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.',
                 ], 422);
             }
-
-            // Choisir un créneau aléatoire parmi ceux disponibles
-            $selectedTime = $availableSlots[array_rand($availableSlots)];
-
-            // Création du rendez-vous
+        
+            // Choisir un médecin au hasard parmi ceux qui sont éligibles
+            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
+        
+            // Si un médecin est disponible, création du rendez-vous
             $appointment = Appointment::create([
-                'user_id' => $user->id,
+                'user_id' => $request->user_id,
                 'service_id' => $request->service_id,
-                'doctor_id' => $availability->doctor_id, // Prendre le médecin de la disponibilité
+                'doctor_id' => $selectedDoctor->id,
                 'reason' => $request->reason,
                 'symptoms' => $request->symptoms,
                 'is_visited' => false,
                 'date' => $request->date,
-                'time' => $selectedTime,
+                'time' => $request->time,
             ]);
-
-            // Création du ticket associé
+    
+            // Création du ticket associé avec l'ID du docteur
             $ticket = Ticket::create([
                 'appointment_id' => $appointment->id,
-                'doctor_id' => $availability->doctor_id,
-                'is_paid' => false,
+                'doctor_id' => $selectedDoctor->id, 
+                'is_paid' => false, 
             ]);
-
+            
             Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
 
             return response()->json([
@@ -170,7 +264,7 @@ class AppointmentController extends Controller
                 'message' => 'Rendez-vous créé avec succès',
                 'data' => [
                     'appointment' => $appointment,
-                    'ticket' => $ticket,
+                    'ticket' => $ticket
                 ],
             ], 201);
         } catch (ValidationException $e) {
@@ -187,6 +281,7 @@ class AppointmentController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Display the specified resource.
@@ -294,13 +389,28 @@ class AppointmentController extends Controller
         if ($appointments->isEmpty()) {
             return response()->json([
                 'status' => false,
-                'message' => 'Aucun rendez-vous trouvé.',
+                'message' => 'Aucun patient n\'a de rendez-vous',
             ], 404);
         }
 
+        // Transformer les rendez-vous pour n'afficher que les informations pertinentes des patients
+        $patients = $appointments->map(function ($appointment) {
+            return [
+                'patient_id' => $appointment->user->id,
+                'patient_first_name' => $appointment->user->first_name,
+                'patient_last_name' => $appointment->user->last_name,
+                'service' => $appointment->service->name,
+                'appointment_date' => $appointment->date,
+                'appointment_time' => $appointment->time,
+                'is_visited' => $appointment->is_visited,
+                'doctor_first_name' => $appointment->docter_id->first_name,
+                'patient_email'=>$appointment->user->email,
+            ];
+        });
+
         return response()->json([
             'status' => true,
-            'data' => $appointments,
+            'data' => $patients,
         ]);
     }
 
@@ -384,4 +494,38 @@ public function getDoctorStatsForCurrentMonth(Request $request)
         ], 500);
     }
 }
+
+public function userAppointmentsStats()
+{
+    $user = Auth::user();
+
+    if ($user) {
+        // Récupérer tous les rendez-vous de l'utilisateur
+        $totalAppointments = Appointment::where('user_id', $user->id)->count();
+
+        // Récupérer les rendez-vous à venir (date supérieure à aujourd'hui)
+        $upcomingAppointments = Appointment::where('user_id', $user->id)
+            ->where('date', '>', now())
+            ->count();
+
+        // Récupérer les rendez-vous du jour
+        $todayAppointments = Appointment::where('user_id', $user->id)
+            ->whereDate('date', '=', now()->toDateString())
+            ->count();
+
+        return response()->json([
+            'status' => true,
+            'total_appointments' => $totalAppointments,
+            'upcoming_appointments' => $upcomingAppointments,
+            'today_appointments' => $todayAppointments,
+        ]);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Utilisateur non authentifié',
+    ], 403);
+}
+
+
 }

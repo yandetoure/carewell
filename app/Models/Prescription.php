@@ -16,12 +16,10 @@ class Prescription extends Model
         'service_id'
     ];
     
-    // Déclaration de la relation avec Service
     public function service(){
         return $this->belongsTo(Service::class);
     }
     
-    // Déclaration de la relation avec MedicalFilePrescription
     public function medicalFilePrescriptions(){
         return $this->hasMany(MedicalFilePrescription::class);
     }

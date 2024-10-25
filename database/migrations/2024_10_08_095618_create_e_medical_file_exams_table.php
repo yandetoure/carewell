@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('e_medical_file_exams', function (Blueprint $table) {
+        Schema::create('medical_file_exams', function (Blueprint $table) {
             $table->id();     
             $table->foreignId('medical_file_id')->constrained()->onDelete('cascade');       
             $table->foreignId('exam_id')->constrained()->onDelete('cascade');

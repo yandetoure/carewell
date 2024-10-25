@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Ticket extends Model
 {
@@ -17,13 +17,11 @@ class Ticket extends Model
         'is_paid'
     ];
 
-        // Relation avec le modèle Appointment
         public function appointment()
         {
             return $this->belongsTo(Appointment::class);
         }
     
-        // Si vous avez d'autres relations, ajoutez-les ici
         public function prescription()
         {
             return $this->belongsTo(Prescription::class);
@@ -34,9 +32,9 @@ class Ticket extends Model
             return $this->belongsTo(Exam::class);
         }
 
-        public function doctor()
-    {
-        return $this->belongsTo(User::class, 'doctor_id');
-    }
+        public function user()
+        {
+            return $this->belongsTo(User::class);
+        }
 
 }

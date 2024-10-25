@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Exam;
-use Illuminate\Validation\ValidationException;
 use App\Models\Ticket;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
@@ -33,10 +33,9 @@ class ExamController extends Controller
                 'name' => 'required|string|max:255|unique:exams',
                 'description' => 'required|string|min:50',  
                 'price' => 'nullable|numeric',
-                'service_id' => 'required|exists:services,id', // Validation pour l'ID du service
+                'service_id' => 'required|exists:services,id',
             ]);
             
-            // Création d'une nouvelle instance d'examen
             $exam = Exam::create([
                 'name' => $request->name,
                 'description' => $request->description,
@@ -44,10 +43,9 @@ class ExamController extends Controller
                 'service_id' => $request->service_id,
             ]);
 
-            // Création du ticket associé à la prescription
             $ticket = Ticket::create([
-            'exam_id' => $request->exam_id, // Utilisation correcte de la exam_id
-            'is_paid' => false, // Initialement, le ticket n'est pas payé
+            'exam_id' => $request->exam_id, 
+            'is_paid' => false, 
         ]);
 
 

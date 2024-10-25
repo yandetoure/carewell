@@ -10,7 +10,7 @@ class MedicalFileMail extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
-    public $medical_file_prescription; // Ajoutez cette ligne
+    public $medical_file_prescription; 
 
     /**
      * Create a new message instance.
@@ -20,7 +20,7 @@ class MedicalFileMail extends Mailable
         $this->user = $user;
 
         // Récupérer la fiche médicale de l'utilisateur
-        $this->medical_file_prescription = $user->medicalFilePrescription; // Assurez-vous que la relation est bien définie
+        $this->medical_file_prescription = $user->medicalFilePrescription; 
     }
 
     /**
