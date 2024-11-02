@@ -18,6 +18,29 @@ class TicketController extends Controller
         return response()->json(['data' => $tickets]);
     }
 
+    public function updatePaymentStatus(Request $request, $id)
+    {
+        $user = Auth::user(); // Récupère l'utilisateur authentifié
+    
+        // Vérifiez si l'utilisateur est authentifié
+        if (!$user) {
+            return response()->json(['message' => 'Non autorisé'], 401);
+        }
+    
+        // Vérifiez si l'utilisateur a le rôle approprié
+        if (!$user->hasRole('accountant')) {
+            return response()->json(['message' => 'Accès refusé'], 403);
+        }
+    
+        $ticket = Ticket::findOrFail($id);
+        $ticket->is_paid = $request->input('is_paid');
+        $ticket->save();
+    
+        return response()->json([
+            'success' => true,
+            'data' => $ticket,
+        ]);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -76,9 +99,10 @@ class TicketController extends Controller
     //Rcuperer les ticket de l'utlisateur connecé
     public function showTickets(){
         $user = auth()->user();
-        $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
-            ->where('user_id', $user->id)
-            ->get();
+        $tickets = Ticket::with(['appointment.service', 'prescription', 'exam', 'user'])
+        ->where('patient_id', $user->id)
+        ->orderBy('created_at', 'desc')             
+        ->get();
 
         if ($tickets) {
             return response()->json([
@@ -106,12 +130,12 @@ public function update(Request $request, string $id)
     $user = auth()->user();
 
     // Vérifier si l'utilisateur a le rôle de comptable ou d'admin
-    if (!$user->hasRole(['accountable', 'admin'])) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Vous n\'avez pas l\'autorisation de mettre à jour ce ticket',
-        ], 403);
-    }
+    // if (!$user->hasRole(['accountant', 'admin'])) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'Vous n\'avez pas l\'autorisation de mettre à jour ce ticket',
+    //     ], 403);
+    // }
 
     try {
         // Validation des données, uniquement pour 'is_paid'
@@ -184,11 +208,12 @@ public function update(Request $request, string $id)
 public function userTickets()
 {
     // Récupérer l'utilisateur connecté
-    $user = auth()->user();
+    $user = Auth()->user();
 
-    // Récupérer les tickets associés à cet utilisateur
-    $tickets = Ticket::with(['appointment', 'prescription', 'exam'])
-                    ->where('user_id', $user->id)
+    // Récupérer les tickets associés à cet utilisateur, triés par date de création (plus récent en premier)
+    $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
+                    ->where('patient_id', $user->id)
+                    ->orderBy('created_at', 'desc') // Tri par date de création
                     ->get();
 
     // Vérifier si des tickets ont été trouvés
@@ -205,5 +230,6 @@ public function userTickets()
         'data' => $tickets,
     ]);
 }
+
 
 }

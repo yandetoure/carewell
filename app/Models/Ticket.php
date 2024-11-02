@@ -14,7 +14,8 @@ class Ticket extends Model
         'prescription_id',
         'doctor_id',
         'exam_id',
-        'is_paid'
+        'is_paid',
+        'patient_id'
     ];
 
         public function appointment()

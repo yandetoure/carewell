@@ -19,4 +19,10 @@ class DiseaseMedicalFile extends Model
        public function disease() {
            return $this->belongsTo(Disease::class);
        }
+       
+       public function medicalFile()
+       {
+           return $this->belongsTo(MedicalFile::class);
+       }
+   
 }

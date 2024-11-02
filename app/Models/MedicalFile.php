@@ -75,5 +75,10 @@ class MedicalFile extends Model
         public function note()
         {
             return $this->hasMany(Note::class, 'medical_files_id');
-        }        
+        }       
+        
+        public function medicaldisease()
+        {
+  return $this->hasMany(DiseaseMedicalFile::class, 'medical_file_id');
+} 
 }

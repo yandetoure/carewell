@@ -15,7 +15,7 @@ class ExamController extends Controller
     public function index()
     {
         // Affichage des examens
-        $exams = Exam::with('service')->get(); // Récupérer les examens avec leurs services
+        $exams = Exam::with('service')->get(); 
         return response()->json([
             'status' => true,
             'data' => $exams,
@@ -31,7 +31,7 @@ class ExamController extends Controller
             // Validation des données
             $request->validate([
                 'name' => 'required|string|max:255|unique:exams',
-                'description' => 'required|string|min:50',  
+                'description' => 'required|string|min:5',  
                 'price' => 'nullable|numeric',
                 'service_id' => 'required|exists:services,id',
             ]);

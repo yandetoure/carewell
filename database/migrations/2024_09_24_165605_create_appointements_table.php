@@ -21,7 +21,8 @@ return new class extends Migration
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
             $table->date('date');
             $table->time('time');
-            $table->boolean('is_visited')->default(false);
+            $table->boolean('is_visited')->default(false);            
+            $table->boolean('is_urgent')->default(false);
             $table->softDeletes();
 
             $table->timestamps();

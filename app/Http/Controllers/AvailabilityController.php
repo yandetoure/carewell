@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class AvailabilityController extends Controller
 {
-    /**
+    /** 
      * Display a listing of the available slots for a specific doctor and service.
      */
     public function index()

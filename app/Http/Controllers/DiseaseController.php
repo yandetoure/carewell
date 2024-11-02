@@ -1,8 +1,11 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Disease;
 use Illuminate\Http\Request;
+
+
+use Illuminate\Validation\ValidationException;
 
 class DiseaseController extends Controller
 {
@@ -11,11 +14,8 @@ class DiseaseController extends Controller
      */
     public function index()
     {
-        $grades = Disease::all();
-        return response()->json([
-           'status' => true,
-            'data' => $grades,
-        ]);
+        $diseases = Disease::all();
+        return response()->json(['data' => $diseases]);
     }
 
     /**

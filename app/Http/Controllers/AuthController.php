@@ -507,26 +507,28 @@ public function destroy(string $id)
 public function getUserStatistics()
 {
     try {
-        $statistics = [
-            'Doctor' => User::role('Doctor')->count(),
-            'Patient' => User::role('Patient')->count(),
-            'Admin' => User::role('Admin')->count(),
-            'Secretary' => User::role('Secretary')->count(),
-            'Accountant' => User::role('Accountant')->count(),
-        ];
+        // Récupérer tous les rôles existants dans Spatie
+        $roles = Role::all();
+        $statistics = [];
+
+        foreach ($roles as $role) {
+            // Compter le nombre d'utilisateurs pour chaque rôle
+            $count = User::role($role->name)->count();
+            $statistics[$role->name] = $count;
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'Statistiques des utilisateurs récupérées avec succès',
-            'data' => $statistics,
+            'data' => $statistics
         ], 200);
-    } catch (\Exception $e) {
-        // Log l'erreur pour déboguer
-        \Log::error('Erreur lors de la récupération des statistiques des utilisateurs : ' . $e->getMessage());
 
+    } catch (\Exception $e) {
+        \Log::error('Erreur statistiques: ' . $e->getMessage());
         return response()->json([
             'status' => false,
-            'message' => 'Erreur lors de la récupération des statistiques : ' . $e->getMessage(),
+            'message' => 'Erreur lors de la récupération des statistiques',
+            'error' => $e->getMessage()
         ], 500);
     }
 }

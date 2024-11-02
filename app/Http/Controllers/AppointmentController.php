@@ -21,7 +21,7 @@ class AppointmentController extends Controller
     {
         // Récupérer tous les rendez-vous du plus récent au plus ancien
         $appointments = Appointment::with(['user', 'service'])
-            ->orderBy('created_at', 'desc') // Tri par date de création
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
@@ -191,96 +191,109 @@ class AppointmentController extends Controller
 
 
     public function store(Request $request)
-    {
-        // Récupérer l'utilisateur authentifié
-        $user = Auth::user();
-        
-        try {
-            // Validation des données
-            $request->validate([
-                'service_id' => 'required|exists:services,id', // Service existant
-                'reason' => 'nullable|string|max:255',
-                'symptoms' => 'nullable|string',
-                'date' => 'required|date', 
-                'time' => 'required|date_format:H:i',
-            ]);
+{
+    // Récupérer l'utilisateur authentifié
+    $user = Auth::user();
+    
+    try {
+        // Validation des données
+        $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'reason' => 'nullable|string|max:255',
+            'symptoms' => 'nullable|string',
+            'date' => 'required|date', 
+            'time' => 'required|date_format:H:i',
+        ]);
 
-            // Recherche des disponibilités des médecins pour ce service à cette date et heure
-            $availableDoctors = Availability::where('service_id', $request->service_id)
-                ->where('available_date', $request->date)
-                ->where('start_time', '<=', $request->time)
-                ->where('end_time', '>=', $request->time)
-                ->get();
-        
-            $eligibleDoctors = [];
-            foreach ($availableDoctors as $availability) {
-                $doctor = User::find($availability->doctor_id); // Récupérer le médecin par son ID
-        
-                if ($doctor && $doctor->hasRole('Doctor')) { // Vérifier si le médecin existe et a le rôle 'Doctor'
-                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
-                        ->where('date', $request->date)
-                        ->count();
-        
-                    if ($appointmentCount < 15) {
-                        $eligibleDoctors[] = $doctor;
-                    }
+        // Vérifier si l'utilisateur a déjà un rendez-vous dans le même service dans les 48 dernières heures
+        $recentAppointment = Appointment::where('user_id', $user->id)
+            ->where('service_id', $request->service_id)
+            ->where('created_at', '>=', now()->subHours(48))
+            ->first();
+
+        if ($recentAppointment) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Vous avez déjà pris un rendez-vous dans ce service au cours des 48 dernières heures.',
+            ], 422);
+        }
+
+        // Recherche des disponibilités des médecins pour ce service à cette date et heure
+        $availableDoctors = Availability::where('service_id', $request->service_id)
+            ->where('available_date', $request->date)
+            ->where('start_time', '<=', $request->time)
+            ->where('end_time', '>=', $request->time)
+            ->get();
+    
+        $eligibleDoctors = [];
+        foreach ($availableDoctors as $availability) {
+            $doctor = User::find($availability->doctor_id);
+    
+            if ($doctor && $doctor->hasRole('Doctor')) {
+                $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+                    ->where('date', $request->date)
+                    ->count();
+    
+                if ($appointmentCount < 15) {
+                    $eligibleDoctors[] = $doctor;
                 }
             }
-        
-            // Vérifier s'il y a des médecins éligibles
-            if (empty($eligibleDoctors)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.',
-                ], 422);
-            }
-        
-            // Choisir un médecin au hasard parmi ceux qui sont éligibles
-            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
-        
-            // Si un médecin est disponible, création du rendez-vous
-            $appointment = Appointment::create([
-                'user_id' => $request->user_id,
-                'service_id' => $request->service_id,
-                'doctor_id' => $selectedDoctor->id,
-                'reason' => $request->reason,
-                'symptoms' => $request->symptoms,
-                'is_visited' => false,
-                'date' => $request->date,
-                'time' => $request->time,
-            ]);
-    
-            // Création du ticket associé avec l'ID du docteur
-            $ticket = Ticket::create([
-                'appointment_id' => $appointment->id,
-                'doctor_id' => $selectedDoctor->id, 
-                'is_paid' => false, 
-            ]);
-            
-            Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Rendez-vous créé avec succès',
-                'data' => [
-                    'appointment' => $appointment,
-                    'ticket' => $ticket
-                ],
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors(),
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur lors de la création du rendez-vous',
-                'error' => $e->getMessage(),
-            ], 500);
         }
+    
+        if (empty($eligibleDoctors)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.',
+            ], 422);
+        }
+    
+        // Choisir un médecin au hasard parmi ceux qui sont éligibles
+        $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
+    
+        // Création du rendez-vous
+        $appointment = Appointment::create([
+            'user_id' => $user->id,
+            'service_id' => $request->service_id,
+            'doctor_id' => $selectedDoctor->id,
+            'reason' => $request->reason,
+            'symptoms' => $request->symptoms,
+            'is_visited' => false,
+            'is_urgent' => false,
+            'date' => $request->date,
+            'time' => $request->time,
+        ]);
+
+        // Création du ticket associé
+        $ticket = Ticket::create([
+            'appointment_id' => $appointment->id,
+            'doctor_id' => $selectedDoctor->id, 
+            'is_paid' => false, 
+        ]);
+        
+        Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Rendez-vous créé avec succès',
+            'data' => [
+                'appointment' => $appointment,
+                'ticket' => $ticket
+            ],
+        ], 201);
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur de validation',
+            'errors' => $e->validator->errors(),
+        ], 422);
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la création du rendez-vous',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
 
     /**
@@ -312,6 +325,9 @@ class AppointmentController extends Controller
         // Validation des données
         $request->validate([
             'is_visited' => 'nullable|boolean',
+            'service_id' => 'sometimes|required|exists:services,id', // Permet de modifier le service
+            'date' => 'sometimes|required|date',
+            'time' => 'sometimes|required|date_format:H:i',
         ]);
     
         // Rechercher le rendez-vous
@@ -324,8 +340,32 @@ class AppointmentController extends Controller
             ], 404);
         }
     
+        // Vérifier si la modification est possible (24h avant le rendez-vous)
+        $appointmentDateTime = \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->time);
+        if ($appointmentDateTime->diffInHours(now()) < 24) {
+            return response()->json([
+                'status' => false,
+                'message' => 'La modification n\'est pas possible moins de 24 heures avant le rendez-vous.',
+            ], 403);
+        }
+    
         // Mise à jour des champs
-        $appointment->update($request->only(['is_visited', 'appointment_date', 'appointment_time']));
+        $dataToUpdate = $request->only(['is_visited']);
+    
+        // Si le service ou la date/heure sont fournis, on les met à jour
+        if ($request->has('service_id')) {
+            $dataToUpdate['service_id'] = $request->service_id;
+        }
+        
+        if ($request->has('date')) {
+            $dataToUpdate['date'] = $request->date;
+        }
+    
+        if ($request->has('time')) {
+            $dataToUpdate['time'] = $request->time;
+        }
+    
+        $appointment->update($dataToUpdate);
     
         return response()->json([
             'status' => true,
@@ -333,6 +373,7 @@ class AppointmentController extends Controller
             'data' => $appointment,
         ]);
     }
+    
 
     /**
      * Remove the specified resource from storage.
@@ -364,6 +405,7 @@ class AppointmentController extends Controller
         if ($user) {
             $appointments = Appointment::with(['service', 'user', 'doctor'])
                 ->where('user_id', $user->id) 
+                ->orderBy('date', 'asc') 
                 ->get();
 
             return response()->json([
@@ -380,12 +422,11 @@ class AppointmentController extends Controller
 
     public function getPatientsWithAppointmentsDoctor()
     {
-        // Récupérer tous les rendez-vous avec les informations des patients et des services associés
         $appointments = Appointment::with(['user', 'service', 'doctor'])
             ->whereNotNull('user_id') // Assurer que l'utilisateur existe
+            ->orderBy('date', 'asc') 
             ->get();
 
-        // Vérifier s'il y a des rendez-vous
         if ($appointments->isEmpty()) {
             return response()->json([
                 'status' => false,
@@ -403,7 +444,7 @@ class AppointmentController extends Controller
                 'appointment_date' => $appointment->date,
                 'appointment_time' => $appointment->time,
                 'is_visited' => $appointment->is_visited,
-                'doctor_first_name' => $appointment->docter_id->first_name,
+                // 'doctor_first_name' => $appointment->docter_id->first_name,
                 'patient_email'=>$appointment->user->email,
             ];
         });
@@ -506,6 +547,7 @@ public function userAppointmentsStats()
         // Récupérer les rendez-vous à venir (date supérieure à aujourd'hui)
         $upcomingAppointments = Appointment::where('user_id', $user->id)
             ->where('date', '>', now())
+            ->orderBy('date', 'asc') 
             ->count();
 
         // Récupérer les rendez-vous du jour
@@ -527,5 +569,38 @@ public function userAppointmentsStats()
     ], 403);
 }
 
+public function updateAppointmentStatus(Request $request, $id)
+{
+    // Récupérer le rendez-vous par son ID
+    $appointment = Appointment::find($id);
+
+    if (!$appointment) {
+        return response()->json(['status' => false, 'message' => 'Rendez-vous non trouvé.'], 404);
+    }
+
+    // Vérifier si la date du rendez-vous est la même que celle d'aujourd'hui
+    $today = now()->format('Y-m-d');
+    if ($appointment->date != $today) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Vous ne pouvez mettre à jour l\'état que le jour du rendez-vous.'
+        ], 403);
+    }
+
+    // Valider la requête pour l'état 'is_visited'
+    $request->validate([
+        'is_visited' => 'required|boolean'
+    ]);
+
+    // Mettre à jour l'état du rendez-vous
+    $appointment->is_visited = $request->is_visited;
+    $appointment->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'État du rendez-vous mis à jour avec succès.',
+        'data' => $appointment
+    ], 200);
+}
 
 }
