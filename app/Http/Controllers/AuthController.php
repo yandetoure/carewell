@@ -425,10 +425,10 @@ public function destroy(string $id)
         'phone_number' => 'required|regex:/^[0-9]{9}$/',
         'day_of_birth' => 'required',
         'password' => 'required|string|min:8',
-        'role' => 'required|in:Doctor,Secretaire,Comptable',
+        'role' => 'required|in:Admin,Doctor,Secretaire,Accountant',
         'photo' => 'nullable|file|image|max:2048',
         // 'grade_id' => 'required|exists:grades,id',
-        // 'service_id' => 'required_if:role,Doctor|exists:services,id',
+        'service_id' => 'required_if:role,Doctor|exists:services,id',
 
     ]);
 
@@ -485,7 +485,7 @@ public function destroy(string $id)
         // Envoyer l'email de bienvenue
         Mail::to($user->email)->send(new WelcomeMail($user));
 
-        Auth::login($user);
+        // Auth::login($user);
 
         $token = $user->createToken("API TOKEN")->plainTextToken;
 

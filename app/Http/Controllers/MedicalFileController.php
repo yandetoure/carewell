@@ -9,7 +9,6 @@ use App\Models\Service;
 use App\Models\MedicalFile;
 use App\Models\Prescription;
 use Illuminate\Http\Request;
-
 use App\Models\medicalHystory;
 use Illuminate\Support\Facades\Auth; 
 use App\Models\medicalfilePrescription;
@@ -124,7 +123,7 @@ class MedicalFileController extends Controller
         // Ajouter l'ID du docteur
         $note = $medicalFile->note()->create([
             'content' => $validated['content'],
-            'doctor_id' => Auth::id(), // Enregistrer l'ID du docteur
+            'doctor_id' => Auth::id(), 
         ]);
     
         return response()->json(['message' => 'Note ajoutée avec succès', 'data' => $note]);
@@ -155,7 +154,7 @@ class MedicalFileController extends Controller
     }
 
     // Récupérer l'ID du patient à partir du dossier médical
-    $patientId = $medicalFile->user_id; // Assurez-vous que `patient_id` existe dans votre modèle MedicalFile
+    $userId = $medicalFile->user_id; // Assurez-vous que `patient_id` existe dans votre modèle MedicalFile
 
     // Créer la prescription
     $medicalFile->medicalprescription()->create([
@@ -167,7 +166,7 @@ class MedicalFileController extends Controller
     $ticket = Ticket::create([
         'prescription_id' => $prescription->id,
         'doctor_id' => Auth::id(),
-        'patient_id' => $patientId, // Ajouter l'ID du patient ici
+        'user_id' => $userId, // Ajouter l'ID du patient ici
         'is_paid' => false,
     ]);
     
@@ -193,7 +192,8 @@ class MedicalFileController extends Controller
         if (!$exam) {
             return response()->json(['message' => 'Examen non trouvé'], 404);
         }
-    
+        $userId = $medicalFile->user_id; // Assurez-vous que `patient_id` existe dans votre modèle MedicalFile
+
         $medicalFile->medicalexam()->create([
             'exam_id' => $exam->id,
             'doctor_id' => Auth::id(),
@@ -202,7 +202,8 @@ class MedicalFileController extends Controller
 
         $ticket = Ticket::create([
             'exam_id' => $exam->id,
-            'doctor_id' => Auth::id(),            
+            'doctor_id' => Auth::id(),       
+            'user_id' => $userId, // Ajouter l'ID du patient ici     
             'is_paid' => false, 
         ]);
         return response()->json(['message' => 'Examen ajouté avec succès']);

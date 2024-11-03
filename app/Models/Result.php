@@ -13,6 +13,7 @@ class Result extends Model
         'name',
         'exam_id',
         'image',
+        'description',
     ];
 
     public function exam(){

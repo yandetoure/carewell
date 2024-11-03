@@ -14,7 +14,7 @@ class TicketController extends Controller
      */
     public function index()
     {
-        $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])->get();
+        $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user', 'doctor'])->get();
         return response()->json(['data' => $tickets]);
     }
 
@@ -99,8 +99,8 @@ class TicketController extends Controller
     //Rcuperer les ticket de l'utlisateur connecé
     public function showTickets(){
         $user = auth()->user();
-        $tickets = Ticket::with(['appointment.service', 'prescription', 'exam', 'user'])
-        ->where('patient_id', $user->id)
+        $tickets = Ticket::with(['appointment.service', 'prescription.service', 'exam.service', 'user', 'doctor'])
+        ->where('user_id', $user->id)
         ->orderBy('created_at', 'desc')             
         ->get();
 
@@ -212,7 +212,7 @@ public function userTickets()
 
     // Récupérer les tickets associés à cet utilisateur, triés par date de création (plus récent en premier)
     $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
-                    ->where('patient_id', $user->id)
+                    ->where('user_id', $user->id)
                     ->orderBy('created_at', 'desc') // Tri par date de création
                     ->get();
 

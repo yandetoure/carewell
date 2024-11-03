@@ -119,6 +119,10 @@ class User extends Authenticatable  implements JWTSubject
         return $this->hasMany(Appointment::class);
     }
 
+    public function tickets(){
+        return $this->hasMany(Tcket::class);
+    }
+
     //relation avec grade
     public function grade(){
     return $this->belongsTo(Grade::class);

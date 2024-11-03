@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Service extends Model
 {
@@ -13,6 +13,7 @@ class Service extends Model
         'name',
         'photo',
         'description',
+        'price',
     ];
 
     public function exams()

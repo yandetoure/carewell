@@ -19,6 +19,8 @@ class Appointment extends Model
         'doctor_id',
         'date',
         'time',
+        'is_urgent',
+        'price',
     ];
 
         

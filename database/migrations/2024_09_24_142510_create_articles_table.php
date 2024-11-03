@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('title');
             $table->string('photo')->nullable(); 
             $table->text('content');
-            $table->string('symptoms');
-            $table->string('advices');
+            $table->text('symptoms');
+            $table->text('advices');
             $table->timestamps();
             $table->softDeletes();
         });

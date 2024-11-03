@@ -15,7 +15,7 @@ class Ticket extends Model
         'doctor_id',
         'exam_id',
         'is_paid',
-        'patient_id'
+        'user_id'
     ];
 
         public function appointment()
@@ -37,5 +37,9 @@ class Ticket extends Model
         {
             return $this->belongsTo(User::class);
         }
-
+        
+        public function doctor()
+        {
+            return $this->belongsTo(User::class, 'doctor_id');
+        }
 }

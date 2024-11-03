@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('medical_histories', function (Blueprint $table) {
             $table->id();
-            $table->string('content');
+            $table->text('content');
             $table->string('allergy')->nullable();
             $table->foreignId('medical_files_id')->constrained()->onDelete('cascade');
             $table->timestamps();
