@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User; 
 use App\Models\Prescription;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class PrescriptionController extends Controller
@@ -113,6 +115,46 @@ class PrescriptionController extends Controller
             'data' => $prescription,
         ]);
     }
+
+
+
+    /**
+ * Affiche la liste des prescriptions du service du médecin connecté.
+ */
+// public function getPrescriptionsByService(Request $request)
+// {
+//     // Récupérer l'utilisateur connecté
+//     $user = auth()->user();
+
+//     // Vérifier que l'utilisateur a un service_id
+//     if (!$user->service_id) {
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Aucun service associé à ce médecin.',
+//         ], 404);
+//     }
+
+//     // Récupérer les prescriptions du service du médecin
+//     $prescriptions = Prescription::where('service_id', $user->service_id)
+//         ->with('service')
+//         ->get();
+
+//     // Vérifier s'il y a des prescriptions
+//     if ($prescriptions->isEmpty()) {
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Aucune prescription trouvée pour ce service.',
+//         ], 404);
+//     }
+
+//     // Renvoyer les prescriptions
+//     return response()->json([
+//         'status' => true,
+//         'data' => $prescriptions,
+//     ]);
+// }
+
+
 
     /**
      * Remove the specified resource from storage.

@@ -161,4 +161,68 @@ class MedicalFilePrescriptionController extends Controller
             'message' => 'La prescription a été supprimée avec succès',
         ]);
     }
+
+
+/**
+ * Afficher les prescriptions du service du médecin connecté, avec les informations de l'utilisateur.
+ */
+public function getPrescriptionsByService()
+{
+    // Récupérer l'utilisateur connecté
+    $doctor = auth()->user();
+
+    // Vérifier que l'utilisateur est un médecin
+    if (!$doctor || !$doctor->service_id) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Utilisateur non autorisé ou service non trouvé',
+        ], 403);
+    }
+
+    // Récupérer les prescriptions liées au service avec les informations de l'utilisateur
+    $medicalFilePrescriptions = MedicalFilePrescription::with([
+            'medicalFile.user',
+            'prescription.service',
+        ])
+        ->whereHas('prescription', function ($query) use ($doctor) {
+            $query->where('service_id', $doctor->service_id);
+        })
+        ->get();
+
+    // Vérifier si des prescriptions existent
+    if ($medicalFilePrescriptions->isEmpty()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Aucune prescription trouvée pour ce service',
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'data' => $medicalFilePrescriptions,
+    ]);
+}
+
+public function updatePrescriptionStatus(Request $request, $id)
+{
+    $prescription = MedicalFilePrescription::find($id);
+
+    if (!$prescription) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Prescription non trouvée',
+        ], 404);
+    }
+
+    $prescription->is_done = $request->is_done;
+    $prescription->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Statut de la prescription mis à jour avec succès',
+        'data' => $prescription,
+    ]);
+}
+
+
 }

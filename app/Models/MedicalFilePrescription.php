@@ -16,11 +16,12 @@ class MedicalFilePrescription extends Model
         'doctor_id',
     ];
 
-        // Déclaration de la relation avec MedicalFile
+ 
         public function medicalFile()
         {
-            return $this->belongsTo(MedicalFile::class);
+            return $this->belongsTo(MedicalFile::class, 'medical_files_id');
         }
+
 
         public function prescription() 
         {

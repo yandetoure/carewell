@@ -593,16 +593,115 @@ public function userAppointmentsStats()
     ], 403);
 }
 
+public function storeUrgent(Request $request)
+{
+    // Récupérer l'utilisateur authentifié
+    $user = Auth::user();
+    
+    try {
+        // Validation des données
+        $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'reason' => 'nullable|string|max:255',
+            'symptoms' => 'nullable|string',
+            'date' => 'required|date', 
+            'time' => 'required|date_format:H:i',
+        ]);
+
+        // Recherche des disponibilités pour les médecins acceptant des urgences pour ce service, date et heure
+        $availableDoctors = Availability::where('service_id', $request->service_id)
+            ->where('available_date', $request->date)
+            ->where('start_time', '<=', $request->time)
+            ->where('end_time', '>=', $request->time)
+            // ->where('accepts_urgent', true) // Ajouter une condition pour les urgences
+            ->get();
+    
+        $eligibleDoctors = [];
+        foreach ($availableDoctors as $availability) {
+            $doctor = User::find($availability->doctor_id);
+    
+            if ($doctor && $doctor->hasRole('Doctor')) {
+                $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+                    ->where('date', $request->date)
+                    ->count();
+    
+                // Limite ajustée pour rendez-vous urgents si nécessaire
+                if ($appointmentCount < 20) { // Par exemple, 20 pour les urgences
+                    $eligibleDoctors[] = $doctor;
+                }
+            }
+        }
+    
+        if (empty($eligibleDoctors)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Aucun médecin disponible pour un rendez-vous urgent à cette date et heure.',
+            ], 422);
+        }
+    
+        // Sélectionner un médecin disponible
+        $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
+        
+        $service = Service::find($request->service_id);
+        $servicePrice = $service->urgent_price ?? $service->price; // Tarif urgent si disponible
+
+        // Création du rendez-vous urgent
+        $appointment = Appointment::create([
+            'user_id' => $user->id,
+            'service_id' => $request->service_id,
+            'doctor_id' => $selectedDoctor->id,
+            'reason' => $request->reason,
+            'symptoms' => $request->symptoms,
+            'is_visited' => false,
+            'is_urgent' => true,
+            'date' => $request->date,
+            'time' => $request->time,
+            'price' => $servicePrice,
+        ]);
+
+        // Création du ticket associé
+        $ticket = Ticket::create([
+            'appointment_id' => $appointment->id,
+            'doctor_id' => $selectedDoctor->id,
+            'user_id' => $user->id,
+            'is_paid' => false,
+        ]);
+        
+        // Envoi d'un email de confirmation
+        Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Rendez-vous d\'urgence créé avec succès',
+            'data' => [
+                'appointment' => $appointment,
+                'ticket' => $ticket
+            ],
+        ], 201);
+    } catch (ValidationException $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur de validation',
+            'errors' => $e->validator->errors(),
+        ], 422);
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la création du rendez-vous d\'urgence',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
 public function updateAppointmentStatus(Request $request, $id)
 {
-    // Récupérer le rendez-vous par son ID
     $appointment = Appointment::find($id);
 
     if (!$appointment) {
         return response()->json(['status' => false, 'message' => 'Rendez-vous non trouvé.'], 404);
     }
 
-    // Vérifier si la date du rendez-vous est la même que celle d'aujourd'hui
     $today = now()->format('Y-m-d');
     if ($appointment->date != $today) {
         return response()->json([
@@ -611,12 +710,10 @@ public function updateAppointmentStatus(Request $request, $id)
         ], 403);
     }
 
-    // Valider la requête pour l'état 'is_visited'
     $request->validate([
         'is_visited' => 'required|boolean'
     ]);
 
-    // Mettre à jour l'état du rendez-vous
     $appointment->is_visited = $request->is_visited;
     $appointment->save();
 

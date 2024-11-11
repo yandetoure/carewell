@@ -10,42 +10,47 @@ class MessageController extends Controller
 {
    // Affiche toutes les discussions de l'utilisateur authentifié
    public function getAllDiscussions()
-{
-    $userId = Auth::id();
-    
-    // Récupère les discussions avec les utilisateurs avec qui des messages ont été échangés
-    $discussions = Message::where('sender_id', $userId)
-                      ->orWhere('receiver_id', $userId)
-                      ->with(['sender', 'receiver'])
-                      ->get()
-                      ->groupBy(function($message) use ($userId) {
-                          return $message->sender_id === $userId ? $message->receiver_id : $message->sender_id;
-                      });
-
-    $result = [];
-
-    foreach ($discussions as $userId => $messages) {
-        $lastMessage = $messages->last();
-        $unreadCount = $messages->where('is_read', false)->count();
-        $user = $messages->first()->sender_id === $userId ? $messages->first()->receiver : $messages->first()->sender;
-
-        $result[] = [
-            'user_id' => $userId,
-            'user_first_name' => $user->first_name,
-            'user_last_name' => $user->last_name,
-            'user_photo' => $user->photo ? asset('storage/' . $user->photo) : null,            
-            'last_message' => $lastMessage->message,
-            'last_message_time' => $lastMessage->created_at->format('H:i'),
-            'unread_count' => $unreadCount,
-        ];
-    }
-
-    return response()->json([
-        'status' => true,
-        'message' => "Liste des discussions",
-        'data' => $result,
-    ], 200);
-}
+   {
+       $authUserId = Auth::id();
+       
+       // Récupère les discussions avec les utilisateurs avec qui des messages ont été échangés
+       $discussions = Message::where('sender_id', $authUserId)
+                         ->orWhere('receiver_id', $authUserId)
+                         ->with(['sender', 'receiver'])
+                         ->get()
+                         ->groupBy(function($message) use ($authUserId) {
+                             // Ici, nous groupons les messages par l'utilisateur qui n'est pas l'utilisateur authentifié
+                             return $message->sender_id === $authUserId ? $message->receiver_id : $message->sender_id;
+                         });
+   
+       $result = [];
+   
+       foreach ($discussions as $userId => $messages) {
+           $lastMessage = $messages->last();
+           $unreadCount = $messages->where('is_read', false)->count();
+           
+           // Ici, on récupère l'utilisateur qui n'est pas l'utilisateur authentifié
+           $user = $messages->first()->sender_id === $authUserId ? $messages->first()->receiver : $messages->first()->sender;
+   
+           // On s'assure d'utiliser les détails de l'interlocuteur pour le résultat
+           $result[] = [
+               'user_id' => $userId, // ID de l'interlocuteur
+               'user_first_name' => $user->first_name, // Prénom de l'interlocuteur
+               'user_last_name' => $user->last_name, // Nom de famille de l'interlocuteur
+               'user_photo' => $user->photo ? asset('storage/' . $user->photo) : null,            
+               'last_message' => $lastMessage->message, // Dernier message
+               'last_message_time' => $lastMessage->created_at->format('H:i'), // Heure du dernier message
+               'unread_count' => $unreadCount, // Nombre de messages non lus
+           ];
+       }
+   
+       return response()->json([
+           'status' => true,
+           'message' => "Liste des discussions",
+           'data' => $result,
+       ], 200);
+   }
+   
    
 
    public function sendMessage(Request $request)

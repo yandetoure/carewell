@@ -55,9 +55,14 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('/doctor/stats', [AppointmentController::class, 'doctorAppointmentStats']);
     Route::get('/user/stats', [AppointmentController::class, 'userAppointmentsStats']);
     Route::get('/user/statistics', [AuthController::class, 'getUserStatistics']);
-    Route::put('/update/status/{id}', [AppointmentController::class, 'updateAppointmentStatus']);
+    Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateAppointmentStatus']);
+    Route::post('appointment/urgent', [AppointmentController::class, 'storeUrgent']);
 
     Route::apiResource('availabilities', AvailabilityController::class);
+
+    Route::get('doctor/prescriptions', [MedicalFilePrescriptionController::class, 'getPrescriptionsByService']);
+    Route::put('prescriptions/{id}/status', [MedicalFilePrescriptionController::class, 'updatePrescriptionStatus']);
+
  
     Route::post('medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
     Route::post('medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
