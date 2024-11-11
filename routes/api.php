@@ -15,6 +15,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFileController;
 use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\ExamPrescriptionController;
 use App\Http\Controllers\MedicalFilePrescriptionController;
 
 
@@ -63,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('doctor/prescriptions', [MedicalFilePrescriptionController::class, 'getPrescriptionsByService']);
     Route::put('prescriptions/{id}/status', [MedicalFilePrescriptionController::class, 'updatePrescriptionStatus']);
 
+    Route::get('doctor/exams', [ExamPrescriptionController::class, 'getExamByService']);
+    Route::put('exam/{id}/status', [ExamPrescriptionController::class, 'updateExamStatus']);
  
     Route::post('medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
     Route::post('medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);

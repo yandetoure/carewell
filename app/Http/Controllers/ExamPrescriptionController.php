@@ -2,7 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ticket;
+use App\Models\Medical;
 use Illuminate\Http\Request;
+use App\Models\MedicalFileExam;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class ExamPrescriptionController extends Controller
 {
@@ -11,7 +16,7 @@ class ExamPrescriptionController extends Controller
      */
     public function index()
     {
-        $medicalFileExamens = MedicalExam::with(['medicalFile', 'exam'])->get(); // Récupérer les prescriptions avec leurs fichiers médicaux et services
+        $medicalFileExamens = MedicalFileExam::with(['medicalFile', 'exam'])->get(); // Récupérer les examens avec leurs fichiers médicaux et examens
         return response()->json([
             'status' => true,
             'data' => $medicalFileExamens,
@@ -44,7 +49,7 @@ class ExamPrescriptionController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Examen créée avec succès',
+                'message' => 'Examen créé avec succès',
                 'data' => $medicalFileExam,
             ], 201);
         } catch (ValidationException $e) {
@@ -61,19 +66,19 @@ class ExamPrescriptionController extends Controller
      */
     public function show(string $id)
     {
-         $medicalFileExam = MedicalFileExam::with(['service', 'medicalFile'])->find($id);
+        $medicalFileExam = MedicalFileExam::with(['service', 'medicalFile'])->find($id);
         
-         if (!$medicalFileExam) {
-             return response()->json([
-                 'status' => false,
-                 'message' => 'Examen non trouvée',
-             ], 404);
-         }
+        if (!$medicalFileExam) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Examen non trouvé',
+            ], 404);
+        }
  
-         return response()->json([
-             'status' => true,
-             'data' => $medicalFileExam,
-         ]);
+        return response()->json([
+            'status' => true,
+            'data' => $medicalFileExam,
+        ]);
     }
 
     /**
@@ -81,18 +86,18 @@ class ExamPrescriptionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-         // Validation des données
-         $request->validate([
+        // Validation des données
+        $request->validate([
             'is_done' => 'required|boolean',
             'exam_id' => 'required|exists:exams,id',
         ]);
 
         $medicalFileExam = MedicalFileExam::find($id);
         
-        if (!$medicalFilePrescription) {
+        if (!$medicalFileExam) {
             return response()->json([
                 'status' => false,
-                'message' => 'Examen non trouvée',
+                'message' => 'Examen non trouvé',
             ], 404);
         }
 
@@ -103,7 +108,7 @@ class ExamPrescriptionController extends Controller
         return response()->json([
             'status' => true,
             'message' => "L'examen a été modifié avec succès",
-            'data' => $medicalFilePrescription,
+            'data' => $medicalFileExam,
         ]);
     }
 
@@ -112,6 +117,78 @@ class ExamPrescriptionController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $medicalFileExam = MedicalFileExam::find($id);
+        
+        if (!$medicalFileExam) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Examen non trouvé',
+            ], 404);
+        }
+
+        $medicalFileExam->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => "L'examen a été supprimé avec succès",
+        ]);
+    }
+
+    public function getExamByService()
+    {
+        // Récupérer l'utilisateur connecté
+        $doctor = auth()->user();
+
+        // Vérifier que l'utilisateur est un médecin
+        if (!$doctor || !$doctor->service_id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Utilisateur non autorisé ou service non trouvé',
+            ], 403);
+        }
+
+        // Récupérer les examens liés au service avec les informations de l'utilisateur
+        $examPrescription = MedicalFileExam::with([
+                'medicalFile.user',
+                'exam.service',
+            ])
+            ->whereHas('exam', function ($query) use ($doctor) {
+                $query->where('service_id', $doctor->service_id);
+            })
+            ->get();
+
+        // Vérifier si des examens existent
+        if ($examPrescription->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Aucun examen trouvé pour ce service',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $examPrescription,
+        ]);
+    }
+
+    public function updateExamStatus(Request $request, $id)
+    {
+        $exam =  MedicalFileExam::find($id);
+
+        if (!$exam) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Examen non trouvé',
+            ], 404);
+        }
+
+        $exam->is_done = $request->is_done;
+        $exam->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Statut de l\'examen mis à jour avec succès',
+            'data' => $exam,
+        ]);
     }
 }

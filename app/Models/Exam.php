@@ -34,4 +34,5 @@ class Exam extends Model
     {
         return $this->hasOne(Ticket::class);
     }
+
 }
