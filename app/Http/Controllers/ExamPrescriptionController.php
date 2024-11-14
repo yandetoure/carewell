@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Result;
 use App\Models\Ticket;
 use App\Models\Medical;
 use Illuminate\Http\Request;
@@ -66,7 +67,7 @@ class ExamPrescriptionController extends Controller
      */
     public function show(string $id)
     {
-        $medicalFileExam = MedicalFileExam::with(['service', 'medicalFile'])->find($id);
+        $medicalFileExam = MedicalFileExam::with([ 'medicalFile.user', 'Exam', 'result'])->find($id);
         
         if (!$medicalFileExam) {
             return response()->json([
@@ -191,4 +192,79 @@ class ExamPrescriptionController extends Controller
             'data' => $exam,
         ]);
     }
+
+    public function storeResult(Request $request, $examId)
+    {
+        // Vérification de l'authentification (si pas fait dans le middleware)
+        // if (!auth()->check()) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Utilisateur non authentifié',
+        //     ], 401);
+        // }
+    
+        $doctorId = auth()->id();
+    
+        try {
+            // Validation des données
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Vérifier si c'est une image
+                'description' => 'nullable|string',
+            ]);
+    
+            // Trouver l'examen correspondant à l'ID
+            $exam = MedicalFileExam::find($examId);
+    
+            // Vérification de l'existence de l'examen
+            if (!$exam) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Examen non trouvé',
+                ], 404);
+            }
+    
+            // Vérifier si l'examen a été effectué
+            if (!$exam->is_done) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'L\'examen n\'est pas encore effectué. Impossible d\'ajouter un résultat.',
+                ], 400);
+            }
+    
+            // Gestion de l'image si présente
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('results_images', 'public');
+            }
+    
+            // Créer le résultat et associer l'examen
+            $result = Result::create([
+                'name' => $request->name,
+                'exam_id' => $examId,
+                'image' => $imagePath,
+                'description' => $request->description,
+                'doctor_id' => $doctorId, // ID du médecin connecté
+            ]);
+    
+            // Retourner la réponse JSON avec succès
+            return response()->json([
+                'status' => true,
+                'message' => 'Résultat ajouté avec succès',
+                'data' => $result,
+            ], 201);
+    
+        } catch (\Exception $e) {
+            // Gérer les erreurs et les renvoyer avec le message d'erreur
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de l\'ajout du résultat',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    
+    
+    
+
 }

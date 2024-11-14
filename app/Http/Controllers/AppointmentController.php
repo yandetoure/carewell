@@ -31,32 +31,38 @@ class AppointmentController extends Controller
         ]);
     }
 
-    public function doctorAppointment()
-    {
-        $doctor = Auth::user();
-    
-        if ($doctor && $doctor->hasRole('Doctor')) {
-            // Récupérer la date et l'heure actuelles
-            $currentDateTime = now();
-    
-            // Récupérer les rendez-vous du docteur connecté
-            $appointments = Appointment::with(['user', 'service'])
-                ->where('doctor_id', $doctor->id) // Filtrer les rendez-vous par le docteur connecté
-                ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
-                ->orderBy('date', 'asc') // Puis trier par date
-                ->get();
-    
-            return response()->json([
-                'status' => true,
-                'data' => $appointments,
-            ]);
-        }
-    
+
+    public function doctorAppointment(Request $request)
+{
+    $doctor = Auth::user();
+
+    if ($doctor && $doctor->hasRole('Doctor')) {
+        // Récupérer la date et l'heure actuelles
+        $currentDateTime = now();
+
+        // Définir la limite par page (par défaut 10)
+        $limit = $request->input('limit', 6);
+
+        // Récupérer les rendez-vous du docteur connecté avec pagination
+        $appointments = Appointment::with(['user', 'service'])
+            ->where('doctor_id', $doctor->id) // Filtrer les rendez-vous par le docteur connecté
+            ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
+            ->orderBy('date', 'desc') // Puis trier par date
+            ->paginate($limit);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Utilisateur non autorisé ou rôle incorrect',
-        ], 403);
+            'status' => true,
+            'data' => $appointments,
+        ]);
     }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Utilisateur non autorisé ou rôle incorrect',
+    ], 403);
+}
+
+    
     
 
     public function patientAppointment()
@@ -443,12 +449,12 @@ class AppointmentController extends Controller
 
     public function getPatientsWithAppointmentsDoctor()
     {
-        $currentDateTime = now(); // Récupérer la date et l'heure actuelles
+        $currentDateTime = now();
     
         $appointments = Appointment::with(['user', 'service', 'doctor'])
-            ->whereNotNull('user_id') // Assurer que l'utilisateur existe
-            ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
-            ->orderBy('date', 'asc') 
+            ->whereNotNull('user_id') 
+            ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime])
+            ->orderBy('date', 'desc')             
             ->get();
     
         if ($appointments->isEmpty()) {
@@ -458,9 +464,9 @@ class AppointmentController extends Controller
             ], 404);
         }
     
-        // Transformer les rendez-vous pour n'afficher que les informations pertinentes des patients
         $patients = $appointments->map(function ($appointment) {
             return [
+                'appointment_id' => $appointment->id,
                 'patient_id' => $appointment->user->id,
                 'patient_first_name' => $appointment->user->first_name,
                 'patient_last_name' => $appointment->user->last_name,
@@ -699,29 +705,13 @@ public function updateAppointmentStatus(Request $request, $id)
     $appointment = Appointment::find($id);
 
     if (!$appointment) {
-        return response()->json(['status' => false, 'message' => 'Rendez-vous non trouvé.'], 404);
+        return response()->json(['message' => 'Rendez-vous introuvable.'], 404);
     }
 
-    $today = now()->format('Y-m-d');
-    if ($appointment->date != $today) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Vous ne pouvez mettre à jour l\'état que le jour du rendez-vous.'
-        ], 403);
-    }
-
-    $request->validate([
-        'is_visited' => 'required|boolean'
-    ]);
-
-    $appointment->is_visited = $request->is_visited;
+    $appointment->is_visited = $request->input('is_visited');
     $appointment->save();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'État du rendez-vous mis à jour avec succès.',
-        'data' => $appointment
-    ], 200);
+    return response()->json(['message' => 'Statut mis à jour avec succès.', 'data' => $appointment], 200);
 }
 
 }

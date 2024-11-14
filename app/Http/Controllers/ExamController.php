@@ -69,7 +69,7 @@ class ExamController extends Controller
     public function show(string $id)
     {
         // Affichage des détails d'un examen
-        $exam = Exam::with('service')->find($id);
+        $exam = Exam::with('service','medicalFileExam')->find($id);
         
         if (!$exam) {
             return response()->json([

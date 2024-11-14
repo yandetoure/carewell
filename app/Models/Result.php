@@ -14,10 +14,15 @@ class Result extends Model
         'exam_id',
         'image',
         'description',
+        'doctor_id'
     ];
 
     public function exam(){
-        return $this->belongsTo(Exam::class); // Association avec l'examen
+        return $this->belongsTo(Exam::class);
+    }
+    
+    public function examprescription(){
+        return $this->belongsTo(MedicalFileExam::class);
     }
     
 }

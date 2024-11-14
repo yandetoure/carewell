@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Result;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ResultController extends Controller
 {
@@ -14,8 +14,7 @@ class ResultController extends Controller
      */
     public function index()
     {
-        // Récupération de tous les résultats
-        $results = Result::with('exam')->get(); // Assurez-vous que la relation 'exam' est définie dans le modèle Result
+        $results = Result::with('exam')->get();
         return response()->json([
             'status' => true,
             'data' => $results,

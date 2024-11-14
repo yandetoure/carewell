@@ -26,4 +26,9 @@ class MedicalFileExam extends Model
         return $this->belongsTo(Exam::class); 
     }
 
+    public function result()
+    {
+        return $this->hasOne(Result::class, 'exam_id');
+    }
+
 }

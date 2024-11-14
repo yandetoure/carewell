@@ -31,6 +31,7 @@ Route::apiResource('prescriptions', PrescriptionController::class);
 Route::get('/user-statistics', [AuthController::class, 'getUserStatistics']);
 Route::apiResource('exams', ExamController::class);
 Route::apiResource('diseases', DiseaseController::class);
+Route::apiResource('exam/prescription', ExamPrescriptionController::class);
 
 // Route pour afficher les disponibilités d'un médecin pour un service donné
 // Route::get('doctors/{doctorId}/services/{serviceId}/availabilities', [AvailabilityController::class, 'show']);
@@ -41,6 +42,7 @@ Route::get('/appointments/current-month', [AppointmentController::class, 'getDoc
 Route::apiResource('notes', NoteController::class);
 Route::get('/users/{id}', [UserController::class, 'show']);
 Route::get('/user/ticket', [TicketController::class, 'showTickets']);
+
 
 Route::put('/update/{id}', [AppointmentController::class, 'update']);
 
@@ -66,7 +68,8 @@ Route::middleware('auth:sanctum')->group(function(){
 
     Route::get('doctor/exams', [ExamPrescriptionController::class, 'getExamByService']);
     Route::put('exam/{id}/status', [ExamPrescriptionController::class, 'updateExamStatus']);
- 
+    Route::post('exam/{examId}/results', [ExamPrescriptionController::class, 'storeResult']);
+
     Route::post('medical-files/{id}/addnote', [MedicalFileController::class, 'addNote']);
     Route::post('medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories']);
     Route::post('medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription']);
