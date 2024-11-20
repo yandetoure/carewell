@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use Exception;
+use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Ticket;
 use App\Models\Service;
 use App\Models\Appointment;
 use App\Models\Availability;
+use App\Models\Notification;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\Mail;
@@ -292,6 +294,13 @@ class AppointmentController extends Controller
             'user_id' => $user->id,
             'is_paid' => false, 
         ]);
+                // Création de la notification
+                Notification::create([
+                    'user_id' => $user->id,
+                    'title' => 'Rendez-vous confirmé',
+                    'message' => 'Votre rendez-vous avec le Dr. ',
+                    'is_read' => false,
+                ]);
         
         Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
 
@@ -426,7 +435,7 @@ class AppointmentController extends Controller
         $user = Auth::user();
     
         if ($user) {
-            $currentDateTime = now(); // Récupérer la date et l'heure actuelles
+            $currentDateTime = now(); 
     
             $appointments = Appointment::with(['service', 'user', 'doctor'])
                 ->where('user_id', $user->id) 
@@ -486,41 +495,94 @@ class AppointmentController extends Controller
     }    
 
     public function doctorAppointmentStats()
-{
-    $doctor = Auth::user();
+    {
+        $doctor = Auth::user();
+    
+        // Vérification que l'utilisateur est un médecin
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Accès non autorisé',
+            ], 403);
+        }
+    
+        try {
+            // Date du jour
+            $today = Carbon::today();
+            $currentMonth = $today->month;
+            $currentYear = $today->year;
+    
+            // Statistiques des rendez-vous mensuels pour l'année en cours
+            $monthlyAppointments = [];
+            for ($month = 1; $month <= 12; $month++) {
+                $monthlyAppointments[] = Appointment::whereMonth('date', $month)
+                    ->whereYear('date', $currentYear)
+                    ->count();
+            }
+    
+            // Statistiques des rendez-vous pour le mois courant
+            $totalAppointmentsForMonth = Appointment::whereMonth('date', $currentMonth)
+                ->whereYear('date', $currentYear)
+                ->count();
+            $completedAppointmentsForMonth = Appointment::where('is_visited', true)
+                ->whereMonth('date', $currentMonth)
+                ->whereYear('date', $currentYear)
+                ->count();
+            $cancelledAppointmentsForMonth = Appointment::where('is_visited', false)
+                ->where('date', '<', $today)
+                ->whereMonth('date', $currentMonth)
+                ->whereYear('date', $currentYear)
+                ->count();
+    
+            // Statistiques annuelles
+            $totalAppointmentsForYear = Appointment::whereYear('date', $currentYear)->count();
+            $completedAppointmentsForYear = Appointment::where('is_visited', true)
+                ->whereYear('date', $currentYear)
+                ->count();
+            $cancelledAppointmentsForYear = Appointment::where('is_visited', false)
+                ->where('date', '<', $today)
+                ->whereYear('date', $currentYear)
+                ->count();
+    
+            // Rendez-vous complétés pour aujourd'hui
+            $appointmentsCompletedToday = Appointment::where('is_visited', true)
+                                ->whereDate('date', Carbon::today())
+                                ->count();
 
-    if ($doctor && $doctor->hasRole('Doctor')) {
-        // Récupérer la date du jour
-        $today = now()->format('Y-m-d');
-
-        // Nombre de rendez-vous pour aujourd'hui
-        $appointmentsToday = Appointment::where('doctor_id', $doctor->id)
-            ->whereDate('date', $today)
-            ->count();
-
-        // Total des rendez-vous pour le docteur
-        $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
-
-        // Nombre de rendez-vous effectués (is_visited = true)
-        $completedAppointments = Appointment::where('doctor_id', $doctor->id)
-            ->where('is_visited', true)
-            ->count();
-
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'appointments_today' => $appointmentsToday,
-                'total_appointments' => $totalAppointments,
-                'completed_appointments' => $completedAppointments,
-            ],
-        ]);
+            // Rendez-vous annulés pour aujourd'hui (passés mais non complétés)
+            $appointmentsCancelledToday = Appointment::where('is_visited', false)
+                                ->whereDate('date', Carbon::today())
+                                ->where('date', '<', Carbon::today())
+                                ->count();
+            // Réponse avec les statistiques
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'appointments_today' => Appointment::where('doctor_id', $doctor->id)
+                        ->whereDate('date', $today)
+                        ->count(),
+                    'monthly_appointments' => $monthlyAppointments,
+                    'total_appointments_for_month' => $totalAppointmentsForMonth,
+                    'completed_appointments_for_month' => $completedAppointmentsForMonth,
+                    'cancelled_appointments_for_month' => $cancelledAppointmentsForMonth,
+                    'total_appointments_for_year' => $totalAppointmentsForYear,
+                    'completed_appointments_for_year' => $completedAppointmentsForYear,
+                    'cancelled_appointments_for_year' => $cancelledAppointmentsForYear,
+                    'appointments_completed_today' => $appointmentsCompletedToday,
+                    'appointments_cancelled_today' => $appointmentsCancelledToday, // Ajouter les rendez-vous annulés pour aujourd'hui
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la récupération des statistiques',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-
-    return response()->json([
-        'status' => false,
-        'message' => 'Utilisateur non autorisé ou rôle incorrect',
-    ], 403);
-}
+    
+    
+    
 
 public function getDoctorStatsForCurrentMonth(Request $request)
 {
@@ -672,7 +734,14 @@ public function storeUrgent(Request $request)
             'user_id' => $user->id,
             'is_paid' => false,
         ]);
-        
+                // Création de la notification
+                Notification::create([
+                    'user_id' => $user->id,
+                    'title' => 'Rendez-vous confirmé',
+                    'message' => 'Votre rendez-vous avec le Dr. ' . $selectedDoctor->name . ' est confirmé pour le ' . $request->date . ' à ' . $request->time . '.',
+                    'type' => 'appointment',
+                    'is_read' => false,
+                ]);
         // Envoi d'un email de confirmation
         Mail::to($user->email)->send(new \App\Mail\Newappointment($user));
 
@@ -710,7 +779,14 @@ public function updateAppointmentStatus(Request $request, $id)
 
     $appointment->is_visited = $request->input('is_visited');
     $appointment->save();
-
+        // Création de la notification
+        Notification::create([
+            'user_id' => $user->id,
+            'title' => 'Rendez-vous confirmé',
+            'message' => 'Votre rendez-vous avec le Dr. ' . $selectedDoctor->name . ' est confirmé pour le ' . $request->date . ' à ' . $request->time . '.',
+            'type' => 'appointment',
+            'is_read' => false,
+        ]);
     return response()->json(['message' => 'Statut mis à jour avec succès.', 'data' => $appointment], 200);
 }
 

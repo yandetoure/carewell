@@ -97,25 +97,34 @@ class TicketController extends Controller
 
 
     //Rcuperer les ticket de l'utlisateur connecé
-    public function showTickets(){
+    public function showTickets(Request $request)
+    {
         $user = auth()->user();
+    
+        // Définir la limite par page (par défaut 6)
+        $limit = $request->input('limit', 6);
+    
+        // Récupérer les tickets de l'utilisateur connecté avec pagination
         $tickets = Ticket::with(['appointment.service', 'prescription.service', 'exam.service', 'user', 'doctor'])
-        ->where('user_id', $user->id)
-        ->orderBy('created_at', 'desc')             
-        ->get();
-
-        if ($tickets) {
+            ->where('user_id', $user->id) // Filtrer les tickets par l'utilisateur connecté
+            ->orderBy('created_at', 'desc') // Trier par date de création décroissante
+            ->paginate($limit); // Pagination avec la limite définie
+    
+        if ($tickets->isNotEmpty()) {
             return response()->json([
-               'status' => true,
+                'status' => true,
                 'data' => $tickets,
+                'totalItems' => $tickets->total(),
+                'totalPages' => $tickets->lastPage(),
             ]);
         } else {
             return response()->json([
-               'status' => false,
-               'message' => 'Tickets non trouvés',
+                'status' => false,
+                'message' => 'Tickets non trouvés',
             ], 404);
         }
     }
+    
 
     /**
      * Update the specified resource in storage.
@@ -207,29 +216,26 @@ public function update(Request $request, string $id)
  */
 public function userTickets()
 {
-    // Récupérer l'utilisateur connecté
     $user = Auth()->user();
 
-    // Récupérer les tickets associés à cet utilisateur, triés par date de création (plus récent en premier)
+    // Récupérer les tickets avec pagination
     $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
                     ->where('user_id', $user->id)
-                    ->orderBy('created_at', 'desc') // Tri par date de création
-                    ->get();
+                    ->orderBy('created_at', 'desc')
+                    ->paginate($limit);
 
-    // Vérifier si des tickets ont été trouvés
-    if ($tickets->isEmpty()) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Aucun ticket trouvé pour cet utilisateur',
-        ], 404);
-    }
-
-    // Retourner les tickets trouvés
+    // Retourner les tickets paginés
     return response()->json([
         'status' => true,
-        'data' => $tickets,
+        'data' => [
+            'tickets' => $tickets->items(),
+            'total' => $tickets->total(),
+            'current_page' => $tickets->currentPage(),
+            'last_page' => $tickets->lastPage(),
+        ],
     ]);
 }
+
 
 
 }

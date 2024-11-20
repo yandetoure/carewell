@@ -88,7 +88,7 @@ class MessageController extends Controller
    public function getMessages($userId)
    {
        $authUserId = Auth::id();
-   
+      
        $messages = Message::where(function($query) use ($authUserId, $userId) {
                $query->where('sender_id', $authUserId)
                      ->where('receiver_id', $userId);
@@ -99,13 +99,14 @@ class MessageController extends Controller
            })
            ->with(['sender', 'receiver'])
            ->get();
-   
+      
        return response()->json([
            'status' => true,
            'message' => "Messages échangés",
            'data' => $messages,
        ], 200);
    }
+   
    
 
    // Modifier un message

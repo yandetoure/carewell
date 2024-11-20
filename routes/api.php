@@ -14,6 +14,7 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFileController;
 use App\Http\Controllers\AvailabilityController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ExamPrescriptionController;
 use App\Http\Controllers\MedicalFilePrescriptionController;
@@ -47,6 +48,13 @@ Route::get('/user/ticket', [TicketController::class, 'showTickets']);
 Route::put('/update/{id}', [AppointmentController::class, 'update']);
 
 Route::middleware('auth:sanctum')->group(function(){
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/{id}', [NotificationController::class, 'markAsRead']);
+    
+    Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']); // Route pour supprimer la notification
+
     Route::put('/tickets/{id}', [TicketController::class, 'updatePaymentStatus']);
     Route::get('user/tickets', [TicketController::class, 'userTickets']);
 
@@ -107,6 +115,7 @@ Route::get('/discussions', [MessageController::class, 'getAllDiscussions']);
 Route::get('/messages/{userId}', [MessageController::class, 'getMessages']);
 Route::put('/messages/{messageId}', [MessageController::class, 'updateMessage']);
 Route::delete('/messages/{messageId}', [MessageController::class, 'deleteMessage']);
+Route::post('send', [MessageController::class, 'sendMessage']);
 
 Route::patch('messages/read/{id}', [MessageController::class, 'markAsRead']);
 Route::post('messages/read/{userId}', [MessageController::class, 'markMessagesAsRead']);
