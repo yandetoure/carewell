@@ -27,7 +27,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('disease_medical_files');
-        $table->dropForeign(['medical_file_id']);
 
     }
 };

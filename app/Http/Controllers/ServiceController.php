@@ -12,6 +12,7 @@ class ServiceController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:services',   
+            'price' => 'nullable|numeric',
             'photo' => 'nullable|file|image|max:2048',
             'description' => 'required|string|max:255|unique:services',
         ]);
@@ -23,6 +24,7 @@ class ServiceController extends Controller
     
         $service = Service::create([
             'name' => $request->name,
+            'price' => $request->price,
             'photo' => $path,
             'description' => $request->description,
         ]);
