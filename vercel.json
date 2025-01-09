@@ -1,0 +1,20 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "public/index.php",
+        "use": "@vercel/php"
+      }
+    ],
+    "env": {
+      "APP_KEY": "@app_key",
+      "DB_CONNECTION": "mysql",
+      "DB_HOST": "@db_host",
+      "DB_PORT": "3306",
+      "DB_DATABASE": "@db_database",
+      "DB_USERNAME": "@db_username",
+      "DB_PASSWORD": "@db_password",
+      "APP_URL": "https://carewell-backend-laravel-production.up.railway.app"
+    }
+  }
+  
