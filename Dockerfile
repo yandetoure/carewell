@@ -1,6 +1,6 @@
 FROM php:8.3
 
-Install dependencies
+# Install dependencies
 RUN apt-get update -y && apt-get install -y \
     openssl \
     zip \
