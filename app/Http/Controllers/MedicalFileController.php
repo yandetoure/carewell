@@ -57,7 +57,7 @@ class MedicalFileController extends Controller
     public function showAuthMedicalFile()
     {
         $user = Auth::user();
-        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription.prescription', 'user', 'medicalexam.exam'])
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription.prescription', 'user', 'medicalexam.exam', 'medicaldisease.disease'])
             ->where('user_id', $user->id) 
             ->first();
 

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -15,22 +15,165 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
-class AppointmentController extends Controller
+class AppointmentController extends \Illuminate\Routing\Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // Récupérer tous les rendez-vous du plus récent au plus ancien
-        $appointments = Appointment::with(['user', 'service'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Temporairement, rediriger vers la vue patient
+        // TODO: Implémenter la logique de rôles plus tard
+        return $this->patientIndex();
+    }
 
-        return response()->json([
-            'status' => true,
-            'data' => $appointments,
+    /**
+     * Display a listing of appointments for patients.
+     */
+    public function patientIndex()
+    {
+        $patient = Auth::user();
+        
+        $appointments = Appointment::where('user_id', $patient->id)
+            ->with(['service', 'doctor.grade'])
+            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_time', 'desc')
+            ->paginate(15);
+
+        return view('patient.appointments.index', compact('appointments'));
+    }
+
+    /**
+     * Show the form for creating a new appointment for patients.
+     */
+    public function patientCreate()
+    {
+        $services = Service::all();
+        $doctors = User::whereHas('appointments', function($query) {
+            $query->where('doctor_id', '!=', null);
+        })->get();
+        
+        return view('patient.appointments.create', compact('services', 'doctors'));
+    }
+
+    /**
+     * Store a newly created appointment for patients.
+     */
+    public function patientStore(Request $request)
+    {
+        $validated = $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'appointment_date' => 'required|date|after:today',
+            'appointment_time' => 'required|date_format:H:i',
+            'doctor_id' => 'nullable|exists:users,id',
+            'notes' => 'nullable|string|max:1000',
+            'urgency' => 'nullable|in:normal,urgent,very_urgent',
         ]);
+
+        $validated['user_id'] = Auth::id();
+        $validated['status'] = 'pending';
+
+        $appointment = Appointment::create($validated);
+
+        return redirect()->route('patient.appointments')->with('success', 'Rendez-vous créé avec succès !');
+    }
+
+    /**
+     * Display the specified appointment for patients.
+     */
+    public function patientShow(Appointment $appointment)
+    {
+        // Vérifier que le patient peut voir ce rendez-vous
+        if ($appointment->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        return view('patient.appointments.show', compact('appointment'));
+    }
+
+    /**
+     * Show the form for editing the specified appointment for patients.
+     */
+    public function patientEdit(Appointment $appointment)
+    {
+        // Vérifier que le patient peut modifier ce rendez-vous
+        if ($appointment->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($appointment->status !== 'pending') {
+            return redirect()->route('patient.appointments')->with('error', 'Ce rendez-vous ne peut plus être modifié');
+        }
+
+        $services = Service::all();
+        $doctors = User::whereHas('appointments', function($query) {
+            $query->where('doctor_id', '!=', null);
+        })->get();
+
+        return view('patient.appointments.edit', compact('appointment', 'services', 'doctors'));
+    }
+
+    /**
+     * Update the specified appointment for patients.
+     */
+    public function patientUpdate(Request $request, Appointment $appointment)
+    {
+        // Vérifier que le patient peut modifier ce rendez-vous
+        if ($appointment->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($appointment->status !== 'pending') {
+            return redirect()->route('patient.appointments')->with('error', 'Ce rendez-vous ne peut plus être modifié');
+        }
+
+        $validated = $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'appointment_date' => 'required|date|after:today',
+            'appointment_time' => 'required|date_format:H:i',
+            'doctor_id' => 'nullable|exists:users,id',
+            'notes' => 'nullable|string|max:1000',
+            'urgency' => 'nullable|in:normal,urgent,very_urgent',
+        ]);
+
+        $appointment->update($validated);
+
+        return redirect()->route('patient.appointments')->with('success', 'Rendez-vous mis à jour avec succès !');
+    }
+
+    /**
+     * Remove the specified appointment for patients.
+     */
+    public function patientDestroy(Appointment $appointment)
+    {
+        // Vérifier que le patient peut supprimer ce rendez-vous
+        if ($appointment->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        if ($appointment->status !== 'pending') {
+            return redirect()->route('patient.appointments')->with('error', 'Ce rendez-vous ne peut plus être supprimé');
+        }
+
+        $appointment->delete();
+
+        return redirect()->route('patient.appointments')->with('success', 'Rendez-vous supprimé avec succès !');
+    }
+
+    /**
+     * Display a listing of appointments for doctors.
+     */
+    public function doctorIndex()
+    {
+        $doctor = Auth::user();
+        
+        $appointments = Appointment::where('doctor_id', $doctor->id)
+            ->with(['user', 'service'])
+            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_time', 'desc')
+            ->paginate(15);
+
+        return view('doctor.appointments.index', compact('appointments'));
     }
 
 
@@ -48,8 +191,8 @@ class AppointmentController extends Controller
         // Récupérer les rendez-vous du docteur connecté avec pagination
         $appointments = Appointment::with(['user', 'service'])
             ->where('doctor_id', $doctor->id) // Filtrer les rendez-vous par le docteur connecté
-            ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
-            ->orderBy('date', 'desc') // Puis trier par date
+            ->orderByRaw('CASE WHEN appointment_date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
+            ->orderBy('appointment_date', 'desc') // Puis trier par date
             ->paginate($limit);
 
         return response()->json([
@@ -78,8 +221,8 @@ class AppointmentController extends Controller
             // Récupérer les rendez-vous du Patient connecté
             $appointments = Appointment::with(['user', 'service'])
                 ->where('user_id', $patient->id) 
-                ->orderByRaw('CASE WHEN date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
-                ->orderBy('date', 'asc') // Puis trier par date
+                            ->orderByRaw('CASE WHEN appointment_date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime]) // Urgents en premier
+            ->orderBy('appointment_date', 'asc') // Puis trier par date
                 ->get();
     
             return response()->json([
@@ -96,9 +239,20 @@ class AppointmentController extends Controller
     
 
     /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        // Récupérer les services disponibles
+        $services = Service::all();
+        
+        // Retourner la vue de création
+        return view('appointments.create', compact('services'));
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
-    // public function store(Request $request)
     // {
     //     $user = Auth::user();
 
@@ -221,8 +375,8 @@ class AppointmentController extends Controller
             'service_id' => 'required|exists:services,id',
             'reason' => 'nullable|string|max:255',
             'symptoms' => 'nullable|string',
-            'date' => 'required|date', 
-            'time' => 'required|date_format:H:i',
+            'appointment_date' => 'required|date', 
+            'appointment_time' => 'required|date_format:H:i',
         ]);
 
         // Vérifier si l'utilisateur a déjà un rendez-vous dans le même service dans les 48 dernières heures
@@ -282,9 +436,10 @@ class AppointmentController extends Controller
             'symptoms' => $request->symptoms,
             'is_visited' => false,
             'is_urgent' => false,
-            'date' => $request->date,
-            'time' => $request->time,
+            'appointment_date' => $request->appointment_date,
+            'appointment_time' => $request->appointment_time,
             'price' => $servicePrice, 
+            'status' => 'pending',
         ]);
 
         // Création du ticket associé
@@ -358,8 +513,8 @@ class AppointmentController extends Controller
         $request->validate([
             'is_visited' => 'nullable|boolean',
             'service_id' => 'sometimes|required|exists:services,id', // Permet de modifier le service
-            'date' => 'sometimes|required|date',
-            'time' => 'sometimes|required|date_format:H:i',
+            'appointment_date' => 'sometimes|required|date',
+            'appointment_time' => 'sometimes|required|date_format:H:i',
         ]);
     
         // Rechercher le rendez-vous
@@ -373,7 +528,7 @@ class AppointmentController extends Controller
         }
     
         // Vérifier si la modification est possible (24h avant le rendez-vous)
-        $appointmentDateTime = \Carbon\Carbon::parse($appointment->date . ' ' . $appointment->time);
+        $appointmentDateTime = \Carbon\Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time);
         if ($appointmentDateTime->diffInHours(now()) < 24) {
             return response()->json([
                 'status' => false,
@@ -389,12 +544,12 @@ class AppointmentController extends Controller
             $dataToUpdate['service_id'] = $request->service_id;
         }
         
-        if ($request->has('date')) {
-            $dataToUpdate['date'] = $request->date;
+        if ($request->has('appointment_date')) {
+            $dataToUpdate['appointment_date'] = $request->appointment_date;
         }
     
-        if ($request->has('time')) {
-            $dataToUpdate['time'] = $request->time;
+        if ($request->has('appointment_time')) {
+            $dataToUpdate['appointment_time'] = $request->appointment_time;
         }
     
         $appointment->update($dataToUpdate);

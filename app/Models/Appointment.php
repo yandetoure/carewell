@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -17,10 +17,11 @@ class Appointment extends Model
         'symptoms',
         'is_visited',
         'doctor_id',
-        'date',
-        'time',
+        'appointment_date',
+        'appointment_time',
         'is_urgent',
         'price',
+        'status',
     ];
 
         

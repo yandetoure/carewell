@@ -1,4 +1,4 @@
-<?php 
+<?php  declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 
 class AuthController extends Controller
@@ -113,12 +115,11 @@ class AuthController extends Controller
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
     
-            // Retourner une réponse JSON avec un token
-            return response()->json([
-                'status' => true,
-                'message' => 'Le compte a été créé avec succès',
-                'token' => $token
-            ], 201);
+            // Création automatique d'un dossier médical pour l'utilisateur
+            $this->createMedicalRecord($user);
+    
+            // Rediriger vers le dashboard approprié selon le rôle
+            return redirect()->route('dashboard')->with('success', 'Compte créé avec succès ! Bienvenue sur CareWell.');
     
         } catch (\Exception $e) {
             return response()->json([
@@ -146,44 +147,37 @@ class AuthController extends Controller
             }
     
             $credentials = $request->only('email', 'password');
-            // $token = auth()->attempt($credentials);
-    
-            // if (!$token) {
-            //     return response()->json(['message' => 'Information de connexion incorrectes'], 401);
-            // }
-
-
-            $user = User::where('email', $request->email)->first();
-
-            if (!$user || !Hash::check($request->password,  $user->password)) {
-                throw ValidationEception::withMessages(
-                    [
-                        'email' => ['Le mot de passe est incorrect'],
-                    ]
-                    );
-            }
-
-            $access_token = $user->createToken($user->id)->plainTextToken;
-
             
-
-            // Récupération de l'utilisateur authentifié
-            //$user = User::where('email', $request->email)->first();
-
-            // Récupérer les rôles de l'utilisateur
-            $roles = $user->getRoleNames(); // Méthode fournie par Spatie
-            
-
-            return response()->json([
-
-                "access_token" => $access_token,
-                "token_type" => "bearer",
-                "user" => $user,   
-                "user_id" => $user->id,
-                "role" => $roles,
-                "expires_in" => env("JWT_TTL") * 60 . ' seconds'
+            // Authentification par session (pour l'interface web)
+            if (Auth::attempt($credentials)) {
+                $user = Auth::user();
                 
-            ]);
+                // Récupérer les rôles de l'utilisateur
+                $roles = $user->getRoleNames();
+                
+                // Debug: Vérifier l'état de l'authentification
+                \Log::info('Utilisateur connecté: ' . $user->email);
+                \Log::info('Rôles: ' . $roles->implode(', '));
+                \Log::info('Session ID: ' . session()->getId());
+                
+                // Créer un token Sanctum pour l'API si nécessaire
+                $access_token = $user->createToken('auth-token')->plainTextToken;
+                
+                // Debug: Vérifier l'état de l'authentification
+                \Log::info('Utilisateur connecté: ' . $user->email);
+                \Log::info('Rôles: ' . $roles->implode(', '));
+                \Log::info('Session ID: ' . session()->getId());
+                
+                // Créer un token Sanctum pour l'API si nécessaire
+                $access_token = $user->createToken('auth-token')->plainTextToken;
+                
+                // Rediriger vers le dashboard approprié selon le rôle
+                return redirect()->route('dashboard')->with('success', 'Connexion réussie ! Bienvenue sur CareWell.');
+            } else {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'email' => ['Le mot de passe est incorrect'],
+                ]);
+            }
 
         } catch (\Exception $e) {
             return response()->json([
@@ -216,12 +210,24 @@ class AuthController extends Controller
      */
     public function logout()
     {
-        Auth::user()->tokens()->delete();
-        return response()->json([
-        'status' => true,
-        'message' => "Vous êtes déconnecté",
-        'data' => [],
-        ], 200);
+        try {
+            // Récupération de l'utilisateur connecté
+            $user = Auth::user();
+    
+            // Suppression de tous les tokens de l'utilisateur
+            if ($user) {
+                $user->tokens()->delete();
+            }
+    
+            // Déconnexion de l'utilisateur
+            auth()->logout();
+    
+            // Rediriger vers la page d'accueil
+            return redirect()->route('home')->with('success', 'Déconnexion réussie');
+    
+        } catch (\Exception $e) {
+            return redirect()->route('home')->with('error', 'Erreur lors de la déconnexion');
+        }
     }
 
        /**
@@ -524,7 +530,7 @@ public function getUserStatistics()
         ], 200);
 
     } catch (\Exception $e) {
-        \Log::error('Erreur statistiques: ' . $e->getMessage());
+        Log::error('Erreur statistiques: ' . $e->getMessage());
         return response()->json([
             'status' => false,
             'message' => 'Erreur lors de la récupération des statistiques',

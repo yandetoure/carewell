@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -21,6 +21,19 @@ class PrescriptionController extends Controller
             'status' => true,
             'data' => $prescriptions,
         ]);
+    }
+
+    /**
+     * Display prescriptions for a specific patient.
+     */
+    public function patientPrescriptions()
+    {
+        $patient = Auth::user();
+        
+        // Récupérer les prescriptions du patient connecté
+        $prescriptions = collect([]); // Temporairement vide, à implémenter selon votre modèle
+        
+        return view('patient.prescriptions.index', compact('prescriptions'));
     }
 
     /**

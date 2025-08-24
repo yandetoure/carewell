@@ -1,136 +1,155 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
-use App\Models\Article;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-
-
+use App\Models\Article;
 
 class ArticleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //afficher la liste des articles
-        $articles = Article::all();
-        return response()->json(['data' => $articles]);
+        $query = Article::query();
 
+        // Filtre par recherche
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('content', 'like', '%' . $request->search . '%')
+                  ->orWhere('symptoms', 'like', '%' . $request->search . '%');
+        }
+
+        // Filtre par catégorie
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // Article à la une (le plus récent)
+        $featuredArticle = $query->clone()->latest()->first();
+
+        // Articles normaux (excluant l'article à la une)
+        $articles = $query->where('id', '!=', $featuredArticle?->id ?? 0)
+                         ->latest()
+                         ->paginate(9);
+
+        return view('articles.index', compact('articles', 'featuredArticle'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function show(Article $article)
+    {
+        // Articles connexes basés sur le contenu
+        $relatedArticles = Article::where('id', '!=', $article->id)
+                                 ->where(function($query) use ($article) {
+                                     $query->where('title', 'like', '%' . substr($article->title, 0, 20) . '%')
+                                           ->orWhere('content', 'like', '%' . substr($article->content, 0, 50) . '%');
+                                 })
+                                 ->take(3)
+                                 ->get();
+
+        return view('articles.show', compact('article', 'relatedArticles'));
+    }
+
+    public function create()
+    {
+        return view('admin.articles.create');
+    }
+
     public function store(Request $request)
     {
-        //creer une nouvelle instance de l'article
-            $request->validate([
-                'title' => 'required|string|max:255|unique:articles',  
-                'content' => 'required|string|min:50',  
-                'photo' => 'nullable|file|image|max:2048',
-                'symptoms' => 'required|string|',
-                'advices' => 'required|string',
-            ]);
-        
-            // Gestion du fichier
-            $path = null;
-            if ($request->hasFile('photo')) {
-                $path = $request->file('photo')->store('articles_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
-            }
-        
-            $article = Article::create([
-                'title' => $request->title,
-                'content' => $request->content,
-                'photo' => $path,
-                'symptoms' => $request->symptoms,
-                'advices' => $request->advices,
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Article créé avec succès',
-                'data' => $article,
-            ], 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        $article = Article::find($id);
-        return response()->json(['data' => $article]);
-
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        // Vérifier si l'article existe
-        $article = Article::find($id);
-        if (!$article) {
-            return response()->json(['message' => 'Article non trouvé'], 404);
-        }
-    
-        // Valider les données d'entrée
-        $request->validate([
-            'title' => 'required|string|max:255|unique:articles,title,',  
-            'content' => 'required|string|min:50',
-            'photo' => 'nullable|file|image|max:2048',
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string|max:10000',
+            'symptoms' => 'nullable|string|max:1000',
+            'advices' => 'nullable|string|max:1000',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
-    
-        // Gérer la mise à jour du fichier si une nouvelle image est fournie
+
         if ($request->hasFile('photo')) {
-            // Supprimer l'ancienne image si elle existe
-            if ($article->photo) {
-                Storage::disk('public')->delete($article->photo);
-            }
-            // Stocker la nouvelle image
-            $path = $request->file('photo')->store('articles_photos', 'public');
-            $article->photo = $path;
+            $validated['photo'] = $request->file('photo')->store('articles', 'public');
         }
-    
-        // Mettre à jour les autres champs
-        $article->title = $request->input('title');
-        $article->content = $request->input('content');
-        $article->save();
-    
-        return response()->json([
-            'status' => true,
-            'message' => 'Article mis à jour avec succès',
-            'data' => $article,
-        ], 200);
+
+        Article::create($validated);
+
+        return redirect()->route('admin.articles')->with('success', 'Article créé avec succès.');
     }
-    
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function edit(Article $article)
     {
-        // Vérifier si l'article existe
-        $article = Article::find($id);
-        if (!$article) {
-            return response()->json(['message' => 'Article non trouvé'], 404);
+        return view('admin.articles.edit', compact('article'));
+    }
+
+    public function update(Request $request, Article $article)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string|max:10000',
+            'symptoms' => 'nullable|string|max:1000',
+            'advices' => 'nullable|string|max:1000',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($request->hasFile('photo')) {
+            // Supprimer l'ancienne photo
+            if ($article->photo) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $article->photo);
+            }
+            $validated['photo'] = $request->file('photo')->store('articles', 'public');
         }
 
-        // Supprimer l'image associée si elle existe
+        $article->update($validated);
+
+        return redirect()->route('admin.articles')->with('success', 'Article mis à jour avec succès.');
+    }
+
+    public function destroy(Article $article)
+    {
         if ($article->photo) {
-            Storage::disk('public')->delete($article->photo);
+            \Illuminate\Support\Facades\Storage::delete('public/' . $article->photo);
         }
 
-        // Supprimer l'article
         $article->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Article supprimé avec succès'
-        ], 200);
+        return redirect()->route('admin.articles')->with('success', 'Article supprimé avec succès.');
     }
-    
+
+    public function adminIndex()
+    {
+        $articles = Article::latest()->paginate(20);
+        return view('admin.articles.index', compact('articles'));
+    }
+
+    /**
+     * Display articles for patients.
+     */
+    public function patientIndex(Request $request)
+    {
+        $query = Article::query();
+
+        // Filtre par recherche
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('content', 'like', '%' . $request->search . '%');
+        }
+
+        // Tri par date de création (plus récent en premier)
+        $query->orderBy('created_at', 'desc');
+
+        // Articles normaux
+        $articles = $query->paginate(12);
+
+        return view('patient.articles.index', compact('articles'));
+    }
+
+    /**
+     * Display a specific article for patients.
+     */
+    public function patientShow(Article $article)
+    {
+        // Articles connexes basés sur la date de création
+        $relatedArticles = Article::where('id', '!=', $article->id)
+                                 ->orderBy('created_at', 'desc')
+                                 ->take(3)
+                                 ->get();
+
+        return view('patient.articles.show', compact('article', 'relatedArticles'));
+    }
 }

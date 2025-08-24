@@ -1,10 +1,11 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
@@ -20,6 +21,19 @@ class ExamController extends Controller
             'status' => true,
             'data' => $exams,
         ]);
+    }
+
+    /**
+     * Display exams for a specific patient.
+     */
+    public function patientExams()
+    {
+        $patient = Auth::user();
+        
+        // Récupérer les examens du patient connecté
+        $exams = collect([]); // Temporairement vide, à implémenter selon votre modèle
+        
+        return view('patient.exams.index', compact('exams'));
     }
 
     /**
