@@ -133,7 +133,7 @@
                         <h5 class="card-title">{{ $service->name }}</h5>
                         <p class="card-text">{{ Str::limit($service->description, 100) }}</p>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-primary">{{ number_format($service->price, 2) }} €</span>
+                            <span class="badge bg-primary">{{ number_format($service->price, 0, ',', ' ') }} FCFA</span>
                             <a href="{{ route('services.show', $service->id) }}" class="btn btn-outline-primary btn-sm">En savoir plus</a>
                         </div>
                     </div>

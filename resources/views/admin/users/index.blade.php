@@ -96,11 +96,11 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($user->hasRole('admin'))
+                                        @if($user->hasRole('Admin'))
                                             <span class="badge bg-danger">Administrateur</span>
-                                        @elseif($user->hasRole('doctor'))
+                                        @elseif($user->hasRole('Doctor'))
                                             <span class="badge bg-primary">Médecin</span>
-                                        @elseif($user->hasRole('secretary'))
+                                        @elseif($user->hasRole('Secretary'))
                                             <span class="badge bg-warning">Secrétaire</span>
                                         @else
                                             <span class="badge bg-success">Patient</span>

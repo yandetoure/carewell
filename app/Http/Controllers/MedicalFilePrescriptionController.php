@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -38,7 +38,7 @@ class MedicalFilePrescriptionController extends Controller
         try {
             // Assurez-vous que l'utilisateur est un médecin
             $user = Auth::user();
-            if (!$user || !$user->hasRole('doctor')) {
+            if (!$user || !$user->hasRole('Doctor')) {
                 return response()->json(['status' => false, 'message' => 'Unauthorized'], 403);
             }
     

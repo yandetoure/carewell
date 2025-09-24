@@ -16,11 +16,11 @@ class DashboardController extends Controller
         $user = Auth::user();
         
         // Rediriger vers le dashboard approprié selon le rôle
-        if ($user->hasRole('admin')) {
+        if ($user->hasRole('Admin')) {
             return $this->adminDashboard();
-        } elseif ($user->hasRole('doctor')) {
+        } elseif ($user->hasRole('Doctor')) {
             return $this->doctorDashboard();
-        } elseif ($user->hasRole('secretary')) {
+        } elseif ($user->hasRole('Secretary')) {
             return $this->secretaryDashboard();
         } else {
             // Par défaut, dashboard patient
