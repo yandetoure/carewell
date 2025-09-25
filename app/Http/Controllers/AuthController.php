@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Services;
 use App\Mail\WelcomeMail;
 use App\Models\MedicalFile;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Traits\RedirectToRoleDashboard;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -456,6 +458,182 @@ public function destroy(User $user)
     $user->delete();
 
     return redirect()->route('admin.users')->with('success', 'Utilisateur supprimé avec succès.');
+}
+
+// ==================== GESTION DES DOCTEURS ====================
+
+public function getDoctors()
+{
+    $doctors = User::role('Doctor', 'web')
+        ->with(['services', 'appointments'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
+    
+    // Statistiques rapides
+  
+    $newThisMonth = User::role('Doctor', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
+    $withServices = User::role('Doctor', 'web')->whereHas('services')->count();
+    
+    return view('admin.doctors.index', compact('doctors', 'totalDoctors', 'activeDoctors', 'newThisMonth', 'withServices'));
+}
+
+// ==================== GESTION DES RÔLES ET PERMISSIONS ====================
+
+public function getRoles()
+{
+    $roles = Role::with('permissions')
+        ->where('guard_name', 'web')
+        ->paginate(20);
+    $permissions = Permission::where('guard_name', 'web')->get()->groupBy('group');
+    
+    return view('admin.roles.index', compact('roles', 'permissions'));
+}
+
+public function storeRole(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255|unique:roles,name',
+        'display_name' => 'required|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'permissions' => 'nullable|array',
+        'permissions.*' => 'exists:permissions,id',
+    ]);
+
+    $role = Role::create([
+        'name' => $validated['name'],
+        'display_name' => $validated['display_name'],
+        'description' => $validated['description'] ?? null,
+    ]);
+
+    if (!empty($validated['permissions'])) {
+        $role->syncPermissions($validated['permissions']);
+    }
+
+    return redirect()->route('admin.roles')->with('success', 'Rôle créé avec succès.');
+}
+
+public function showRole(Role $role)
+{
+    $role->load('permissions');
+    $permissions = Permission::where('guard_name', 'web')->get()->groupBy('group');
+    $users = User::role($role->name, 'web')->paginate(10);
+    
+    return view('admin.roles.show', compact('role', 'permissions', 'users'));
+}
+
+public function editRole(Role $role)
+{
+    $role->load('permissions');
+    $permissions = Permission::where('guard_name', 'web')->get()->groupBy('group');
+    
+    return view('admin.roles.edit', compact('role', 'permissions'));
+}
+
+public function updateRolePermissions(Request $request, Role $role)
+{
+    $validated = $request->validate([
+        'display_name' => 'required|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'permissions' => 'nullable|array',
+        'permissions.*' => 'exists:permissions,id',
+    ]);
+
+    $role->update([
+        'display_name' => $validated['display_name'],
+        'description' => $validated['description'] ?? null,
+    ]);
+
+    if (isset($validated['permissions'])) {
+        $role->syncPermissions($validated['permissions']);
+    }
+
+    return redirect()->route('admin.roles.show', $role)->with('success', 'Rôle mis à jour avec succès.');
+}
+
+public function destroyRole(Role $role)
+{
+    // Empêcher la suppression des rôles système
+    $systemRoles = ['Admin', 'Doctor', 'Secretary', 'Patient'];
+    if (in_array($role->name, $systemRoles)) {
+        return redirect()->route('admin.roles')->with('error', 'Ce rôle système ne peut pas être supprimé.');
+    }
+
+    // Vérifier s'il y a des utilisateurs avec ce rôle
+    $usersCount = User::role($role->name, 'web')->count();
+    if ($usersCount > 0) {
+        return redirect()->route('admin.roles')->with('error', "Ce rôle ne peut pas être supprimé car $usersCount utilisateur(s) l'utilisent encore.");
+    }
+
+    $role->delete();
+
+    return redirect()->route('admin.roles')->with('success', 'Rôle supprimé avec succès.');
+}
+
+public function getPermissions()
+{
+    $permissions = Permission::with('roles')
+        ->where('guard_name', 'web')
+        ->paginate(50);
+    
+    return view('admin.permissions.index', compact('permissions'));
+}
+
+public function storePermission(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255|unique:permissions,name',
+        'display_name' => 'required|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'group' => 'required|string|max:100',
+    ]);
+
+    Permission::create($validated);
+
+    return redirect()->route('admin.permissions')->with('success', 'Permission créée avec succès.');
+}
+
+public function updatePermission(Request $request, Permission $permission)
+{
+    $validated = $request->validate([
+        'display_name' => 'required|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'group' => 'required|string|max:100',
+    ]);
+
+    $permission->update($validated);
+
+    return redirect()->route('admin.permissions')->with('success', 'Permission mise à jour avec succès.');
+}
+
+public function destroyPermission(Permission $permission)
+{
+    // Vérifier si la permission est utilisée
+    if ($permission->roles()->count() > 0) {
+        return redirect()->route('admin.permissions')->with('error', 'Cette permission ne peut pas être supprimée car elle est assignée à des rôles.');
+    }
+
+    $permission->delete();
+
+    return redirect()->route('admin.permissions')->with('success', 'Permission supprimée avec succès.');
+}
+
+public function assignPermissionsToRole(Request $request, Role $role)
+{
+    $validated = $request->validate([
+        'permissions' => 'required|array',
+        'permissions.*' => 'exists:permissions,id',
+    ]);
+
+    $role->syncPermissions($validated['permissions']);
+
+    return redirect()->route('admin.roles.show', $role)->with('success', 'Permissions assignées avec succès.');
+}
+
+public function revokePermissionFromRole(Role $role, Permission $permission)
+{
+    $role->revokePermissionTo($permission);
+
+    return redirect()->route('admin.roles.show', $role)->with('success', 'Permission révoquée avec succès.');
 }
 
 

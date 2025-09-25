@@ -229,7 +229,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/articles', [ArticleController::class, 'adminIndex'])->name('admin.articles');
         Route::get('/appointments', [AppointmentController::class, 'adminIndex'])->name('admin.appointments');
         Route::get('/statistics', [App\Http\Controllers\DashboardController::class, 'adminStatistics'])->name('admin.statistics');
+        // Gestion des rôles et permissions (guard web uniquement)
         Route::get('/roles', [AuthController::class, 'getRoles'])->name('admin.roles');
+        Route::post('/roles', [AuthController::class, 'storeRole'])->name('admin.roles.store');
+        Route::get('/roles/{role}', [AuthController::class, 'showRole'])->name('admin.roles.show')
+            ->where('role', '[0-9]+'); // S'assurer que seul l'ID numérique est accepté
+        Route::get('/roles/{role}/edit', [AuthController::class, 'editRole'])->name('admin.roles.edit')
+            ->where('role', '[0-9]+');
+        Route::put('/roles/{role}', [AuthController::class, 'updateRolePermissions'])->name('admin.roles.update')
+            ->where('role', '[0-9]+');
+        Route::delete('/roles/{role}', [AuthController::class, 'destroyRole'])->name('admin.roles.destroy')
+            ->where('role', '[0-9]+');
+        
+        // Gestion des permissions
+        Route::get('/permissions', [AuthController::class, 'getPermissions'])->name('admin.permissions');
+        Route::post('/permissions', [AuthController::class, 'storePermission'])->name('admin.permissions.store');
+        Route::put('/permissions/{permission}', [AuthController::class, 'updatePermission'])->name('admin.permissions.update');
+        Route::delete('/permissions/{permission}', [AuthController::class, 'destroyPermission'])->name('admin.permissions.destroy');
+        
+        // Assignation des permissions aux rôles
+        Route::post('/roles/{role}/permissions', [AuthController::class, 'assignPermissionsToRole'])->name('admin.roles.permissions.assign');
+        Route::delete('/roles/{role}/permissions/{permission}', [AuthController::class, 'revokePermissionFromRole'])->name('admin.roles.permissions.revoke');
         Route::get('/doctors', [AuthController::class, 'getDoctors'])->name('admin.doctors');
         Route::get('/patients', [AuthController::class, 'getPatients'])->name('admin.patients');
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
