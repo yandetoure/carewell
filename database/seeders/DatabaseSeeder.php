@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace Database\Seeders;
 
@@ -16,6 +16,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             UserSeeder::class,
+            ServiceSeeder::class,
+            DiseaseSeeder::class,
+            PrescriptionSeeder::class,
+            ExamSeeder::class,
+            ArticleSeeder::class,
         ]);
         
     }
