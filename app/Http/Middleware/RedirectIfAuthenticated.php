@@ -1,8 +1,9 @@
-<?php declare(strict_types=1); 
+<?php declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
 use App\Providers\RouteServiceProvider;
+use App\Traits\RedirectToRoleDashboard;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RedirectIfAuthenticated
 {
+    use RedirectToRoleDashboard;
     /**
      * Handle an incoming request.
      *
@@ -21,14 +23,15 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // L'utilisateur est connecté, rediriger vers le dashboard approprié
+// L'utilisateur est connecté, rediriger vers le dashboard approprié
                 $user = Auth::guard($guard)->user();
                 
-                // Rediriger vers le dashboard principal qui gère la logique des rôles
-                return redirect()->route('dashboard');
+                // Rediriger directement vers le dashboard approprié selon le rôle
+                return $this->redirectToRoleDashboard($user);
             }
         }
 
         return $next($request);
     }
+
 }

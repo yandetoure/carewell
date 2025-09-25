@@ -70,7 +70,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Routes protégées par authentification
 Route::middleware('auth')->group(function () {
-    
+
     // Dashboard principal (redirige vers le bon dashboard selon le rôle)
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
@@ -189,7 +189,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/prescriptions', [PrescriptionController::class, 'patientPrescriptions'])->name('patient.prescriptions');
         Route::get('/exams', [ExamController::class, 'patientExams'])->name('patient.exams');
         Route::get('/vital-signs', [App\Http\Controllers\DashboardController::class, 'patientVitalSigns'])->name('patient.vital-signs');
-        
+
         // Rendez-vous pour patients
         Route::get('/appointments', [AppointmentController::class, 'patientIndex'])->name('patient.appointments');
         Route::get('/appointments/create', [AppointmentController::class, 'patientCreate'])->name('patient.appointments.create');
@@ -198,15 +198,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/appointments/{appointment}/edit', [AppointmentController::class, 'patientEdit'])->name('patient.appointments.edit');
         Route::put('/appointments/{appointment}', [AppointmentController::class, 'patientUpdate'])->name('patient.appointments.update');
         Route::delete('/appointments/{appointment}', [AppointmentController::class, 'patientDestroy'])->name('patient.appointments.destroy');
-        
+
         // Services pour patients
         Route::get('/services', [ServiceController::class, 'patientIndex'])->name('patient.services');
         Route::get('/services/{service}', [ServiceController::class, 'patientShow'])->name('patient.services.show');
-        
+
         // Articles pour patients
         Route::get('/articles', [ArticleController::class, 'patientIndex'])->name('patient.articles');
         Route::get('/articles/{article}', [ArticleController::class, 'patientShow'])->name('patient.articles.show');
-        
+
         // Profil et contact pour patients
         Route::get('/profile', [ProfileController::class, 'show'])->name('patient.profile');
         Route::get('/contact', function() {

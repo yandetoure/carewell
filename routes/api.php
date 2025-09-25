@@ -41,7 +41,7 @@ Route::apiResource('exam/prescription', ExamPrescriptionController::class);
 Route::get('/appointments/current-month', [AppointmentController::class, 'getDoctorStatsForCurrentMonth']);
 
 Route::apiResource('notes', NoteController::class);
-Route::get('/users/{id}', [UserController::class, 'show']);
+Route::get('/users/{id}', [AuthController::class, 'show']);
 Route::get('/user/ticket', [TicketController::class, 'showTickets']);
 
 
@@ -51,7 +51,7 @@ Route::middleware('auth:sanctum')->group(function(){
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/{id}', [NotificationController::class, 'markAsRead']);
-    
+
     Route::post('notifications/{id}/mark-as-read', [NotificationController::class, 'markAsRead']);
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy']); // Route pour supprimer la notification
 
@@ -59,7 +59,7 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('user/tickets', [TicketController::class, 'userTickets']);
 
     Route::apiResource('/appointments', AppointmentController::class);
-    Route::apiResource('grades', GradeController::class);
+    // Route::apiResource('grades', GradeController::class); // Commenté car GradeController n'existe pas encore
     Route::get('/doctor/appointments', [AppointmentController::class, 'getPatientsWithAppointmentsDoctor']);
     Route::post('availability', [AvailabilityController::class, 'storeSelfAvailability']);
     Route::get('/user/appointments', [AppointmentController::class, 'userAppointments']);
@@ -88,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::middleware('auth:sanctum')->put('/update', [AuthController::class, 'updateProfile']);
     Route::post('/add-user', [AuthController::class, 'registerUser']);
 
-    
+
     Route::middleware('auth:sanctum')->get('/doctor-appointment', [AppointmentController::class, 'doctorAppointment']);
     Route::get('/user/appointments', [AppointmentController::class, 'userAppointments']);
     Route::get('/patient', [AppointmentController::class, 'getPatientsWithAppointments']);

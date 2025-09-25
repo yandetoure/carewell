@@ -1,20 +1,20 @@
-<?php declare(strict_types=1); 
+<?php declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\Article;
+use App\Models\Service;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use App\Models\Appointment;
-use App\Models\Service;
-use App\Models\Article;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        
+
         // Rediriger vers le dashboard approprié selon le rôle
         if ($user->hasRole('Admin')) {
             return $this->adminDashboard();
@@ -47,7 +47,7 @@ class DashboardController extends Controller
     public function doctorDashboard()
     {
         $doctor = Auth::user();
-        
+
         $data = [
             'todayAppointments' => Appointment::where('doctor_id', $doctor->id)
                 ->whereDate('appointment_date', today())
@@ -92,7 +92,7 @@ class DashboardController extends Controller
     public function patientDashboard()
     {
         $patient = Auth::user();
-        
+
         $data = [
             'upcomingAppointments' => Appointment::where('user_id', $patient->id)
                 ->where('is_visited', false)
@@ -199,7 +199,7 @@ class DashboardController extends Controller
     public function patientMedicalFile()
     {
         $patient = Auth::user();
-        
+
         // Récupérer les données du dossier médical du patient
         $data = [
             'totalAppointments' => Appointment::where('user_id', $patient->id)->count(),

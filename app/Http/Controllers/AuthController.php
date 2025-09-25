@@ -1,4 +1,4 @@
-<?php  declare(strict_types=1); 
+<?php  declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
@@ -9,17 +9,19 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Mail\MedicalFileMail;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Validator;
+use App\Traits\RedirectToRoleDashboard;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 
 class AuthController extends Controller
 {
+    use RedirectToRoleDashboard;
     /**
      * Enregistrer un nouvel utilisateur.
      */
@@ -32,11 +34,11 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'adress' => 'required|string|max:255',
             'phone_number' => 'required|regex:/^[0-9]{9}$/',
-            'day_of_birth' => 'required', 
+            'day_of_birth' => 'required',
             'password' => 'required|string|min:8',
             'photo' => 'nullable|file|image|max:2048',
         ]);
-    
+
         if ($validateUser->fails()) {
             return response()->json([
                 'status' => false,
@@ -44,9 +46,9 @@ class AuthController extends Controller
                 'errors' => $validateUser->errors()
             ], 400);
         }
-    
+
         $validated = $validateUser->validated();
-    
+
         // Convertir l'âge en date de naissance si nécessaire
         if (is_numeric($validated['day_of_birth'])) {
             // Si c'est un nombre, on considère que c'est un âge
@@ -59,22 +61,22 @@ class AuthController extends Controller
                 'message' => 'Le champ day_of_birth doit être une date ou un âge valide.',
             ], 400);
         }
-    
+
         // Gestion du fichier photo
         $path = null;
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
         }
-    
+
         try {
             // Vérification et ajout de l'indicatif téléphonique si nécessaire
             if (!Str::startsWith($validated['phone_number'], '+221')) {
                 $validated['phone_number'] = '+221' . $validated['phone_number'];
             }
-    
+
             // Génération du numéro d'identification unique
             $identification_number = $this->generateUniqueIdentificationNumber();
-    
+
             // Création de l'utilisateur si la validation passe
             $user = User::create([
                 'first_name' => $validated['first_name'],
@@ -88,19 +90,19 @@ class AuthController extends Controller
                 'photo' => $path,
                 'service_id' => $request->service_id, // Ajout du service_id
             ]);
-    
+
             // Assigner le rôle 'patient' par défaut
             $rolePatient = Role::firstWhere('name', 'Patient');
             if ($rolePatient) {
                 $user->assignRole($rolePatient);
             }
-    
+
             // Envoi d'un email de bienvenue
             Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user));
-    
+
             // Authentification de l'utilisateur après l'inscription
             Auth::login($user);
-    
+
             // Création du token
             $token = $user->createToken("API TOKEN")->plainTextToken;
 
@@ -114,13 +116,13 @@ class AuthController extends Controller
 
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
-    
+
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
-    
+
             // Rediriger vers le dashboard approprié selon le rôle
-            return redirect()->route('dashboard')->with('success', 'Compte créé avec succès ! Bienvenue sur CareWell.');
-    
+            return $this->redirectToRoleDashboard($user)->with('success', 'Compte créé avec succès ! Bienvenue sur CareWell.');
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -129,7 +131,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
-        
+
     /**
      * Connexion d'un utilisateur.
      */
@@ -141,38 +143,38 @@ class AuthController extends Controller
                 'email' => 'required|email|string',
                 'password' => 'required|string|min:8',
             ]);
-    
+
             if ($validator->fails()) {
                 return response()->json(['error' => $validator->errors()], 422);
             }
-    
+
             $credentials = $request->only('email', 'password');
-            
+
             // Authentification par session (pour l'interface web)
             if (Auth::attempt($credentials)) {
                 $user = Auth::user();
-                
+
                 // Récupérer les rôles de l'utilisateur
                 $roles = $user->getRoleNames();
-                
+
                 // Debug: Vérifier l'état de l'authentification
                 \Log::info('Utilisateur connecté: ' . $user->email);
                 \Log::info('Rôles: ' . $roles->implode(', '));
                 \Log::info('Session ID: ' . session()->getId());
-                
+
                 // Créer un token Sanctum pour l'API si nécessaire
                 $access_token = $user->createToken('auth-token')->plainTextToken;
-                
+
                 // Debug: Vérifier l'état de l'authentification
                 \Log::info('Utilisateur connecté: ' . $user->email);
                 \Log::info('Rôles: ' . $roles->implode(', '));
                 \Log::info('Session ID: ' . session()->getId());
-                
+
                 // Créer un token Sanctum pour l'API si nécessaire
                 $access_token = $user->createToken('auth-token')->plainTextToken;
-                
+
                 // Rediriger vers le dashboard approprié selon le rôle
-                return redirect()->route('dashboard')->with('success', 'Connexion réussie ! Bienvenue sur CareWell.');
+                return $this->redirectToRoleDashboard($user)->with('success', 'Connexion réussie ! Bienvenue sur CareWell.');
             } else {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'email' => ['Le mot de passe est incorrect'],
@@ -213,18 +215,18 @@ class AuthController extends Controller
         try {
             // Récupération de l'utilisateur connecté
             $user = Auth::user();
-    
+
             // Suppression de tous les tokens de l'utilisateur
             if ($user) {
                 $user->tokens()->delete();
             }
-    
+
             // Déconnexion de l'utilisateur
             auth()->logout();
-    
+
             // Rediriger vers la page d'accueil
             return redirect()->route('home')->with('success', 'Déconnexion réussie');
-    
+
         } catch (\Exception $e) {
             return redirect()->route('home')->with('error', 'Erreur lors de la déconnexion');
         }
@@ -247,7 +249,7 @@ private function createMedicalRecord(User $user): void
             'user_id' => $user->id,
             // L'identification_number sera généré automatiquement par le modèle
         ]);
-        
+
         // Envoi de l'email de notification
         Mail::to($user->email)->send(new \App\Mail\MedicalFileMail($user));
     }
@@ -284,9 +286,9 @@ public function updateProfile(Request $request)
         'first_name' => 'nullable|string|max:255',
         'last_name' => 'nullable|string|max:255',
         'adress' => 'nullable|string|max:255',
-        'phone_number' => 'nullable|regex:/^[0-9]{9}$/', 
+        'phone_number' => 'nullable|regex:/^[0-9]{9}$/',
         'day_of_birth' => 'nullable|date',
-        'password' => 'nullable|string|min:8|confirmed', 
+        'password' => 'nullable|string|min:8|confirmed',
     ]);
 
     if ($validateUser->fails()) {
@@ -362,7 +364,7 @@ public function updateProfile(Request $request)
 
 public function getUsers()
 {
-    $users = User::with('roles') 
+    $users = User::with('roles')
         ->get()
         ->map(function ($user) {
             return [
@@ -447,24 +449,24 @@ public function destroy(string $id)
     }
 
     $validated = $validateUser->validated();
-    
+
 
             // Gestion du fichier photo
             // $path = null;
             // if ($request->hasFile('photo')) {
             //     $path = $request->file('photo')->store('user_photos', 'public'); // Stockage dans le dossier 'storage/app/public/service_photos'
             // }
-        
+
             // try {
             //     // Vérification et ajout de l'indicatif téléphonique si nécessaire
             //     if (!Str::startsWith($validated['phone_number'], '+221')) {
             //         $validated['phone_number'] = '+221' . $validated['phone_number'];
             //     }
-        
+
         // Génération du numéro d'identification unique
         $identification_number = $this->generateUniqueIdentificationNumber();
 
-                
+
 
     try {
         // Création de l'utilisateur
@@ -479,7 +481,7 @@ public function destroy(string $id)
             'photo' => $path ?? null,
             // 'grade_id' => $request->grade_id,
             'service_id' => $request->service_id,
-            
+
         ]);
 
         // Assigner le rôle selon l'entrée du formulaire
@@ -537,6 +539,7 @@ public function getUserStatistics()
             'error' => $e->getMessage()
         ], 500);
     }
+
 }
 
 }
