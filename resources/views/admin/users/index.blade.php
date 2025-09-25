@@ -1,6 +1,9 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'Gestion des Utilisateurs - Admin')
+@section('page-title', 'Gestion des Utilisateurs')
+@section('page-subtitle', 'Gérer tous les utilisateurs de la plateforme')
+@section('user-role', 'Administrateur')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -8,7 +11,10 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Gestion des Utilisateurs</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Gestion des Utilisateurs
+                    </h5>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                         <i class="fas fa-user-plus me-2"></i>Nouvel Utilisateur
                     </button>
@@ -20,6 +26,42 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
+
+                    <!-- Statistiques rapides -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-1">{{ $users->total() }}</h4>
+                                    <small>Total utilisateurs</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-1">{{ $users->where('email_verified_at', '!=', null)->count() }}</h4>
+                                    <small>Comptes vérifiés</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-1">{{ $users->where('email_verified_at', null)->count() }}</h4>
+                                    <small>En attente</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-1">{{ $users->where('created_at', '>=', now()->subMonth())->count() }}</h4>
+                                    <small>Nouveaux ce mois</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Filtres et recherche -->
                     <div class="row mb-4">

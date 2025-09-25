@@ -365,43 +365,97 @@ public function updateProfile(Request $request)
 public function getUsers()
 {
     $users = User::with('roles')
-        ->get()
-        ->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'email' => $user->email,
-                'phone_number' => $user->phone_number, // Inclure le numéro de téléphone
-                'status' => $user->status, // Inclure le statut du compte
-                'roles' => $user->getRoleNames(), // Récupérer les noms des rôles avec Spatie
-            ];
-        });
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
 
-    return response()->json(['data' => $users]); // Assurez-vous que les utilisateurs sont dans 'data'
+    return view('admin.users.index', compact('users'));
 }
 
 
-public function destroy(string $id)
+public function store(Request $request)
 {
-    // Vérifier si l'article existe
-    $user = User::find($id);
-    if (!$user) {
-        return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'phone_number' => 'nullable|string|max:20',
+        'password' => 'required|string|min:8',
+        'role' => 'required|string|in:patient,doctor,secretary,admin',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+
+    $validated['password'] = Hash::make($validated['password']);
+    $validated['email_verified_at'] = now(); // Auto-verify admin-created users
+
+    if ($request->hasFile('photo')) {
+        $validated['photo'] = $request->file('photo')->store('users', 'public');
+    }
+
+    $user = User::create($validated);
+    $user->assignRole($validated['role']);
+
+    return redirect()->route('admin.users')->with('success', 'Utilisateur créé avec succès.');
+}
+
+public function show(User $user)
+{
+    return view('admin.users.show', compact('user'));
+}
+
+public function edit(User $user)
+{
+    return view('admin.users.edit', compact('user'));
+}
+
+public function update(Request $request, User $user)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        'phone_number' => 'nullable|string|max:20',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+
+    if ($request->hasFile('photo')) {
+        if ($user->photo) {
+            Storage::delete('public/' . $user->photo);
+        }
+        $validated['photo'] = $request->file('photo')->store('users', 'public');
+    }
+
+    $user->update($validated);
+
+    return redirect()->route('admin.users')->with('success', 'Utilisateur mis à jour avec succès.');
+}
+
+public function updateRole(Request $request, User $user)
+{
+    $validated = $request->validate([
+        'role' => 'required|string|in:patient,doctor,secretary,admin',
+    ]);
+
+    $user->syncRoles([$validated['role']]);
+
+    return redirect()->route('admin.users')->with('success', 'Rôle de l\'utilisateur mis à jour avec succès.');
+}
+
+public function destroy(User $user)
+{
+    // Empêcher la suppression de soi-même
+    if ($user->id === Auth::id()) {
+        return redirect()->route('admin.users')->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
     }
 
     // Supprimer l'image associée si elle existe
     if ($user->photo) {
-        Storage::disk('public')->delete($user->photo);
+        Storage::delete('public/' . $user->photo);
     }
 
     // Supprimer l'utilisateur
     $user->delete();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Utilissateur supprimé avec succès'
-    ], 200);
+    return redirect()->route('admin.users')->with('success', 'Utilisateur supprimé avec succès.');
 }
 
 

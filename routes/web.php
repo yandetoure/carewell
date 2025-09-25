@@ -217,7 +217,14 @@ Route::middleware('auth')->group(function () {
     // Routes pour les administrateurs uniquement (sans middleware de rôle pour l'instant)
     Route::group(['prefix' => 'admin'], function () {
         Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
+        // Gestion des utilisateurs
         Route::get('/users', [AuthController::class, 'getUsers'])->name('admin.users');
+        Route::post('/users', [AuthController::class, 'store'])->name('admin.users.store');
+        Route::get('/users/{user}', [AuthController::class, 'show'])->name('admin.users.show');
+        Route::get('/users/{user}/edit', [AuthController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/users/{user}', [AuthController::class, 'update'])->name('admin.users.update');
+        Route::put('/users/{user}/role', [AuthController::class, 'updateRole'])->name('admin.users.role');
+        Route::delete('/users/{user}', [AuthController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/services', [ServiceController::class, 'adminIndex'])->name('admin.services');
         Route::get('/articles', [ArticleController::class, 'adminIndex'])->name('admin.articles');
         Route::get('/appointments', [AppointmentController::class, 'adminIndex'])->name('admin.appointments');
