@@ -260,6 +260,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/doctors/{doctor}', [AuthController::class, 'updateDoctor'])->name('admin.doctors.update');
         Route::delete('/doctors/{doctor}', [AuthController::class, 'destroyDoctor'])->name('admin.doctors.destroy');
         Route::get('/patients', [AuthController::class, 'getPatients'])->name('admin.patients');
+        Route::get('/patients/{patient}/medical-file', [AuthController::class, 'showMedicalFile'])->name('admin.patients.medical-file');
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
         Route::get('/schedule', [AppointmentController::class, 'adminSchedule'])->name('admin.schedule');
         Route::get('/settings', [App\Http\Controllers\DashboardController::class, 'adminSettings'])->name('admin.settings');

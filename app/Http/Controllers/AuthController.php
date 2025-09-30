@@ -628,6 +628,27 @@ public function getPatients()
     return view('admin.patients.index', compact('patients', 'totalPatients', 'activePatients', 'newThisMonth', 'withAppointments'));
 }
 
+public function showMedicalFile(User $patient)
+{
+    // Vérifier que l'utilisateur est bien un patient
+    if (!$patient->hasRole('Patient')) {
+        abort(404, 'Patient non trouvé');
+    }
+
+    // Charger le dossier médical du patient
+    $medicalFile = $patient->medicalFiles()->first();
+    
+    // Si aucun dossier médical n'existe, en créer un
+    if (!$medicalFile) {
+        $medicalFile = $patient->createMedicalFile();
+    }
+
+    // Charger les relations nécessaires
+    $medicalFile->load(['medicalHistories', 'medicalprescription', 'medicalexam', 'note', 'medicaldisease']);
+
+    return view('admin.patients.medical-file', compact('patient', 'medicalFile'));
+}
+
 // ==================== GESTION DES RÔLES ET PERMISSIONS ====================
 
 public function getRoles()
