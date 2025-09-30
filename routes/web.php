@@ -253,6 +253,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/roles/{role}/permissions', [AuthController::class, 'assignPermissionsToRole'])->name('admin.roles.permissions.assign');
         Route::delete('/roles/{role}/permissions/{permission}', [AuthController::class, 'revokePermissionFromRole'])->name('admin.roles.permissions.revoke');
         Route::get('/doctors', [AuthController::class, 'getDoctors'])->name('admin.doctors');
+        Route::get('/doctors/create', [AuthController::class, 'createDoctor'])->name('admin.doctors.create');
+        Route::post('/doctors', [AuthController::class, 'storeDoctor'])->name('admin.doctors.store');
+        Route::get('/doctors/{doctor}', [AuthController::class, 'showDoctor'])->name('admin.doctors.show');
+        Route::get('/doctors/{doctor}/edit', [AuthController::class, 'editDoctor'])->name('admin.doctors.edit');
+        Route::put('/doctors/{doctor}', [AuthController::class, 'updateDoctor'])->name('admin.doctors.update');
+        Route::delete('/doctors/{doctor}', [AuthController::class, 'destroyDoctor'])->name('admin.doctors.destroy');
         Route::get('/patients', [AuthController::class, 'getPatients'])->name('admin.patients');
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
         Route::get('/schedule', [AppointmentController::class, 'adminSchedule'])->name('admin.schedule');

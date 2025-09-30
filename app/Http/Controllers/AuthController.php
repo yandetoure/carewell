@@ -470,11 +470,127 @@ public function getDoctors()
         ->paginate(20);
     
     // Statistiques rapides
-  
+    $totalDoctors = User::role('Doctor', 'web')->count();
+    $activeDoctors = User::role('Doctor', 'web')->where('status', 'active')->count();
     $newThisMonth = User::role('Doctor', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
     $withServices = User::role('Doctor', 'web')->whereHas('services')->count();
     
     return view('admin.doctors.index', compact('doctors', 'totalDoctors', 'activeDoctors', 'newThisMonth', 'withServices'));
+}
+
+public function createDoctor()
+{
+    return view('admin.doctors.create');
+}
+
+public function storeDoctor(Request $request)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'phone' => 'required|string|max:20',
+        'specialty' => 'nullable|string|max:255',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'status' => 'required|in:active,inactive,pending',
+        'description' => 'nullable|string|max:1000',
+    ]);
+
+    // Gestion de la photo
+    if ($request->hasFile('photo')) {
+        $validated['photo'] = $request->file('photo')->store('doctors', 'public');
+    }
+
+    // Générer un mot de passe automatique
+    $autoPassword = Str::random(12);
+
+    // Créer le nom complet
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+    // Créer l'utilisateur
+    $user = User::create([
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone' => $validated['phone'],
+        'phone_number' => $validated['phone'], // Dupliquer pour compatibilité
+        'password' => Hash::make($autoPassword),
+        'photo' => $validated['photo'] ?? null,
+        'specialty' => $validated['specialty'] ?? null,
+        'status' => $validated['status'],
+        'description' => $validated['description'] ?? null,
+        'adress' => '', // Champ requis
+        'day_of_birth' => '1990-01-01', // Valeur par défaut
+        'email_verified_at' => now(),
+    ]);
+
+    // Assigner le rôle Doctor
+    $user->assignRole('Doctor');
+
+    return redirect()->route('admin.doctors')->with('success', 'Médecin créé avec succès.');
+}
+
+public function showDoctor(User $doctor)
+{
+    $doctor->load(['services', 'appointments']);
+    return view('admin.doctors.show', compact('doctor'));
+}
+
+public function editDoctor(User $doctor)
+{
+    return view('admin.doctors.edit', compact('doctor'));
+}
+
+public function updateDoctor(Request $request, User $doctor)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $doctor->id,
+        'phone' => 'required|string|max:20',
+        'specialty' => 'nullable|string|max:255',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'status' => 'required|in:active,inactive,pending',
+        'description' => 'nullable|string|max:1000',
+    ]);
+
+    // Gestion de la photo
+    if ($request->hasFile('photo')) {
+        if ($doctor->photo) {
+            Storage::delete('public/' . $doctor->photo);
+        }
+        $validated['photo'] = $request->file('photo')->store('doctors', 'public');
+    }
+
+    // Créer le nom complet
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+    $doctor->update([
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone' => $validated['phone'],
+        'phone_number' => $validated['phone'],
+        'photo' => $validated['photo'] ?? $doctor->photo,
+        'specialty' => $validated['specialty'] ?? null,
+        'status' => $validated['status'],
+        'description' => $validated['description'] ?? null,
+    ]);
+
+    return redirect()->route('admin.doctors')->with('success', 'Médecin mis à jour avec succès.');
+}
+
+public function destroyDoctor(User $doctor)
+{
+    if ($doctor->photo) {
+        Storage::delete('public/' . $doctor->photo);
+    }
+    
+    $doctor->delete();
+    
+    return redirect()->route('admin.doctors')->with('success', 'Médecin supprimé avec succès.');
 }
 
 // ==================== GESTION DES RÔLES ET PERMISSIONS ====================

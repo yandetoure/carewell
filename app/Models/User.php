@@ -23,19 +23,26 @@ class User extends Authenticatable  implements JWTSubject
     protected $fillable = [
         'first_name',
         'last_name',
+        'name',
         'email',
         'identification_number',
         'password',
         'adress',
         'day_of_birth',
         'phone_number',
+        'phone',
         'photo',
         'service_id',
         'biographie',
+        'description',
         'height',
         'weight',
         'blood_type',
         'grade_id',
+        'specialty',
+        'experience_years',
+        'consultation_fee',
+        'status',
     ];
 
     /**
@@ -115,12 +122,17 @@ class User extends Authenticatable  implements JWTSubject
         return $this->belongsTo(Service::class);
     }
 
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'user_id');
+    }
+
     public function appointments(){
         return $this->hasMany(Appointment::class);
     }
 
     public function tickets(){
-        return $this->hasMany(Tcket::class);
+        return $this->hasMany(Ticket::class);
     }
 
     //relation avec grade
