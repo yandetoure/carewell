@@ -167,11 +167,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ $doctor->created_at->diffInDays(now()) }}</h4>
-                            <p class="mb-0">Jours actifs</p>
+                            <h4 class="mb-0">{{ $doctor->created_at->format('M Y') }}</h4>
+                            <p class="mb-0">Membre depuis</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-clock fa-2x"></i>
+                            <i class="fas fa-calendar-plus fa-2x"></i>
                         </div>
                     </div>
                 </div>

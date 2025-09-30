@@ -262,10 +262,10 @@
                                 <label for="role" class="form-label">Rôle *</label>
                                 <select class="form-select" id="role" name="role" required>
                                     <option value="">Sélectionner un rôle</option>
-                                    <option value="patient">Patient</option>
-                                    <option value="doctor">Médecin</option>
-                                    <option value="secretary">Secrétaire</option>
-                                    <option value="admin">Administrateur</option>
+                                    <option value="Patient">Patient</option>
+                                    <option value="Doctor">Médecin</option>
+                                    <option value="Secretary">Secrétaire</option>
+                                    <option value="Admin">Administrateur</option>
                                 </select>
                             </div>
                         </div>

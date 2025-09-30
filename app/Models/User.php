@@ -66,6 +66,15 @@ class User extends Authenticatable  implements JWTSubject
         static::creating(function ($user) {
             $user->identification_number = self::generateUniqueIdentificationNumber();
         });
+
+        // Création automatique du dossier médical pour les patients
+        static::created(function ($user) {
+            // Vérifier si l'utilisateur a le rôle Patient
+            // Note: Le rôle peut être assigné après la création
+            if ($user->hasRole('Patient')) {
+                $user->createMedicalFile();
+            }
+        });
     }
 
     /**
@@ -83,6 +92,18 @@ class User extends Authenticatable  implements JWTSubject
         }
 
         return $identification_number;
+    }
+
+    /**
+     * Create a medical file for the patient.
+     *
+     * @return \App\Models\MedicalFile
+     */
+    public function createMedicalFile()
+    {
+        return MedicalFile::create([
+            'user_id' => $this->id,
+        ]);
     }
 
     /**
@@ -129,6 +150,10 @@ class User extends Authenticatable  implements JWTSubject
 
     public function appointments(){
         return $this->hasMany(Appointment::class);
+    }
+
+    public function medicalFiles(){
+        return $this->hasMany(MedicalFile::class);
     }
 
     public function tickets(){

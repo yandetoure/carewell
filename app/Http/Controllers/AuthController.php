@@ -119,9 +119,6 @@ class AuthController extends Controller
             // Création automatique d'un dossier médical pour l'utilisateur
             $this->createMedicalRecord($user);
 
-            // Création automatique d'un dossier médical pour l'utilisateur
-            $this->createMedicalRecord($user);
-
             // Rediriger vers le dashboard approprié selon le rôle
             return $this->redirectToRoleDashboard($user)->with('success', 'Compte créé avec succès ! Bienvenue sur CareWell.');
 
@@ -382,19 +379,38 @@ public function store(Request $request)
         'email' => 'required|string|email|max:255|unique:users',
         'phone_number' => 'nullable|string|max:20',
         'password' => 'required|string|min:8',
-        'role' => 'required|string|in:patient,doctor,secretary,admin',
+        'role' => 'required|string|in:Patient,Doctor,Secretary,Admin',
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
-    $validated['password'] = Hash::make($validated['password']);
-    $validated['email_verified_at'] = now(); // Auto-verify admin-created users
+    // Créer le nom complet
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+    // Ajouter les champs requis
+    $userData = [
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone_number' => $validated['phone_number'] ?? '',
+        'phone' => $validated['phone_number'] ?? '', // Dupliquer pour compatibilité
+        'password' => Hash::make($validated['password']),
+        'adress' => '', // Champ requis
+        'day_of_birth' => '1990-01-01', // Valeur par défaut
+        'email_verified_at' => now(),
+    ];
 
     if ($request->hasFile('photo')) {
-        $validated['photo'] = $request->file('photo')->store('users', 'public');
+        $userData['photo'] = $request->file('photo')->store('users', 'public');
     }
 
-    $user = User::create($validated);
+    $user = User::create($userData);
     $user->assignRole($validated['role']);
+
+    // Créer automatiquement le dossier médical si c'est un patient
+    if ($validated['role'] === 'Patient') {
+        $user->createMedicalFile();
+    }
 
     return redirect()->route('admin.users')->with('success', 'Utilisateur créé avec succès.');
 }
@@ -591,6 +607,25 @@ public function destroyDoctor(User $doctor)
     $doctor->delete();
     
     return redirect()->route('admin.doctors')->with('success', 'Médecin supprimé avec succès.');
+}
+
+// ==================== GESTION DES PATIENTS ====================
+
+public function getPatients()
+{
+    $patients = User::role('Patient', 'web')
+        ->with(['appointments', 'medicalFiles'])
+        ->withCount(['appointments', 'medicalFiles'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
+    
+    // Statistiques rapides
+    $totalPatients = User::role('Patient', 'web')->count();
+    $activePatients = User::role('Patient', 'web')->where('status', 'active')->count();
+    $newThisMonth = User::role('Patient', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
+    $withAppointments = User::role('Patient', 'web')->whereHas('appointments')->count();
+    
+    return view('admin.patients.index', compact('patients', 'totalPatients', 'activePatients', 'newThisMonth', 'withAppointments'));
 }
 
 // ==================== GESTION DES RÔLES ET PERMISSIONS ====================
@@ -836,6 +871,11 @@ public function revokePermissionFromRole(Role $role, Permission $permission)
         $role = Role::firstWhere('name', $validated['role']);
         if ($role) {
             $user->assignRole($role);
+        }
+
+        // Créer automatiquement le dossier médical si c'est un patient
+        if ($validated['role'] === 'Patient') {
+            $this->createMedicalRecord($user);
         }
 
         // Envoyer l'email de bienvenue
