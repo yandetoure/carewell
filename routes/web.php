@@ -228,6 +228,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/services', [ServiceController::class, 'adminIndex'])->name('admin.services');
         Route::get('/services/{service}', [ServiceController::class, 'adminShow'])->name('admin.services.show');
         Route::get('/articles', [ArticleController::class, 'adminIndex'])->name('admin.articles');
+        Route::get('/articles/{article}', [ArticleController::class, 'adminShow'])->name('admin.articles.show');
         Route::get('/appointments', [AppointmentController::class, 'adminIndex'])->name('admin.appointments');
         Route::get('/statistics', [App\Http\Controllers\DashboardController::class, 'adminStatistics'])->name('admin.statistics');
         // Gestion des rôles et permissions (guard web uniquement)

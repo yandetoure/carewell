@@ -85,9 +85,16 @@ class ArticleController extends Controller
             'symptoms' => 'nullable|string|max:1000',
             'advices' => 'nullable|string|max:1000',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_photo' => 'nullable|boolean',
         ]);
 
-        if ($request->hasFile('photo')) {
+        // Gestion de la suppression de photo
+        if ($request->has('remove_photo') && $request->remove_photo == '1') {
+            if ($article->photo) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $article->photo);
+            }
+            $validated['photo'] = null;
+        } elseif ($request->hasFile('photo')) {
             // Supprimer l'ancienne photo
             if ($article->photo) {
                 \Illuminate\Support\Facades\Storage::delete('public/' . $article->photo);
@@ -115,6 +122,18 @@ class ArticleController extends Controller
     {
         $articles = Article::latest()->paginate(20);
         return view('admin.articles.index', compact('articles'));
+    }
+
+    public function adminShow(Article $article)
+    {
+        try {
+            return view('admin.articles.show', compact('article'));
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Article non trouvé',
+                'message' => $e->getMessage()
+            ], 404);
+        }
     }
 
     /**
