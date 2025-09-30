@@ -161,6 +161,13 @@
                         <!-- Pagination -->
                         @if($prescriptions->hasPages())
                             <div class="d-flex justify-content-center mt-4">
+                                <!-- Pagination Info -->
+                                <div class="pagination-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Affichage de {{ $prescriptions->firstItem() }} à {{ $prescriptions->lastItem() }} sur {{ $prescriptions->total() }} résultats
+                                </div>
+                                
+                                <!-- Pagination Links -->
                                 {{ $prescriptions->links() }}
                             </div>
                         @endif

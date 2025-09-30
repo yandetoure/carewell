@@ -226,6 +226,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/users/{user}/role', [AuthController::class, 'updateRole'])->name('admin.users.role');
         Route::delete('/users/{user}', [AuthController::class, 'destroy'])->name('admin.users.destroy');
         Route::get('/services', [ServiceController::class, 'adminIndex'])->name('admin.services');
+        Route::get('/services/{service}', [ServiceController::class, 'adminShow'])->name('admin.services.show');
         Route::get('/articles', [ArticleController::class, 'adminIndex'])->name('admin.articles');
         Route::get('/appointments', [AppointmentController::class, 'adminIndex'])->name('admin.appointments');
         Route::get('/statistics', [App\Http\Controllers\DashboardController::class, 'adminStatistics'])->name('admin.statistics');

@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.admin')
 
 @section('title', 'Gestion des Permissions - Admin')
 @section('page-title', 'Permissions')

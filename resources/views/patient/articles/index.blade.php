@@ -128,6 +128,13 @@
     @if(isset($articles) && $articles->hasPages())
     <div class="row">
         <div class="col-12">
+            <!-- Pagination Info -->
+            <div class="pagination-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Affichage de {{ $articles->firstItem() }} à {{ $articles->lastItem() }} sur {{ $articles->total() }} résultats
+            </div>
+            
+            <!-- Pagination Links -->
             <div class="d-flex justify-content-center">
                 {{ $articles->links() }}
             </div>

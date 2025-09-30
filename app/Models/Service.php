@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -14,7 +14,15 @@ class Service extends Model
         'photo',
         'description',
         'price',
+        'duration',
+        'category',
+        'requirements',
     ];
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
 
     public function exams()
     {

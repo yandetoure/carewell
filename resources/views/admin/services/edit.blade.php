@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.admin')
 
 @section('title', 'Modifier le Service - Admin')
 @section('page-title', 'Modifier le service')
@@ -55,7 +55,7 @@
                                     <p class="text-muted mb-1">{{ Str::limit($service->description, 100) }}</p>
                                     <div class="d-flex gap-3">
                                         <small class="text-success">
-                                            <i class="fas fa-euro-sign me-1"></i>{{ number_format($service->price, 2) }}€
+                                            <i class="fas fa-money-bill me-1"></i>{{ number_format($service->price, 0, ',', ' ') }} FCFA
                                         </small>
                                         <small class="text-muted">
                                             <i class="fas fa-calendar me-1"></i>Créé le {{ $service->created_at->format('d/m/Y') }}
@@ -92,8 +92,8 @@
                             <div class="col-md-4">
                                 <div class="mb-4">
                                     <label for="price" class="form-label">
-                                        <i class="fas fa-euro-sign me-1"></i>
-                                        Prix (€) *
+                                        <i class="fas fa-money-bill me-1"></i>
+                                        Prix (FCFA) *
                                     </label>
                                     <input type="number" 
                                            class="form-control @error('price') is-invalid @enderror" 
@@ -246,7 +246,7 @@
                                         <small>Jours actif</small>
                                     </div>
                                     <div class="col-md-3">
-                                        <h4 class="mb-1">{{ number_format(($service->appointments_count ?? 0) * $service->price, 2) }}€</h4>
+                                        <h4 class="mb-1">{{ number_format(($service->appointments_count ?? 0) * $service->price, 0, ',', ' ') }} FCFA</h4>
                                         <small>Chiffre d'affaires</small>
                                     </div>
                                     <div class="col-md-3">

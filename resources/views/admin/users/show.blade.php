@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.admin')
 
 @section('title', 'Détails Utilisateur - Admin')
 @section('page-title', 'Détails de l\'utilisateur')

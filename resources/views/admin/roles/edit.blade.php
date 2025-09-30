@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.admin')
 
 @section('title', 'Modifier le Rôle - Admin')
 @section('page-title', 'Modifier le rôle')

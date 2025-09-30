@@ -294,6 +294,96 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
         }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .pagination .page-item {
+            margin: 0;
+        }
+
+        .pagination .page-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            padding: 0.5rem;
+            color: var(--text-color);
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .pagination .page-link:hover {
+            color: var(--primary-color);
+            background: var(--light-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+        }
+
+        .pagination .page-item.active .page-link {
+            color: white;
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #9ca3af;
+            background: #f9fafb;
+            border-color: #e5e7eb;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .pagination .page-item.disabled .page-link:hover {
+            color: #9ca3af;
+            background: #f9fafb;
+            border-color: #e5e7eb;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Pagination info text */
+        .pagination-info {
+            text-align: center;
+            color: var(--text-color);
+            font-size: 0.875rem;
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: var(--light-color);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Responsive pagination */
+        @media (max-width: 576px) {
+            .pagination {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            
+            .pagination .page-link {
+                min-width: 35px;
+                height: 35px;
+                font-size: 0.875rem;
+            }
+        }
     </style>
 
     @yield('styles')

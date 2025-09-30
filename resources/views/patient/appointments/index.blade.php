@@ -181,6 +181,13 @@
                         <!-- Pagination -->
                         @if($appointments->hasPages())
                             <div class="d-flex justify-content-center mt-4">
+                                <!-- Pagination Info -->
+                                <div class="pagination-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Affichage de {{ $appointments->firstItem() }} à {{ $appointments->lastItem() }} sur {{ $appointments->total() }} résultats
+                                </div>
+                                
+                                <!-- Pagination Links -->
                                 {{ $appointments->links() }}
                             </div>
                         @endif

@@ -177,6 +177,13 @@
                         <!-- Pagination -->
                         @if($exams->hasPages())
                             <div class="d-flex justify-content-center mt-4">
+                                <!-- Pagination Info -->
+                                <div class="pagination-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Affichage de {{ $exams->firstItem() }} à {{ $exams->lastItem() }} sur {{ $exams->total() }} résultats
+                                </div>
+                                
+                                <!-- Pagination Links -->
                                 {{ $exams->links() }}
                             </div>
                         @endif

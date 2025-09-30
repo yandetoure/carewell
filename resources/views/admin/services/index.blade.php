@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.admin')
 
 @section('title', 'Gestion des Services - Admin')
 @section('page-title', 'Gestion des Services')
@@ -44,10 +44,10 @@
                         <div class="col-md-3">
                             <select class="form-select" id="filterPrice">
                                 <option value="">Tous les prix</option>
-                                <option value="0-50">0 - 50€</option>
-                                <option value="50-100">50 - 100€</option>
-                                <option value="100-200">100 - 200€</option>
-                                <option value="200+">200€+</option>
+                                <option value="0-50000">0 - 50 000 FCFA</option>
+                                <option value="50000-100000">50 000 - 100 000 FCFA</option>
+                                <option value="100000-200000">100 000 - 200 000 FCFA</option>
+                                <option value="200000+">200 000+ FCFA</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -78,7 +78,7 @@
                         <div class="col-md-3">
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center">
-                                    <h4 class="mb-1">{{ number_format($services->avg('price'), 2) }}€</h4>
+                                    <h4 class="mb-1">{{ number_format($services->avg('price'), 0, ',', ' ') }} FCFA</h4>
                                     <small>Prix moyen</small>
                                 </div>
                             </div>
@@ -86,7 +86,7 @@
                         <div class="col-md-3">
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center">
-                                    <h4 class="mb-1">{{ $services->min('price') }}€</h4>
+                                    <h4 class="mb-1">{{ number_format($services->min('price'), 0, ',', ' ') }} FCFA</h4>
                                     <small>Prix minimum</small>
                                 </div>
                             </div>
@@ -94,7 +94,7 @@
                         <div class="col-md-3">
                             <div class="card bg-warning text-white">
                                 <div class="card-body text-center">
-                                    <h4 class="mb-1">{{ $services->max('price') }}€</h4>
+                                    <h4 class="mb-1">{{ number_format($services->max('price'), 0, ',', ' ') }} FCFA</h4>
                                     <small>Prix maximum</small>
                                 </div>
                             </div>
@@ -131,7 +131,7 @@
                                     </td>
                                     <td>
                                         <div class="fw-bold">{{ $service->name }}</div>
-                                        <small class="text-muted">ID: #{{ $service->id }}</small>
+                                        <small class="text-muted">{{ $service->category ?? 'Service médical' }}</small>
                                     </td>
                                     <td>
                                         <div class="text-truncate" style="max-width: 200px;" title="{{ $service->description }}">
@@ -139,7 +139,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-success">{{ number_format($service->price, 2) }}€</div>
+                                        <div class="fw-bold text-success">{{ number_format($service->price, 0, ',', ' ') }} FCFA</div>
                                         <small class="text-muted">Prix fixe</small>
                                     </td>
                                     <td>
@@ -276,13 +276,13 @@ function filterServices() {
 }
 
 function checkPriceRange(priceText, range) {
-    const price = parseFloat(priceText.replace(/[^\d.,]/g, '').replace(',', '.'));
+    const price = parseFloat(priceText.replace(/[^\d.,]/g, '').replace(/\s/g, '').replace(',', '.'));
     
     switch(range) {
-        case '0-50': return price >= 0 && price <= 50;
-        case '50-100': return price > 50 && price <= 100;
-        case '100-200': return price > 100 && price <= 200;
-        case '200+': return price > 200;
+        case '0-50000': return price >= 0 && price <= 50000;
+        case '50000-100000': return price > 50000 && price <= 100000;
+        case '100000-200000': return price > 100000 && price <= 200000;
+        case '200000+': return price > 200000;
         default: return true;
     }
 }
@@ -310,19 +310,38 @@ function viewService(serviceId) {
     modal.show();
     
     // Load service details via AJAX
-    fetch(`/admin/services/${serviceId}`)
-        .then(response => response.text())
-        .then(html => {
-            detailsContainer.innerHTML = html;
-        })
-        .catch(error => {
-            detailsContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Erreur lors du chargement des détails du service.
+    fetch(`/admin/services/${serviceId}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        detailsContainer.innerHTML = html;
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        detailsContainer.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Erreur lors du chargement des détails du service</strong><br>
+                <small>${error.message}</small>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">
+                        <i class="fas fa-refresh me-1"></i>Recharger la page
+                    </button>
                 </div>
-            `;
-        });
+            </div>
+        `;
+    });
 }
 
 function duplicateService(serviceId) {

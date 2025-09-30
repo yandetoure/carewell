@@ -85,9 +85,19 @@ class ServiceController extends Controller
             'description' => 'required|string|max:1000',
             'price' => 'required|numeric|min:0',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_photo' => 'nullable|boolean',
+            'duration' => 'nullable|integer|min:1|max:480',
+            'category' => 'nullable|string|max:255',
+            'requirements' => 'nullable|string|max:1000',
         ]);
 
-        if ($request->hasFile('photo')) {
+        // Gestion de la suppression de photo
+        if ($request->has('remove_photo') && $request->remove_photo == '1') {
+            if ($service->photo) {
+                Storage::delete('public/' . $service->photo);
+            }
+            $validated['photo'] = null;
+        } elseif ($request->hasFile('photo')) {
             // Supprimer l'ancienne photo
             if ($service->photo) {
                 Storage::delete('public/' . $service->photo);
@@ -115,6 +125,21 @@ class ServiceController extends Controller
     {
         $services = Service::paginate(20);
         return view('admin.services.index', compact('services'));
+    }
+
+    public function adminShow(Service $service)
+    {
+        try {
+            // Charger les statistiques du service
+            $service->loadCount('appointments');
+            
+            return view('admin.services.show', compact('service'));
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Service non trouvé',
+                'message' => $e->getMessage()
+            ], 404);
+        }
     }
 
     /**
