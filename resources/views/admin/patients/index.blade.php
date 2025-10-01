@@ -108,7 +108,7 @@
                                     <th>Nom & Email</th>
                                     <th>Téléphone</th>
                                     <th>Rendez-vous</th>
-                                    <th>Date d'inscription</th>
+                                    <th>Dossier Médical</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -141,8 +141,19 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <div>{{ $patient->created_at->format('d/m/Y') }}</div>
-                                        <small class="text-muted">{{ $patient->created_at->diffForHumans() }}</small>
+                                        <button class="btn btn-success btn-sm"
+                                                onclick="viewMedicalFile({{ $patient->id }})"
+                                                title="Voir le dossier médical"
+                                                style="position: relative;">
+                                            <i class="fas fa-folder-medical me-1"></i>
+                                            Dossier
+                                            @if(($patient->medical_files_count ?? 0) > 0)
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                                                      style="font-size: 0.6em; padding: 2px 4px;">
+                                                    {{ $patient->medical_files_count }}
+                                                </span>
+                                            @endif
+                                        </button>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
@@ -151,15 +162,11 @@
                                                     title="Voir les détails">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-outline-warning"
-                                                    title="Modifier">
+                                            <a href="{{ route('admin.patients.edit', $patient) }}"
+                                               class="btn btn-outline-warning"
+                                               title="Modifier">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-outline-info"
-                                                    onclick="viewMedicalFile({{ $patient->id }})"
-                                                    title="Voir le dossier médical">
-                                                <i class="fas fa-folder-medical"></i>
-                                            </button>
+                                            </a>
                                             <button class="btn btn-outline-danger"
                                                     onclick="deletePatient({{ $patient->id }})"
                                                     title="Supprimer">
@@ -246,4 +253,71 @@ function deletePatient(patientId) {
     }
 }
 </script>
+@endsection
+
+@section('styles')
+<style>
+/* Style pour le bouton du dossier médical */
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success .fas {
+    font-size: 1em;
+}
+
+/* Badge de compteur */
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Amélioration des boutons d'action */
+.btn-group .btn {
+    margin: 0 1px;
+    border-radius: 0.375rem;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
+/* Effet hover pour tous les boutons d'action */
+.btn-outline-primary:hover,
+.btn-outline-warning:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>
 @endsection

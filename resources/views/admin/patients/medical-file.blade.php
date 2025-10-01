@@ -95,7 +95,7 @@
 
     <!-- Statistiques rapides -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -110,12 +110,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ $medicalFile->medicalprescription->count() ?? 0 }}</h4>
+                            <h4 class="mb-0">{{ $ordonnances->count() }}</h4>
                             <p class="mb-0">Ordonnances</p>
                         </div>
                         <div class="align-self-center">
@@ -125,7 +125,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -140,16 +140,46 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h4 class="mb-0">{{ $medicalFile->note->count() ?? 0 }}</h4>
-                            <p class="mb-0">Résultats</p>
+                            <p class="mb-0">Notes</p>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-clipboard-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ $diseases->count() }}</h4>
+                            <p class="mb-0">Maladies</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-virus fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ $appointments->count() }}</h4>
+                            <p class="mb-0">Rendez-vous</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -159,6 +189,157 @@
 
     <!-- Sections du dossier médical -->
     <div class="row">
+        <!-- Maladies diagnostiquées -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-virus me-2"></i>
+                        Maladies Diagnostiquées
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if($diseases && $diseases->count() > 0)
+                        @foreach($diseases as $disease)
+                            <div class="border-bottom pb-2 mb-2">
+                                <h6 class="mb-1 text-danger">{{ $disease->name ?? 'Maladie' }}</h6>
+                                <p class="mb-1 text-muted small">{{ $disease->description ?? 'Aucune description' }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Diagnostiquée le {{ $disease->created_at->format('d/m/Y') }}
+                                </small>
+                            </div>
+                        @endforeach
+                    @else
+                        <p class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucune maladie diagnostiquée
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Ordonnances récentes -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-prescription-bottle-alt me-2"></i>
+                        Ordonnances Récentes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if($ordonnances && $ordonnances->count() > 0)
+                        @foreach($ordonnances->take(5) as $ordonnance)
+                            <div class="border-bottom pb-2 mb-2">
+                                <h6 class="mb-1">
+                                    <span class="badge bg-success me-2">{{ $ordonnance->numero_ordonnance }}</span>
+                                    Dr. {{ $ordonnance->medecin_nom_complet }}
+                                </h6>
+                                <p class="mb-1 text-muted small">
+                                    <i class="fas fa-pills me-1"></i>
+                                    {{ $ordonnance->medicaments->count() }} médicament(s)
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ $ordonnance->date_prescription->format('d/m/Y') }}
+                                    <span class="badge bg-{{ $ordonnance->statut === 'active' ? 'success' : ($ordonnance->statut === 'expiree' ? 'warning' : 'danger') }} ms-2">
+                                        {{ ucfirst($ordonnance->statut) }}
+                                    </span>
+                                </small>
+                            </div>
+                        @endforeach
+                        @if($ordonnances->count() > 5)
+                            <div class="text-center mt-3">
+                                <small class="text-muted">Et {{ $ordonnances->count() - 5 }} autres ordonnances...</small>
+                            </div>
+                        @endif
+                    @else
+                        <p class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucune ordonnance enregistrée
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendez-vous récents -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Rendez-vous Récents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if($appointments && $appointments->count() > 0)
+                        @foreach($appointments->take(5) as $appointment)
+                            <div class="border-bottom pb-2 mb-2">
+                                <h6 class="mb-1">
+                                    {{ $appointment->service->name ?? 'Service' }}
+                                    @if($appointment->doctor)
+                                        <small class="text-muted">- Dr. {{ $appointment->doctor->name }}</small>
+                                    @endif
+                                </h6>
+                                <p class="mb-1 text-muted small">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d/m/Y à H:i') }}
+                                </p>
+                                <small class="text-muted">
+                                    <span class="badge bg-{{ $appointment->status === 'confirmed' ? 'success' : ($appointment->status === 'pending' ? 'warning' : 'danger') }}">
+                                        {{ ucfirst($appointment->status) }}
+                                    </span>
+                                </small>
+                            </div>
+                        @endforeach
+                        @if($appointments->count() > 5)
+                            <div class="text-center mt-3">
+                                <small class="text-muted">Et {{ $appointments->count() - 5 }} autres rendez-vous...</small>
+                            </div>
+                        @endif
+                    @else
+                        <p class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucun rendez-vous enregistré
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Examens médicaux -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-stethoscope me-2"></i>
+                        Examens Médicaux
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if($medicalFile->medicalexam && $medicalFile->medicalexam->count() > 0)
+                        @foreach($medicalFile->medicalexam as $exam)
+                            <div class="border-bottom pb-2 mb-2">
+                                <h6 class="mb-1">{{ $exam->exam_name ?? 'Examen' }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ $exam->created_at->format('d/m/Y') }}
+                                </small>
+                            </div>
+                        @endforeach
+                    @else
+                        <p class="text-muted text-center py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucun examen enregistré
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <!-- Antécédents médicaux -->
         <div class="col-md-6 mb-4">
             <div class="card">
@@ -173,7 +354,10 @@
                         @foreach($medicalFile->medicalHistories as $history)
                             <div class="border-bottom pb-2 mb-2">
                                 <h6 class="mb-1">{{ $history->disease_name ?? 'Antécédent' }}</h6>
-                                <small class="text-muted">{{ $history->created_at->format('d/m/Y') }}</small>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ $history->created_at->format('d/m/Y') }}
+                                </small>
                             </div>
                         @endforeach
                     @else
@@ -186,67 +370,13 @@
             </div>
         </div>
 
-        <!-- Ordonnances -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-prescription-bottle-alt me-2"></i>
-                        Ordonnances
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if($medicalFile->medicalprescription && $medicalFile->medicalprescription->count() > 0)
-                        @foreach($medicalFile->medicalprescription as $prescription)
-                            <div class="border-bottom pb-2 mb-2">
-                                <h6 class="mb-1">{{ $prescription->medication_name ?? 'Médicament' }}</h6>
-                                <small class="text-muted">{{ $prescription->created_at->format('d/m/Y') }}</small>
-                            </div>
-                        @endforeach
-                    @else
-                        <p class="text-muted text-center py-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Aucune ordonnance enregistrée
-                        </p>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <!-- Examens -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-stethoscope me-2"></i>
-                        Examens
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if($medicalFile->medicalexam && $medicalFile->medicalexam->count() > 0)
-                        @foreach($medicalFile->medicalexam as $exam)
-                            <div class="border-bottom pb-2 mb-2">
-                                <h6 class="mb-1">{{ $exam->exam_name ?? 'Examen' }}</h6>
-                                <small class="text-muted">{{ $exam->created_at->format('d/m/Y') }}</small>
-                            </div>
-                        @endforeach
-                    @else
-                        <p class="text-muted text-center py-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Aucun examen enregistré
-                        </p>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <!-- Résultats -->
+        <!-- Notes médicales -->
         <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-clipboard-check me-2"></i>
-                        Résultats
+                        Notes Médicales
                     </h5>
                 </div>
                 <div class="card-body">
@@ -254,13 +384,17 @@
                         @foreach($medicalFile->note as $note)
                             <div class="border-bottom pb-2 mb-2">
                                 <h6 class="mb-1">{{ $note->title ?? 'Note' }}</h6>
-                                <small class="text-muted">{{ $note->created_at->format('d/m/Y') }}</small>
+                                <p class="mb-1 text-muted small">{{ Str::limit($note->content ?? '', 100) }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ $note->created_at->format('d/m/Y') }}
+                                </small>
                             </div>
                         @endforeach
                     @else
                         <p class="text-muted text-center py-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            Aucun résultat enregistré
+                            Aucune note médicale enregistrée
                         </p>
                     @endif
                 </div>

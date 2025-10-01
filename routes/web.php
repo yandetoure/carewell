@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BedController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ResultController;
@@ -260,7 +261,63 @@ Route::middleware('auth')->group(function () {
         Route::put('/doctors/{doctor}', [AuthController::class, 'updateDoctor'])->name('admin.doctors.update');
         Route::delete('/doctors/{doctor}', [AuthController::class, 'destroyDoctor'])->name('admin.doctors.destroy');
         Route::get('/patients', [AuthController::class, 'getPatients'])->name('admin.patients');
+        Route::get('/patients/{patient}', [AuthController::class, 'showPatient'])->name('admin.patients.show');
+        Route::get('/patients/{patient}/edit', [AuthController::class, 'editPatient'])->name('admin.patients.edit');
+        Route::put('/patients/{patient}', [AuthController::class, 'updatePatient'])->name('admin.patients.update');
+        Route::delete('/patients/{patient}', [AuthController::class, 'destroyPatient'])->name('admin.patients.destroy');
         Route::get('/patients/{patient}/medical-file', [AuthController::class, 'showMedicalFile'])->name('admin.patients.medical-file');
+        
+        // Nouvelles routes pour les fonctionnalités manquantes
+        // Secrétaires
+        Route::get('/secretaries', [AuthController::class, 'getSecretaries'])->name('admin.secretaries');
+        Route::get('/secretaries/{secretary}', [AuthController::class, 'showSecretary'])->name('admin.secretaries.show');
+        Route::get('/secretaries/{secretary}/edit', [AuthController::class, 'editSecretary'])->name('admin.secretaries.edit');
+        Route::put('/secretaries/{secretary}', [AuthController::class, 'updateSecretary'])->name('admin.secretaries.update');
+        Route::post('/secretaries', [AuthController::class, 'storeSecretary'])->name('admin.secretaries.store');
+        Route::delete('/secretaries/{secretary}', [AuthController::class, 'destroySecretary'])->name('admin.secretaries.destroy');
+        
+        // Comptabilité
+        Route::get('/accounting', [App\Http\Controllers\DashboardController::class, 'accounting'])->name('admin.accounting');
+        
+        // Lits
+        Route::get('/beds', [App\Http\Controllers\BedController::class, 'index'])->name('admin.beds');
+        Route::get('/beds/index', [App\Http\Controllers\BedController::class, 'index'])->name('admin.beds.index');
+        Route::get('/beds/{bed}', [App\Http\Controllers\BedController::class, 'show'])->name('admin.beds.show');
+        Route::get('/beds/{bed}/edit', [App\Http\Controllers\BedController::class, 'edit'])->name('admin.beds.edit');
+        Route::put('/beds/{bed}', [App\Http\Controllers\BedController::class, 'update'])->name('admin.beds.update');
+        Route::post('/beds', [App\Http\Controllers\BedController::class, 'store'])->name('admin.beds.store');
+        Route::delete('/beds/{bed}', [App\Http\Controllers\BedController::class, 'destroy'])->name('admin.beds.destroy');
+        
+        // Actions supplémentaires pour les lits
+        Route::post('/beds/{bed}/admit', [App\Http\Controllers\BedController::class, 'admitPatient'])->name('admin.beds.admit');
+        Route::post('/beds/{bed}/discharge', [App\Http\Controllers\BedController::class, 'dischargePatient'])->name('admin.beds.discharge');
+        Route::post('/beds/{bed}/maintenance', [App\Http\Controllers\BedController::class, 'setMaintenance'])->name('admin.beds.maintenance');
+        Route::post('/beds/{bed}/available', [App\Http\Controllers\BedController::class, 'makeAvailable'])->name('admin.beds.available');
+        
+        // Pharmacie (Médicaments)
+        Route::get('/pharmacy', [App\Http\Controllers\DashboardController::class, 'pharmacyStock'])->name('admin.pharmacy');
+        Route::get('/pharmacy/{medicament}', [App\Http\Controllers\DashboardController::class, 'showMedicament'])->name('admin.pharmacy.show');
+        Route::get('/pharmacy/{medicament}/edit', [App\Http\Controllers\DashboardController::class, 'editMedicament'])->name('admin.pharmacy.edit');
+        Route::put('/pharmacy/{medicament}', [App\Http\Controllers\DashboardController::class, 'updateMedicament'])->name('admin.pharmacy.update');
+        Route::post('/pharmacy', [App\Http\Controllers\DashboardController::class, 'storeMedicament'])->name('admin.pharmacy.store');
+        Route::delete('/pharmacy/{medicament}', [App\Http\Controllers\DashboardController::class, 'destroyMedicament'])->name('admin.pharmacy.destroy');
+        
+        // Prescriptions (Soins médicaux)
+        Route::get('/prescriptions', [App\Http\Controllers\DashboardController::class, 'prescriptionsManagement'])->name('admin.prescriptions');
+        Route::get('/prescriptions/{prescription}', [App\Http\Controllers\DashboardController::class, 'showPrescription'])->name('admin.prescriptions.show');
+        Route::get('/prescriptions/{prescription}/edit', [App\Http\Controllers\DashboardController::class, 'editPrescription'])->name('admin.prescriptions.edit');
+        Route::put('/prescriptions/{prescription}', [App\Http\Controllers\DashboardController::class, 'updatePrescription'])->name('admin.prescriptions.update');
+        Route::post('/prescriptions', [App\Http\Controllers\DashboardController::class, 'storePrescription'])->name('admin.prescriptions.store');
+        Route::delete('/prescriptions/{prescription}', [App\Http\Controllers\DashboardController::class, 'destroyPrescription'])->name('admin.prescriptions.destroy');
+        
+        // Ordonnances (Ordonnances médicales avec médicaments)
+        Route::get('/ordonnances', [App\Http\Controllers\DashboardController::class, 'ordonnancesManagement'])->name('admin.ordonnances');
+        Route::get('/ordonnances/{ordonnance}', [App\Http\Controllers\DashboardController::class, 'showOrdonnance'])->name('admin.ordonnances.show');
+        Route::get('/ordonnances/{ordonnance}/edit', [App\Http\Controllers\DashboardController::class, 'editOrdonnance'])->name('admin.ordonnances.edit');
+        Route::put('/ordonnances/{ordonnance}', [App\Http\Controllers\DashboardController::class, 'updateOrdonnance'])->name('admin.ordonnances.update');
+        Route::post('/ordonnances', [App\Http\Controllers\DashboardController::class, 'storeOrdonnance'])->name('admin.ordonnances.store');
+        Route::delete('/ordonnances/{ordonnance}', [App\Http\Controllers\DashboardController::class, 'destroyOrdonnance'])->name('admin.ordonnances.destroy');
+        
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
         Route::get('/schedule', [AppointmentController::class, 'adminSchedule'])->name('admin.schedule');
         Route::get('/settings', [App\Http\Controllers\DashboardController::class, 'adminSettings'])->name('admin.settings');

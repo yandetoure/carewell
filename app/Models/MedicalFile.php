@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -79,6 +79,30 @@ class MedicalFile extends Model
         
         public function medicaldisease()
         {
-  return $this->hasMany(DiseaseMedicalFile::class, 'medical_file_id');
-} 
+            return $this->hasMany(DiseaseMedicalFile::class, 'medical_file_id');
+        } 
+
+        /**
+         * Get all beds associated with this medical file (history).
+         */
+        public function beds()
+        {
+            return $this->hasMany(Bed::class, 'medical_file_id');
+        }
+
+        /**
+         * Get the current bed assigned to this medical file.
+         */
+        public function currentBed()
+        {
+            return $this->hasOne(Bed::class, 'medical_file_id')->where('status', 'occupe');
+        }
+
+        /**
+         * Get all bed admissions for this medical file.
+         */
+        public function bedAdmissions()
+        {
+            return $this->hasMany(BedAdmission::class, 'medical_file_id');
+        }
 }

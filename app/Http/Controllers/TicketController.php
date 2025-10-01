@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -16,6 +16,27 @@ class TicketController extends Controller
     {
         $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user', 'doctor'])->get();
         return response()->json(['data' => $tickets]);
+    }
+
+    /**
+     * Display a listing of tickets for admin/accountant.
+     */
+    public function adminTickets()
+    {
+        $tickets = Ticket::with(['appointment.service', 'prescription', 'exam', 'user', 'doctor'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        // Statistiques
+        $totalTickets = Ticket::count();
+        $paidTickets = Ticket::where('is_paid', true)->count();
+        $unpaidTickets = Ticket::where('is_paid', false)->count();
+        $totalRevenue = Ticket::where('is_paid', true)
+            ->join('appointments', 'tickets.appointment_id', '=', 'appointments.id')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
+        
+        return view('admin.accounting.tickets', compact('tickets', 'totalTickets', 'paidTickets', 'unpaidTickets', 'totalRevenue'));
     }
 
     public function updatePaymentStatus(Request $request, $id)

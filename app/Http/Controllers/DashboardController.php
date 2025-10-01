@@ -6,8 +6,11 @@ use App\Models\User;
 use App\Models\Article;
 use App\Models\Service;
 use App\Models\Appointment;
+use App\Models\Ordonnance;
+use App\Models\Medicament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -30,11 +33,52 @@ class DashboardController extends Controller
 
     public function adminDashboard()
     {
+        // Statistiques de base
+        $totalUsers = User::count();
+        $totalDoctors = User::role('Doctor')->count();
+        $totalPatients = User::role('Patient')->count();
+        $totalSecretaries = User::role('Secretary')->count();
+        $totalAppointments = Appointment::count();
+        $totalPrescriptions = Ordonnance::count();
+        
+        // Revenus du mois
+        $totalRevenue = Appointment::whereMonth('appointments.created_at', now()->month)
+            ->whereYear('appointments.created_at', now()->year)
+            ->where('appointments.status', 'confirmed')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
+        
+        // Gestion des lits (simulation)
+        $totalBeds = 50; // À remplacer par une vraie table
+        $occupiedBeds = Appointment::where('appointments.status', 'confirmed')
+            ->whereDate('appointments.appointment_date', now()->toDateString())
+            ->count();
+        $availableBeds = $totalBeds - $occupiedBeds;
+        
+        // Médicaments en rupture de stock
+        $lowStockMedicines = Medicament::where('disponible', false)->count();
+        
+        // Taux de croissance mensuel
+        $lastMonthUsers = User::whereMonth('users.created_at', now()->subMonth()->month)
+            ->whereYear('users.created_at', now()->subMonth()->year)
+            ->count();
+        $growthRate = $lastMonthUsers > 0 ? 
+            round((($totalUsers - $lastMonthUsers) / $lastMonthUsers) * 100, 1) : 0;
+
         $data = [
-            'totalUsers' => User::count(),
-            'totalAppointments' => Appointment::count(),
+            'totalUsers' => $totalUsers,
+            'totalDoctors' => $totalDoctors,
+            'totalPatients' => $totalPatients,
+            'totalSecretaries' => $totalSecretaries,
+            'totalAppointments' => $totalAppointments,
+            'totalPrescriptions' => $totalPrescriptions,
             'totalServices' => Service::count(),
             'totalArticles' => Article::count(),
+            'totalRevenue' => number_format($totalRevenue, 0, ',', ' '),
+            'totalBeds' => $totalBeds,
+            'availableBeds' => $availableBeds,
+            'lowStockMedicines' => $lowStockMedicines,
+            'growthRate' => $growthRate,
             'activeUsers' => User::where('email_verified_at', '!=', null)->count(),
             'confirmedAppointments' => Appointment::where('status', 'confirmed')->count(),
             'pendingAppointments' => Appointment::where('status', 'pending')->count(),
@@ -42,6 +86,93 @@ class DashboardController extends Controller
         ];
 
         return view('admin.dashboard', $data);
+    }
+
+    public function accounting()
+    {
+        // Statistiques comptables
+        $monthlyRevenue = Appointment::whereMonth('appointments.created_at', now()->month)
+            ->whereYear('appointments.created_at', now()->year)
+            ->where('appointments.status', 'confirmed')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
+        
+        $totalRevenue = Appointment::where('appointments.status', 'confirmed')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
+        
+        $pendingPayments = Appointment::where('appointments.status', 'pending')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
+        
+        $monthlyAppointments = Appointment::whereMonth('appointments.created_at', now()->month)
+            ->whereYear('appointments.created_at', now()->year)
+            ->count();
+        
+        return view('admin.accounting.index', compact('monthlyRevenue', 'totalRevenue', 'pendingPayments', 'monthlyAppointments'));
+    }
+
+    public function bedsManagement()
+    {
+        // Simulation de gestion des lits
+        $totalBeds = 50;
+        $occupiedBeds = Appointment::where('appointments.status', 'confirmed')
+            ->whereDate('appointments.appointment_date', now()->toDateString())
+            ->count();
+        $availableBeds = $totalBeds - $occupiedBeds;
+        
+        $beds = collect(range(1, $totalBeds))->map(function ($bedNumber) use ($occupiedBeds) {
+            return [
+                'number' => $bedNumber,
+                'status' => $bedNumber <= $occupiedBeds ? 'occupied' : 'available',
+                'patient' => $bedNumber <= $occupiedBeds ? 'Patient ' . $bedNumber : null,
+            ];
+        });
+        
+        return view('admin.beds.index', compact('beds', 'totalBeds', 'occupiedBeds', 'availableBeds'));
+    }
+
+    public function pharmacyStock()
+    {
+        $medicaments = Medicament::orderBy('nom')->paginate(20);
+        $totalMedicaments = Medicament::count();
+        $availableMedicaments = Medicament::where('disponible', true)->count();
+        $lowStockMedicines = Medicament::where('disponible', false)->count();
+        
+        return view('admin.pharmacy.index', compact('medicaments', 'totalMedicaments', 'availableMedicaments', 'lowStockMedicines'));
+    }
+
+    public function prescriptionsManagement()
+    {
+        $prescriptions = \App\Models\Prescription::with('service')
+            ->orderBy('name')
+            ->paginate(20);
+        
+        $totalPrescriptions = \App\Models\Prescription::count();
+        $totalServices = \App\Models\Service::count();
+        
+        // Regrouper par service
+        $prescriptionsByService = \App\Models\Prescription::with('service')
+            ->get()
+            ->groupBy('service.name');
+        
+        return view('admin.prescriptions.index', compact('prescriptions', 'totalPrescriptions', 'totalServices', 'prescriptionsByService'));
+    }
+
+    public function ordonnancesManagement()
+    {
+        $ordonnances = Ordonnance::with(['patient', 'medecin', 'medicaments'])
+            ->orderBy('date_prescription', 'desc')
+            ->paginate(20);
+        
+        $totalOrdonnances = Ordonnance::count();
+        $activeOrdonnances = Ordonnance::where('statut', 'active')->count();
+        $expiredOrdonnances = Ordonnance::where('statut', 'expiree')->count();
+        $thisMonthOrdonnances = Ordonnance::whereMonth('date_prescription', now()->month)
+            ->whereYear('date_prescription', now()->year)
+            ->count();
+        
+        return view('admin.ordonnances.index', compact('ordonnances', 'totalOrdonnances', 'activeOrdonnances', 'expiredOrdonnances', 'thisMonthOrdonnances'));
     }
 
     public function doctorDashboard()
@@ -314,5 +445,259 @@ class DashboardController extends Controller
     public function secretarySettings()
     {
         return view('secretary.settings');
+    }
+
+    // ==================== GESTION DES MÉDICAMENTS ====================
+
+    public function showMedicament($id)
+    {
+        $medicament = \App\Models\Medicament::findOrFail($id);
+        return view('admin.pharmacy.show', compact('medicament'));
+    }
+
+    public function editMedicament($id)
+    {
+        $medicament = \App\Models\Medicament::findOrFail($id);
+        return view('admin.pharmacy.edit', compact('medicament'));
+    }
+
+    public function updateMedicament(Request $request, $id)
+    {
+        $medicament = \App\Models\Medicament::findOrFail($id);
+        
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'categorie' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'quantite_stock' => 'required|integer|min:0',
+            'unite_mesure' => 'required|string|max:50',
+            'prix_unitaire' => 'required|numeric|min:0',
+            'date_expiration' => 'nullable|date',
+            'disponible' => 'required|boolean',
+        ]);
+        
+        $medicament->update($validated);
+        
+        return redirect()->route('admin.pharmacy.show', $medicament)->with('success', 'Médicament mis à jour avec succès.');
+    }
+
+    public function storeMedicament(Request $request)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'categorie' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'quantite_stock' => 'required|integer|min:0',
+            'unite_mesure' => 'required|string|max:50',
+            'prix_unitaire' => 'required|numeric|min:0',
+            'date_expiration' => 'nullable|date',
+        ]);
+        
+        $validated['disponible'] = $validated['quantite_stock'] > 0;
+        
+        $medicament = \App\Models\Medicament::create($validated);
+        
+        return redirect()->route('admin.pharmacy')->with('success', 'Médicament créé avec succès.');
+    }
+
+    public function destroyMedicament($id)
+    {
+        $medicament = \App\Models\Medicament::findOrFail($id);
+        $medicament->delete();
+        
+        return redirect()->route('admin.pharmacy')->with('success', 'Médicament supprimé avec succès.');
+    }
+
+    // ==================== GESTION DES LITS ====================
+
+    public function showBed($id)
+    {
+        $bed = [
+            'number' => $id,
+            'status' => rand(0, 1) ? 'occupied' : 'available',
+            'patient' => rand(0, 1) ? 'Patient ' . $id : null,
+            'room' => 'Chambre ' . ceil($id / 2),
+            'service' => 'Service général',
+            'type' => 'Standard',
+        ];
+        
+        return view('admin.beds.show', compact('bed'));
+    }
+
+    public function editBed($id)
+    {
+        $bed = [
+            'number' => $id,
+            'status' => rand(0, 1) ? 'occupied' : 'available',
+            'patient' => rand(0, 1) ? 'Patient ' . $id : null,
+            'room' => 'Chambre ' . ceil($id / 2),
+            'service' => 'Service général',
+            'type' => 'Standard',
+        ];
+        
+        return view('admin.beds.edit', compact('bed'));
+    }
+
+    public function updateBed(Request $request, $id)
+    {
+        // Logique de mise à jour du lit
+        return redirect()->route('admin.beds.show', $id)->with('success', 'Lit mis à jour avec succès.');
+    }
+
+    public function storeBed(Request $request)
+    {
+        // Logique de création de lit
+        return redirect()->route('admin.beds')->with('success', 'Lit créé avec succès.');
+    }
+
+    public function destroyBed($id)
+    {
+        // Logique de suppression de lit
+        return redirect()->route('admin.beds')->with('success', 'Lit supprimé avec succès.');
+    }
+
+    // ==================== GESTION DES PRESCRIPTIONS (SOINS MÉDICAUX) ====================
+
+    public function showPrescription($id)
+    {
+        $prescription = \App\Models\Prescription::with('service')->findOrFail($id);
+        return view('admin.prescriptions.show', compact('prescription'));
+    }
+
+    public function editPrescription($id)
+    {
+        $prescription = \App\Models\Prescription::with('service')->findOrFail($id);
+        $services = \App\Models\Service::all();
+        return view('admin.prescriptions.edit', compact('prescription', 'services'));
+    }
+
+    public function updatePrescription(Request $request, $id)
+    {
+        $prescription = \App\Models\Prescription::findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+            'service_id' => 'required|exists:services,id',
+        ]);
+        
+        $prescription->update($validated);
+        
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription mise à jour avec succès.');
+    }
+
+    public function storePrescription(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+            'service_id' => 'required|exists:services,id',
+        ]);
+        
+        \App\Models\Prescription::create($validated);
+        
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription créée avec succès.');
+    }
+
+    public function destroyPrescription($id)
+    {
+        $prescription = \App\Models\Prescription::findOrFail($id);
+        $prescription->delete();
+        
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription supprimée avec succès.');
+    }
+
+    // ==================== GESTION DES ORDONNANCES ====================
+
+    public function showOrdonnance($id)
+    {
+        $ordonnance = \App\Models\Ordonnance::with(['medecin', 'medicaments'])->findOrFail($id);
+        return view('admin.ordonnances.show', compact('ordonnance'));
+    }
+
+    public function editOrdonnance($id)
+    {
+        $ordonnance = \App\Models\Ordonnance::with(['medecin', 'medicaments'])->findOrFail($id);
+        return view('admin.ordonnances.edit', compact('ordonnance'));
+    }
+
+    public function updateOrdonnance(Request $request, $id)
+    {
+        $ordonnance = \App\Models\Ordonnance::findOrFail($id);
+        
+        $validated = $request->validate([
+            'numero_ordonnance' => 'required|string|max:255',
+            'date_prescription' => 'required|date',
+            'patient_id' => 'required|exists:users,id',
+            'medecin_id' => 'required|exists:users,id',
+            'statut' => 'required|string|in:active,expiree,annulee',
+            'instructions' => 'nullable|string',
+            'medicaments' => 'required|array',
+        ]);
+        
+        $ordonnance->update([
+            'numero_ordonnance' => $validated['numero_ordonnance'],
+            'date_prescription' => $validated['date_prescription'],
+            'patient_id' => $validated['patient_id'],
+            'medecin_id' => $validated['medecin_id'],
+            'statut' => $validated['statut'],
+            'instructions' => $validated['instructions'] ?? null,
+        ]);
+        
+        // Mise à jour des médicaments
+        $medicaments = [];
+        foreach ($validated['medicaments'] as $medicamentId) {
+            $medicaments[$medicamentId] = [
+                'quantite' => $request->input("medicament_quantite.{$medicamentId}", 1),
+                'posologie' => $request->input("medicament_posologie.{$medicamentId}"),
+                'duree' => $request->input("medicament_duree.{$medicamentId}"),
+            ];
+        }
+        $ordonnance->medicaments()->sync($medicaments);
+        
+        return redirect()->route('admin.ordonnances.show', $ordonnance)->with('success', 'Ordonnance mise à jour avec succès.');
+    }
+
+    public function storeOrdonnance(Request $request)
+    {
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'medecin_id' => 'required|exists:users,id',
+            'date_prescription' => 'required|date',
+            'statut' => 'required|string|in:active,expiree,annulee',
+            'instructions' => 'nullable|string',
+            'medicaments' => 'required|array',
+        ]);
+        
+        // Générer un numéro d'ordonnance unique
+        $numeroOrdonnance = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(\Str::random(6));
+        
+        $ordonnance = \App\Models\Ordonnance::create([
+            'numero_ordonnance' => $numeroOrdonnance,
+            'date_prescription' => $validated['date_prescription'],
+            'patient_id' => $validated['patient_id'],
+            'patient_nom_complet' => \App\Models\User::find($validated['patient_id'])->name,
+            'patient_email' => \App\Models\User::find($validated['patient_id'])->email,
+            'medecin_id' => $validated['medecin_id'],
+            'medecin_nom_complet' => \App\Models\User::find($validated['medecin_id'])->name,
+            'statut' => $validated['statut'],
+            'instructions' => $validated['instructions'] ?? null,
+        ]);
+        
+        // Attacher les médicaments
+        $ordonnance->medicaments()->attach($validated['medicaments']);
+        
+        return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance créée avec succès.');
+    }
+
+    public function destroyOrdonnance($id)
+    {
+        $ordonnance = \App\Models\Ordonnance::findOrFail($id);
+        $ordonnance->medicaments()->detach();
+        $ordonnance->delete();
+        
+        return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance supprimée avec succès.');
     }
 }

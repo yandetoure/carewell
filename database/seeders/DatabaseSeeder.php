@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             PrescriptionSeeder::class,
             ExamSeeder::class,
             ArticleSeeder::class,
+            MedicamentSeeder::class,
+            OrdonnanceSeeder::class,
+            BedSeeder::class,
         ]);
         
     }

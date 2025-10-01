@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Les colonnes existent déjà, on ne fait rien
+            $table->string('specialite')->nullable()->after('biographie');
+            $table->string('numero_ordre')->nullable()->after('specialite');
+            $table->integer('experience_years')->nullable()->after('numero_ordre');
+            $table->decimal('consultation_fee', 10, 2)->nullable()->after('experience_years');
         });
     }
 
@@ -22,7 +25,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Pas de rollback nécessaire
+            $table->dropColumn(['specialite', 'numero_ordre', 'experience_years', 'consultation_fee']);
         });
     }
 };

@@ -646,7 +646,257 @@ public function showMedicalFile(User $patient)
     // Charger les relations nécessaires
     $medicalFile->load(['medicalHistories', 'medicalprescription', 'medicalexam', 'note', 'medicaldisease']);
 
-    return view('admin.patients.medical-file', compact('patient', 'medicalFile'));
+    // Charger les ordonnances du patient
+    $ordonnances = $patient->ordonnancesAsPatient()
+        ->with(['medecin', 'medicaments'])
+        ->orderBy('date_prescription', 'desc')
+        ->get();
+
+    // Charger les rendez-vous du patient
+    $appointments = $patient->appointments()
+        ->with(['service', 'doctor'])
+        ->orderBy('appointment_date', 'desc')
+        ->get();
+
+    // Charger les maladies du patient
+    $diseases = $patient->medicalFiles()
+        ->with(['medicaldisease.disease'])
+        ->get()
+        ->pluck('medicaldisease')
+        ->flatten()
+        ->pluck('disease')
+        ->filter()
+        ->unique('id');
+
+    return view('admin.patients.medical-file', compact('patient', 'medicalFile', 'ordonnances', 'appointments', 'diseases'));
+}
+
+public function showPatient(User $patient)
+{
+    // Vérifier que l'utilisateur est bien un patient
+    if (!$patient->hasRole('Patient')) {
+        abort(404, 'Patient non trouvé');
+    }
+
+    // Charger les relations nécessaires
+    $patient->load(['appointments', 'medicalFiles']);
+
+    // Statistiques du patient
+    $appointmentsCount = $patient->appointments()->count();
+    $medicalFilesCount = $patient->medicalFiles()->count();
+    $lastAppointment = $patient->appointments()->latest()->first();
+
+    return view('admin.patients.show', compact('patient', 'appointmentsCount', 'medicalFilesCount', 'lastAppointment'));
+}
+
+public function editPatient(User $patient)
+{
+    // Vérifier que l'utilisateur est bien un patient
+    if (!$patient->hasRole('Patient')) {
+        abort(404, 'Patient non trouvé');
+    }
+
+    return view('admin.patients.edit', compact('patient'));
+}
+
+public function updatePatient(Request $request, User $patient)
+{
+    // Vérifier que l'utilisateur est bien un patient
+    if (!$patient->hasRole('Patient')) {
+        abort(404, 'Patient non trouvé');
+    }
+
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $patient->id,
+        'phone' => 'nullable|string|max:20',
+        'adress' => 'nullable|string|max:500',
+        'day_of_birth' => 'nullable|date',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+    $updateData = [
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone' => $validated['phone'] ?? $patient->phone,
+        'phone_number' => $validated['phone'] ?? $patient->phone_number,
+        'adress' => $validated['adress'] ?? $patient->adress,
+        'day_of_birth' => $validated['day_of_birth'] ?? $patient->day_of_birth,
+    ];
+
+    if ($request->hasFile('photo')) {
+        if ($patient->photo) {
+            Storage::delete('public/' . $patient->photo);
+        }
+        $updateData['photo'] = $request->file('photo')->store('patients', 'public');
+    }
+
+    $patient->update($updateData);
+
+    return redirect()->route('admin.patients.show', $patient)->with('success', 'Patient mis à jour avec succès.');
+}
+
+public function destroyPatient(User $patient)
+{
+    // Vérifier que l'utilisateur est bien un patient
+    if (!$patient->hasRole('Patient')) {
+        abort(404, 'Patient non trouvé');
+    }
+
+    // Supprimer la photo si elle existe
+    if ($patient->photo) {
+        Storage::delete('public/' . $patient->photo);
+    }
+
+    // Supprimer le patient
+    $patient->delete();
+
+    return redirect()->route('admin.patients')->with('success', 'Patient supprimé avec succès.');
+}
+
+public function getSecretaries()
+{
+    $secretaries = User::role('Secretary', 'web')
+        ->with(['appointments'])
+        ->withCount(['appointments'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
+    
+    // Statistiques rapides
+    $totalSecretaries = User::role('Secretary', 'web')->count();
+    $activeSecretaries = User::role('Secretary', 'web')->where('status', 'active')->count();
+    $newThisMonth = User::role('Secretary', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
+    $withAppointments = User::role('Secretary', 'web')->whereHas('appointments')->count();
+    
+    return view('admin.secretaries.index', compact('secretaries', 'totalSecretaries', 'activeSecretaries', 'newThisMonth', 'withAppointments'));
+}
+
+public function showSecretary(User $secretary)
+{
+    if (!$secretary->hasRole('Secretary')) {
+        abort(404, 'Secrétaire non trouvée');
+    }
+    
+    $secretary->load(['appointments']);
+    $secretary->loadCount(['appointments']);
+    
+    return view('admin.secretaries.show', compact('secretary'));
+}
+
+public function editSecretary(User $secretary)
+{
+    if (!$secretary->hasRole('Secretary')) {
+        abort(404, 'Secrétaire non trouvée');
+    }
+    
+    return view('admin.secretaries.edit', compact('secretary'));
+}
+
+public function updateSecretary(Request $request, User $secretary)
+{
+    if (!$secretary->hasRole('Secretary')) {
+        abort(404, 'Secrétaire non trouvée');
+    }
+    
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $secretary->id,
+        'phone' => 'nullable|string|max:20',
+        'adress' => 'nullable|string|max:500',
+        'day_of_birth' => 'nullable|date',
+        'gender' => 'nullable|string|in:male,female,other',
+        'status' => 'required|string|in:active,inactive,suspended',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'password' => 'nullable|string|min:8|confirmed',
+    ]);
+    
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+    $updateData = [
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone' => $validated['phone'] ?? $secretary->phone,
+        'phone_number' => $validated['phone'] ?? $secretary->phone_number,
+        'adress' => $validated['adress'] ?? $secretary->adress,
+        'day_of_birth' => $validated['day_of_birth'] ?? $secretary->day_of_birth,
+        'gender' => $validated['gender'] ?? $secretary->gender,
+        'status' => $validated['status'],
+    ];
+    
+    if ($request->hasFile('photo')) {
+        if ($secretary->photo) {
+            Storage::delete('public/' . $secretary->photo);
+        }
+        $updateData['photo'] = $request->file('photo')->store('secretaries', 'public');
+    }
+    
+    if ($request->filled('password')) {
+        $updateData['password'] = Hash::make($validated['password']);
+    }
+    
+    if ($request->filled('email_verified_at')) {
+        $updateData['email_verified_at'] = $request->email_verified_at ? now() : null;
+    }
+    
+    $secretary->update($updateData);
+    
+    return redirect()->route('admin.secretaries.show', $secretary)->with('success', 'Secrétaire mise à jour avec succès.');
+}
+
+public function storeSecretary(Request $request)
+{
+    $validated = $request->validate([
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'phone' => 'nullable|string|max:20',
+        'password' => 'required|string|min:8',
+        'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+    
+    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+    
+    $userData = [
+        'name' => $fullName,
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone' => $validated['phone'] ?? null,
+        'phone_number' => $validated['phone'] ?? null,
+        'password' => Hash::make($validated['password']),
+        'email_verified_at' => now(),
+    ];
+    
+    if ($request->hasFile('photo')) {
+        $userData['photo'] = $request->file('photo')->store('secretaries', 'public');
+    }
+    
+    $secretary = User::create($userData);
+    $secretary->assignRole('Secretary');
+    
+    return redirect()->route('admin.secretaries')->with('success', 'Secrétaire créée avec succès.');
+}
+
+public function destroySecretary(User $secretary)
+{
+    if (!$secretary->hasRole('Secretary')) {
+        abort(404, 'Secrétaire non trouvée');
+    }
+    
+    if ($secretary->photo) {
+        Storage::delete('public/' . $secretary->photo);
+    }
+    
+    $secretary->delete();
+    
+    return redirect()->route('admin.secretaries')->with('success', 'Secrétaire supprimée avec succès.');
 }
 
 // ==================== GESTION DES RÔLES ET PERMISSIONS ====================

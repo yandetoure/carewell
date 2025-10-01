@@ -48,6 +48,12 @@
                 <span>Patients</span>
             </a>
         </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.secretaries') }}" class="nav-link {{ request()->routeIs('admin.secretaries*') ? 'active' : '' }}">
+                <i class="fas fa-user-tie"></i>
+                <span>Secrétaires</span>
+            </a>
+        </div>
     </div>
 
     <div class="nav-section">
@@ -84,6 +90,44 @@
             <a href="{{ route('admin.schedule') }}" class="nav-link {{ request()->routeIs('admin.schedule*') ? 'active' : '' }}">
                 <i class="fas fa-calendar-week"></i>
                 <span>Planning général</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-section-title">Médical</div>
+        <div class="nav-item">
+            <a href="{{ route('admin.prescriptions') }}" class="nav-link {{ request()->routeIs('admin.prescriptions*') ? 'active' : '' }}">
+                <i class="fas fa-file-medical"></i>
+                <span>Soins médicaux</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.ordonnances') }}" class="nav-link {{ request()->routeIs('admin.ordonnances*') ? 'active' : '' }}">
+                <i class="fas fa-prescription-bottle-alt"></i>
+                <span>Ordonnances</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.pharmacy') }}" class="nav-link {{ request()->routeIs('admin.pharmacy*') ? 'active' : '' }}">
+                <i class="fas fa-pills"></i>
+                <span>Stock pharmacie</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.beds') }}" class="nav-link {{ request()->routeIs('admin.beds*') ? 'active' : '' }}">
+                <i class="fas fa-bed"></i>
+                <span>Gestion des lits</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-section-title">Comptabilité</div>
+        <div class="nav-item">
+            <a href="{{ route('admin.accounting') }}" class="nav-link {{ request()->routeIs('admin.accounting*') ? 'active' : '' }}">
+                <i class="fas fa-calculator"></i>
+                <span>Comptabilité</span>
             </a>
         </div>
     </div>

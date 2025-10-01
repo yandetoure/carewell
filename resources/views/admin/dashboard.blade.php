@@ -27,7 +27,7 @@
 
     <!-- Statistics Cards -->
     <div class="row g-4 mb-4">
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -36,18 +36,66 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $totalUsers ?? 0 }}</h4>
-                            <p class="text-muted mb-0">Utilisateurs Totaux</p>
+                            <p class="text-muted mb-0">Utilisateurs</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-success">
+                            <i class="fas fa-user-md text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $totalDoctors ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Médecins</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-user-injured text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $totalPatients ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Patients</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-secondary">
+                            <i class="fas fa-user-tie text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $totalSecretaries ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Secrétaires</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
@@ -59,16 +107,67 @@
             </div>
         </div>
         
+        <div class="col-xl-2 col-md-4 col-sm-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-danger">
+                            <i class="fas fa-prescription-bottle-alt text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $totalPrescriptions ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Prescriptions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Statistics Row -->
+    <div class="row g-4 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning">
-                            <i class="fas fa-stethoscope text-white"></i>
+                        <div class="stat-icon bg-dark">
+                            <i class="fas fa-calculator text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalServices ?? 0 }}</h4>
-                            <p class="text-muted mb-0">Services</p>
+                            <h4 class="mb-1">{{ $totalRevenue ?? 0 }} FCFA</h4>
+                            <p class="text-muted mb-0">Revenus du mois</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-bed text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $availableBeds ?? 0 }}/{{ $totalBeds ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Lits disponibles</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-pills text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $lowStockMedicines ?? 0 }}</h4>
+                            <p class="text-muted mb-0">Médicaments en rupture</p>
                         </div>
                     </div>
                 </div>
@@ -80,11 +179,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-info">
-                            <i class="fas fa-newspaper text-white"></i>
+                            <i class="fas fa-chart-line text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalArticles ?? 0 }}</h4>
-                            <p class="text-muted mb-0">Articles</p>
+                            <h4 class="mb-1">{{ $growthRate ?? 0 }}%</h4>
+                            <p class="text-muted mb-0">Croissance mensuelle</p>
                         </div>
                     </div>
                 </div>
@@ -181,6 +280,21 @@
                         </a>
                         <a href="{{ route('admin.appointments') }}" class="btn btn-outline-warning">
                             <i class="fas fa-calendar me-2"></i>Voir RDV
+                        </a>
+                        <a href="{{ route('admin.secretaries') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user-tie me-2"></i>Gérer secrétaires
+                        </a>
+                        <a href="{{ route('admin.accounting') }}" class="btn btn-outline-dark">
+                            <i class="fas fa-calculator me-2"></i>Comptabilité
+                        </a>
+                        <a href="{{ route('admin.beds') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-bed me-2"></i>Gestion des lits
+                        </a>
+                        <a href="{{ route('admin.pharmacy') }}" class="btn btn-outline-success">
+                            <i class="fas fa-pills me-2"></i>Stock pharmacie
+                        </a>
+                        <a href="{{ route('admin.prescriptions') }}" class="btn btn-outline-info">
+                            <i class="fas fa-prescription-bottle-alt me-2"></i>Prescriptions
                         </a>
                     </div>
                 </div>
