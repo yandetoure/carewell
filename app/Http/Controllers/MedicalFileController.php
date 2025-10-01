@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 namespace App\Http\Controllers;
 
 use App\Model;
@@ -22,6 +22,32 @@ class MedicalFileController extends Controller
     {
         $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription',  'user'  ])->get();
         return response()->json(['data' => $medicalFiles]);
+    }
+
+    /**
+     * Display medical files for doctor interface.
+     */
+    public function doctorMedicalFiles()
+    {
+        $doctor = Auth::user();
+        
+        // Récupérer les dossiers médicaux des patients du docteur
+        $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
+            ->whereHas('user.appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        // Statistiques
+        $totalFiles = $medicalFiles->total();
+        $recentFiles = MedicalFile::whereHas('user.appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id);
+            })
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+        
+        return view('doctor.medical-files.index', compact('medicalFiles', 'totalFiles', 'recentFiles'));
     }
 
     /**

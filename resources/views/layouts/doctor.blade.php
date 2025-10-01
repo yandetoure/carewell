@@ -5,6 +5,10 @@
 @section('page-subtitle', 'Gestion de vos patients et consultations')
 @section('user-role', 'Médecin')
 
+@push('head')
+<meta name="csrf-token" content="{{ csrf_token() }}">
+@endpush
+
 @section('sidebar-content')
     <div class="nav-section">
         <div class="nav-section-title">Tableau de bord</div>

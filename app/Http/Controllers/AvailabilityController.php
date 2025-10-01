@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -240,5 +240,158 @@ class AvailabilityController extends Controller
             'status' => true,
             'data' => $availabilities,
         ]);
+    }
+
+    /**
+     * Afficher les disponibilités du docteur connecté
+     */
+    public function doctorAvailability()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $availabilities = Availability::where('doctor_id', $doctor->id)
+            ->with('service')
+            ->orderBy('available_date', 'desc')
+            ->orderBy('start_time', 'desc')
+            ->paginate(15);
+
+        $services = \App\Models\Service::all();
+        $totalAvailabilities = $availabilities->total();
+        $thisWeekAvailabilities = Availability::where('doctor_id', $doctor->id)
+            ->whereBetween('available_date', [now()->startOfWeek(), now()->endOfWeek()])
+            ->count();
+
+        return view('doctor.availability.index', compact(
+            'availabilities',
+            'services',
+            'totalAvailabilities',
+            'thisWeekAvailabilities'
+        ));
+    }
+
+    /**
+     * Afficher le formulaire de création de disponibilité pour le docteur
+     */
+    public function doctorCreateAvailability()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $services = \App\Models\Service::all();
+        return view('doctor.availability.create', compact('services'));
+    }
+
+    /**
+     * Enregistrer une nouvelle disponibilité pour le docteur
+     */
+    public function doctorStoreAvailability(Request $request)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'available_date' => 'required|date|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'appointment_duration' => 'required|integer|min:15|max:120',
+            'recurrence_type' => 'nullable|in:none,daily,weekly',
+        ]);
+
+        // Calculer le jour de la semaine
+        $dayOfWeek = date('w', strtotime($request->available_date));
+
+        $availability = Availability::create([
+            'doctor_id' => $doctor->id,
+            'service_id' => $request->service_id,
+            'available_date' => $request->available_date,
+            'day_of_week' => $dayOfWeek,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'appointment_duration' => $request->appointment_duration,
+            'recurrence_type' => $request->recurrence_type ?? 'none',
+        ]);
+
+        return redirect()->route('doctor.availability')
+            ->with('success', 'Disponibilité créée avec succès.');
+    }
+
+    /**
+     * Afficher le formulaire d'édition de disponibilité pour le docteur
+     */
+    public function doctorEditAvailability(Availability $availability)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor') || $availability->doctor_id !== $doctor->id) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $services = \App\Models\Service::all();
+        return view('doctor.availability.edit', compact('availability', 'services'));
+    }
+
+    /**
+     * Mettre à jour une disponibilité pour le docteur
+     */
+    public function doctorUpdateAvailability(Request $request, Availability $availability)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor') || $availability->doctor_id !== $doctor->id) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $request->validate([
+            'service_id' => 'required|exists:services,id',
+            'available_date' => 'required|date|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'appointment_duration' => 'required|integer|min:15|max:120',
+            'recurrence_type' => 'nullable|in:none,daily,weekly',
+        ]);
+
+        // Calculer le jour de la semaine
+        $dayOfWeek = date('w', strtotime($request->available_date));
+
+        $availability->update([
+            'service_id' => $request->service_id,
+            'available_date' => $request->available_date,
+            'day_of_week' => $dayOfWeek,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'appointment_duration' => $request->appointment_duration,
+            'recurrence_type' => $request->recurrence_type ?? 'none',
+        ]);
+
+        return redirect()->route('doctor.availability')
+            ->with('success', 'Disponibilité mise à jour avec succès.');
+    }
+
+    /**
+     * Supprimer une disponibilité pour le docteur
+     */
+    public function doctorDestroyAvailability(Availability $availability)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor') || $availability->doctor_id !== $doctor->id) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $availability->delete();
+
+        return redirect()->route('doctor.availability')
+            ->with('success', 'Disponibilité supprimée avec succès.');
     }
 }

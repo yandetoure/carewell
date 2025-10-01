@@ -42,11 +42,11 @@ class DashboardController extends Controller
         $totalPrescriptions = Ordonnance::count();
         
         // Revenus du mois
-        $totalRevenue = Appointment::whereMonth('appointments.created_at', now()->month)
+        $totalRevenue = (float) (Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
             ->where('appointments.status', 'confirmed')
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price');
+            ->sum('services.price') ?? 0);
         
         // Gestion des lits (simulation)
         $totalBeds = 50; // À remplacer par une vraie table
@@ -91,19 +91,19 @@ class DashboardController extends Controller
     public function accounting()
     {
         // Statistiques comptables
-        $monthlyRevenue = Appointment::whereMonth('appointments.created_at', now()->month)
+        $monthlyRevenue = (float) (Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
             ->where('appointments.status', 'confirmed')
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price');
+            ->sum('services.price') ?? 0);
         
-        $totalRevenue = Appointment::where('appointments.status', 'confirmed')
+        $totalRevenue = (float) (Appointment::where('appointments.status', 'confirmed')
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price');
+            ->sum('services.price') ?? 0);
         
-        $pendingPayments = Appointment::where('appointments.status', 'pending')
+        $pendingPayments = (float) (Appointment::where('appointments.status', 'pending')
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price');
+            ->sum('services.price') ?? 0);
         
         $monthlyAppointments = Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
@@ -179,25 +179,125 @@ class DashboardController extends Controller
     {
         $doctor = Auth::user();
 
-        $data = [
-            'todayAppointments' => Appointment::where('doctor_id', $doctor->id)
+        // Statistiques de base
+        $todayAppointments = Appointment::where('doctor_id', $doctor->id)
                 ->whereDate('appointment_date', today())
-                ->count(),
-            'totalPatients' => Appointment::where('doctor_id', $doctor->id)
+            ->count();
+        
+        $totalPatients = Appointment::where('doctor_id', $doctor->id)
                 ->distinct('user_id')
-                ->count(),
-            'pendingAppointments' => Appointment::where('doctor_id', $doctor->id)
+            ->count();
+        
+        $pendingAppointments = Appointment::where('doctor_id', $doctor->id)
                 ->where('status', 'pending')
-                ->count(),
-            'totalPrescriptions' => 0, // À implémenter selon votre modèle
-            'todayAppointmentsList' => Appointment::where('doctor_id', $doctor->id)
+            ->count();
+        
+        $confirmedAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'confirmed')
                 ->whereDate('appointment_date', today())
-                ->with(['user', 'service'])
-                ->orderBy('appointment_time')
-                ->get(),
-            'recentPatients' => User::whereHas('appointments', function($query) use ($doctor) {
+            ->count();
+        
+        // Statistiques hebdomadaires
+        $weekStart = now()->startOfWeek();
+        $weekEnd = now()->endOfWeek();
+        $weekAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->whereBetween('appointment_date', [$weekStart, $weekEnd])
+            ->count();
+        
+        // Statistiques mensuelles
+        $monthAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->whereMonth('appointment_date', now()->month)
+            ->whereYear('appointment_date', now()->year)
+            ->count();
+        
+        // Revenus du mois pour le docteur
+        $monthlyRevenue = (float) (Appointment::where('doctor_id', $doctor->id)
+            ->whereMonth('appointment_date', now()->month)
+            ->whereYear('appointment_date', now()->year)
+            ->where('status', 'confirmed')
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price') ?? 0);
+        
+        // Prescriptions et examens
+        $totalPrescriptions = \App\Models\Ordonnance::where('medecin_id', $doctor->id)->count();
+        $totalExams = \App\Models\Exam::count(); // Tous les examens disponibles
+        
+        // Patients avec consultations récentes
+        $recentPatients = User::whereHas('appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id);
-            })->latest()->take(5)->get(),
+            })
+            ->latest()
+            ->take(5)
+            ->get();
+        
+        // Rendez-vous d'aujourd'hui avec plus de détails
+        $todayAppointmentsList = Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('appointment_date', today())
+            ->with(['user', 'service'])
+            ->orderBy('appointment_time')
+            ->get();
+        
+        // Prochains rendez-vous (pas seulement aujourd'hui)
+        $upcomingAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('appointment_date', '>=', today())
+            ->where('status', 'confirmed')
+            ->with(['user', 'service'])
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->take(5)
+            ->get();
+        
+        // Graphiques - données pour les 7 derniers jours
+        $chartData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $count = Appointment::where('doctor_id', $doctor->id)
+                ->whereDate('appointment_date', $date)
+                ->count();
+            $chartData[] = [
+                'date' => $date->format('Y-m-d'),
+                'label' => $date->format('D'),
+                'count' => $count
+            ];
+        }
+        
+        // Répartition par service
+        $servicesDistribution = Appointment::where('doctor_id', $doctor->id)
+            ->whereMonth('appointment_date', now()->month)
+            ->whereYear('appointment_date', now()->year)
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->select('services.name', DB::raw('count(*) as count'))
+            ->groupBy('services.name')
+            ->get();
+        
+        // Notifications et alertes
+        $urgentAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'pending')
+            ->whereDate('appointment_date', '<=', now()->addDays(1))
+            ->count();
+        
+        $overdueAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'pending')
+            ->whereDate('appointment_date', '<', today())
+            ->count();
+
+        $data = [
+            'todayAppointments' => $todayAppointments,
+            'totalPatients' => $totalPatients,
+            'pendingAppointments' => $pendingAppointments,
+            'confirmedAppointments' => $confirmedAppointments,
+            'weekAppointments' => $weekAppointments,
+            'monthAppointments' => $monthAppointments,
+            'totalPrescriptions' => $totalPrescriptions,
+            'totalExams' => $totalExams,
+            'monthlyRevenue' => $monthlyRevenue,
+            'todayAppointmentsList' => $todayAppointmentsList,
+            'upcomingAppointments' => $upcomingAppointments,
+            'recentPatients' => $recentPatients,
+            'chartData' => $chartData,
+            'servicesDistribution' => $servicesDistribution,
+            'urgentAppointments' => $urgentAppointments,
+            'overdueAppointments' => $overdueAppointments,
         ];
 
         return view('doctor.dashboard', $data);
@@ -672,7 +772,7 @@ class DashboardController extends Controller
         ]);
         
         // Générer un numéro d'ordonnance unique
-        $numeroOrdonnance = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(\Str::random(6));
+        $numeroOrdonnance = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6));
         
         $ordonnance = \App\Models\Ordonnance::create([
             'numero_ordonnance' => $numeroOrdonnance,

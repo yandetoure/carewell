@@ -137,7 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // Disponibilités (pour les médecins)
-    Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability');
+    Route::get('/availability', [AvailabilityController::class, 'index'])->name('availability.index');
     Route::get('/availability/create', [AvailabilityController::class, 'create'])->name('availability.create');
     Route::post('/availability', [AvailabilityController::class, 'store'])->name('availability.store');
     Route::get('/availability/{availability}', [AvailabilityController::class, 'show'])->name('availability.show');
@@ -149,16 +149,34 @@ Route::middleware('auth')->group(function () {
     Route::group(['prefix' => 'doctor'], function () {
         Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'doctorDashboard'])->name('doctor.dashboard');
         Route::get('/appointments', [AppointmentController::class, 'doctorAppointments'])->name('doctor.appointments');
+        Route::post('/appointments', [AppointmentController::class, 'store'])->name('doctor.appointments.store');
+        Route::post('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('doctor.appointments.status');
         Route::get('/appointments/today', [AppointmentController::class, 'doctorTodayAppointments'])->name('doctor.appointments.today');
         Route::get('/appointments/week', [AppointmentController::class, 'doctorWeekAppointments'])->name('doctor.appointments.week');
         Route::get('/patients', [AppointmentController::class, 'getPatientsWithAppointments'])->name('doctor.patients');
         Route::get('/patients/new', [AppointmentController::class, 'createPatient'])->name('doctor.patients.new');
+        Route::post('/patients', [AppointmentController::class, 'storePatient'])->name('doctor.patients.store');
+        Route::get('/patients/{patient}', [AppointmentController::class, 'showPatient'])->name('doctor.patients.show');
+        Route::get('/patients/{patient}/edit', [AppointmentController::class, 'editPatient'])->name('doctor.patients.edit');
+        Route::put('/patients/{patient}', [AppointmentController::class, 'updatePatient'])->name('doctor.patients.update');
+        Route::get('/patients/{patient}/history', [AppointmentController::class, 'patientHistory'])->name('doctor.patients.history');
+        Route::get('/patients/{patient}/appointments', [AppointmentController::class, 'patientAppointments'])->name('doctor.patients.appointments');
+        
+        // Routes pour la gestion des disponibilités du docteur
+        Route::get('/availability', [AvailabilityController::class, 'doctorAvailability'])->name('doctor.availability');
+        Route::get('/availability/create', [AvailabilityController::class, 'doctorCreateAvailability'])->name('doctor.availability.create');
+        Route::post('/availability', [AvailabilityController::class, 'doctorStoreAvailability'])->name('doctor.availability.store');
+        Route::get('/availability/{availability}/edit', [AvailabilityController::class, 'doctorEditAvailability'])->name('doctor.availability.edit');
+        Route::put('/availability/{availability}', [AvailabilityController::class, 'doctorUpdateAvailability'])->name('doctor.availability.update');
+        Route::delete('/availability/{availability}', [AvailabilityController::class, 'doctorDestroyAvailability'])->name('doctor.availability.destroy');
+        
         Route::get('/stats', [AppointmentController::class, 'doctorStats'])->name('doctor.stats');
         Route::get('/statistics', [AppointmentController::class, 'doctorStatistics'])->name('doctor.statistics');
         Route::get('/prescriptions', [MedicalFilePrescriptionController::class, 'getPrescriptionsByService'])->name('doctor.prescriptions');
         Route::get('/exams', [ExamPrescriptionController::class, 'getExamByService'])->name('doctor.exams');
         Route::get('/results', [ResultController::class, 'doctorResults'])->name('doctor.results');
         Route::get('/consultations', [AppointmentController::class, 'doctorConsultations'])->name('doctor.consultations');
+        Route::get('/medical-files', [MedicalFileController::class, 'doctorMedicalFiles'])->name('doctor.medical-files');
         Route::get('/medical-history', [MedicalFileController::class, 'doctorMedicalHistory'])->name('doctor.medical-history');
         Route::get('/notes', [NoteController::class, 'doctorNotes'])->name('doctor.notes');
         Route::get('/follow-up', [AppointmentController::class, 'doctorFollowUp'])->name('doctor.follow-up');
