@@ -101,19 +101,30 @@ class TicketController extends Controller
     public function show(string $id)
     {
         // Récupérer un ticket par son ID
-        $ticket = Ticket::with(['appointment', 'prescription', 'exam', 'user'])->find($id);
+        $ticket = Ticket::with(['appointment.service', 'appointment.user', 'prescription', 'exam', 'user', 'doctor'])->find($id);
 
-        if ($ticket) {
-            return response()->json([
-                'status' => true,
-                'data' => $ticket,
-            ]);
-        } else {
+        if (!$ticket) {
+            // Si c'est une requête web, rediriger avec erreur
+            if (!request()->expectsJson()) {
+                return redirect()->route('admin.tickets')
+                    ->with('error', 'Ticket non trouvé');
+            }
+            
             return response()->json([
                 'status' => false,
                 'message' => 'Ticket non trouvé',
             ], 404);
         }
+
+        // Si c'est une requête web, afficher la vue
+        if (!request()->expectsJson()) {
+            return view('admin.accounting.show-ticket', compact('ticket'));
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $ticket,
+        ]);
     }
 
 
@@ -178,6 +189,12 @@ public function update(Request $request, string $id)
 
         // Vérifier si le ticket existe
         if (!$ticket) {
+            // Si c'est une requête web, rediriger avec erreur
+            if (!$request->expectsJson()) {
+                return redirect()->route('admin.tickets')
+                    ->with('error', 'Ticket non trouvé');
+            }
+            
             return response()->json([
                 'status' => false,
                 'message' => 'Ticket non trouvé',
@@ -186,6 +203,12 @@ public function update(Request $request, string $id)
 
         // Vérifier si 'is_paid' est déjà à true
         if ($ticket->is_paid) {
+            // Si c'est une requête web, rediriger avec message
+            if (!$request->expectsJson()) {
+                return redirect()->route('admin.tickets')
+                    ->with('info', 'Ce ticket est déjà marqué comme payé');
+            }
+            
             return response()->json([
                 'status' => false,
                 'message' => 'Le statut is_paid est déjà à true',
@@ -197,12 +220,24 @@ public function update(Request $request, string $id)
             'is_paid' => true,
         ]);
 
+        // Si c'est une requête web, rediriger avec succès
+        if (!$request->expectsJson()) {
+            return redirect()->route('admin.tickets')
+                ->with('success', 'Ticket marqué comme payé avec succès');
+        }
+
         return response()->json([
             'status' => true,
             'message' => 'Le statut du ticket a été mis à jour à true',
             'data' => $ticket,
         ]);
     } catch (ValidationException $e) {
+        // Si c'est une requête web, rediriger avec erreur
+        if (!$request->expectsJson()) {
+            return redirect()->route('admin.tickets')
+                ->withErrors($e->validator->errors());
+        }
+        
         return response()->json([
             'status' => false,
             'message' => 'Erreur de validation',

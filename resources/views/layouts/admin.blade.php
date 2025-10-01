@@ -123,11 +123,17 @@
     </div>
 
     <div class="nav-section">
-        <div class="nav-section-title">Comptabilité</div>
+        <div class="nav-section-title">Finance</div>
         <div class="nav-item">
-            <a href="{{ route('admin.accounting') }}" class="nav-link {{ request()->routeIs('admin.accounting*') ? 'active' : '' }}">
+            <a href="{{ route('admin.accounting') }}" class="nav-link {{ request()->routeIs('admin.accounting') ? 'active' : '' }}">
                 <i class="fas fa-calculator"></i>
                 <span>Comptabilité</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.tickets') }}" class="nav-link {{ request()->routeIs('admin.tickets*') ? 'active' : '' }}">
+                <i class="fas fa-receipt"></i>
+                <span>Tickets</span>
             </a>
         </div>
     </div>
@@ -156,12 +162,6 @@
 
     <div class="nav-section">
         <div class="nav-section-title">Support</div>
-        <div class="nav-item">
-            <a href="{{ route('admin.tickets') }}" class="nav-link {{ request()->routeIs('admin.tickets*') ? 'active' : '' }}">
-                <i class="fas fa-ticket-alt"></i>
-                <span>Tickets support</span>
-            </a>
-        </div>
         <div class="nav-item">
             <a href="{{ route('admin.faq') }}" class="nav-link {{ request()->routeIs('admin.faq*') ? 'active' : '' }}">
                 <i class="fas fa-question-circle"></i>

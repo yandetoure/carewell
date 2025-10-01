@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             MedicamentSeeder::class,
             OrdonnanceSeeder::class,
             BedSeeder::class,
+            AppointmentSeeder::class, // Crée des rendez-vous avec leurs tickets
         ]);
         
     }
