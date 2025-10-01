@@ -279,6 +279,18 @@ Route::middleware('auth')->group(function () {
         // Comptabilité
         Route::get('/accounting', [App\Http\Controllers\DashboardController::class, 'accounting'])->name('admin.accounting');
         
+        // Examens
+        Route::get('/exams', [ExamController::class, 'adminIndex'])->name('admin.exams');
+        Route::get('/exams/create', [ExamController::class, 'adminCreate'])->name('admin.exams.create');
+        Route::post('/exams', [ExamController::class, 'store'])->name('admin.exams.store');
+        Route::get('/exams/{exam}', [ExamController::class, 'adminShow'])->name('admin.exams.show');
+        Route::get('/exams/{exam}/edit', [ExamController::class, 'adminEdit'])->name('admin.exams.edit');
+        Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('admin.exams.update');
+        Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('admin.exams.destroy');
+        
+        // Résultats
+        Route::get('/results', [ResultController::class, 'adminIndex'])->name('admin.results');
+        
         // Lits
         Route::get('/beds', [App\Http\Controllers\BedController::class, 'index'])->name('admin.beds');
         Route::get('/beds/index', [App\Http\Controllers\BedController::class, 'index'])->name('admin.beds.index');

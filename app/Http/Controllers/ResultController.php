@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -19,6 +19,20 @@ class ResultController extends Controller
             'status' => true,
             'data' => $results,
         ]);
+    }
+
+    /**
+     * Display a listing of results for admin.
+     */
+    public function adminIndex()
+    {
+        $results = Result::with('exam')->orderBy('created_at', 'desc')->paginate(15);
+        
+        // Statistiques
+        $totalResults = Result::count();
+        $exams = \App\Models\Exam::all();
+        
+        return view('admin.results.index', compact('results', 'totalResults', 'exams'));
     }
 
     /**

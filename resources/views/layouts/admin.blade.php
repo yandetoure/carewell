@@ -109,6 +109,18 @@
             </a>
         </div>
         <div class="nav-item">
+            <a href="{{ route('admin.exams') }}" class="nav-link {{ request()->routeIs('admin.exams*') ? 'active' : '' }}">
+                <i class="fas fa-vials"></i>
+                <span>Examens</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{{ route('admin.results') }}" class="nav-link {{ request()->routeIs('admin.results*') ? 'active' : '' }}">
+                <i class="fas fa-file-medical-alt"></i>
+                <span>Résultats</span>
+            </a>
+        </div>
+        <div class="nav-item">
             <a href="{{ route('admin.pharmacy') }}" class="nav-link {{ request()->routeIs('admin.pharmacy*') ? 'active' : '' }}">
                 <i class="fas fa-pills"></i>
                 <span>Stock pharmacie</span>

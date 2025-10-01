@@ -24,6 +24,48 @@ class ExamController extends Controller
     }
 
     /**
+     * Display a listing of exams for admin.
+     */
+    public function adminIndex()
+    {
+        $exams = Exam::with('service')->orderBy('created_at', 'desc')->paginate(15);
+        
+        // Statistiques
+        $totalExams = Exam::count();
+        $services = \App\Models\Service::all();
+        
+        return view('admin.exams.index', compact('exams', 'totalExams', 'services'));
+    }
+
+    /**
+     * Show the form for creating a new exam.
+     */
+    public function adminCreate()
+    {
+        $services = \App\Models\Service::all();
+        return view('admin.exams.create', compact('services'));
+    }
+
+    /**
+     * Display the specified exam for admin.
+     */
+    public function adminShow(Exam $exam)
+    {
+        $exam->load('service', 'results', 'medicalFileExam');
+        return view('admin.exams.show', compact('exam'));
+    }
+
+    /**
+     * Show the form for editing the specified exam.
+     */
+    public function adminEdit(Exam $exam)
+    {
+        $services = \App\Models\Service::all();
+        $exam->load('service', 'results', 'medicalFileExam');
+        return view('admin.exams.edit', compact('exam', 'services'));
+    }
+
+    /**
      * Display exams for a specific patient.
      */
     public function patientExams()
@@ -57,23 +99,30 @@ class ExamController extends Controller
                 'service_id' => $request->service_id,
             ]);
 
-            $ticket = Ticket::create([
-            'exam_id' => $request->exam_id, 
-            'is_paid' => false, 
-        ]);
+            // Si c'est une requête API, retourner JSON
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Examen créé avec succès',
+                    'data' => $exam,
+                ], 201);
+            }
 
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Examen créé avec succès',
-                'data' => $exam,
-            ], 201);
+            // Sinon, rediriger vers l'interface admin
+            return redirect()->route('admin.exams.show', $exam)
+                ->with('success', 'Examen créé avec succès !');
         } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors(),
-            ], 422);
+            // Si c'est une requête API, retourner JSON
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Erreur de validation',
+                    'errors' => $e->validator->errors(),
+                ], 422);
+            }
+
+            // Sinon, rediriger avec erreurs
+            return back()->withErrors($e->validator)->withInput();
         }
     }
 
@@ -101,59 +150,54 @@ class ExamController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Exam $exam)
     {
         // Validation des données
         $request->validate([
-            'name' => 'required|string|max:255|unique:exams,name,' . $id,
-            'description' => 'required|string|min:50',  
+            'name' => 'required|string|max:255|unique:exams,name,' . $exam->id,
+            'description' => 'required|string|min:5',  
             'price' => 'nullable|numeric',
-            'service_id' => 'required|exists:services,id', // Validation pour l'ID du service
+            'service_id' => 'required|exists:services,id',
         ]);
 
-        // Modifier un examen
-        $exam = Exam::find($id);
-        
-        if (!$exam) {
+        $exam->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'service_id' => $request->service_id,
+        ]);
+
+        // Si c'est une requête API, retourner JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
-                'status' => false,
-                'message' => 'Examen non trouvé',
-            ], 404);
+                'status' => true,
+                'message' => 'L\'examen a bien été modifié',
+                'data' => $exam,
+            ]);
         }
 
-        $exam->name = $request->name;
-        $exam->description = $request->description;
-        $exam->price = $request->price;
-        $exam->service_id = $request->service_id; // Mettre à jour l'ID du service
-        $exam->save();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'L\'examen a bien été modifié',
-            'data' => $exam,
-        ]);
+        // Sinon, rediriger vers l'interface admin
+        return redirect()->route('admin.exams.show', $exam)
+            ->with('success', 'Examen modifié avec succès !');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, Exam $exam)
     {
-        // Supprimer un examen
-        $exam = Exam::find($id);
-        
-        if (!$exam) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Examen non trouvé',
-            ], 404);
-        }
-
         $exam->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'L\'examen a bien été supprimé',
-        ]);
+        // Si c'est une requête API, retourner JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'L\'examen a bien été supprimé',
+            ]);
+        }
+
+        // Sinon, rediriger vers l'interface admin
+        return redirect()->route('admin.exams')
+            ->with('success', 'Examen supprimé avec succès !');
     }
 }
