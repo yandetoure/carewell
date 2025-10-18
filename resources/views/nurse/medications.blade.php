@@ -57,21 +57,6 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-white bg-opacity-25 me-3">
-                            <i class="fas fa-play text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ $inProgressPrescriptions }}</h4>
-                            <small>En Cours</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -248,8 +233,6 @@
                                         <td>
                                             @if($prescription->status === 'administered')
                                                 <span class="badge bg-success">Administré</span>
-                                            @elseif($prescription->status === 'in_progress')
-                                                <span class="badge bg-info">En Cours</span>
                                             @else
                                                 <span class="badge bg-warning">En Attente</span>
                                             @endif
@@ -257,10 +240,6 @@
                                         <td>
                                             <div class="btn-group btn-group-sm">
                                                 @if($prescription->status === 'pending')
-                                                    <button type="button" class="btn btn-outline-info" title="Commencer traitement" onclick="markAsInProgress({{ $prescription->id }})">
-                                                        <i class="fas fa-play"></i>
-                                                    </button>
-                                                @elseif($prescription->status === 'in_progress')
                                                     <button type="button" class="btn btn-outline-success" title="Marquer comme administré" onclick="markAsAdministered({{ $prescription->id }})">
                                                         <i class="fas fa-check"></i>
                                                     </button>
@@ -295,10 +274,9 @@
                     <!-- Le contenu sera chargé dynamiquement -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                <button type="button" class="btn btn-primary" onclick="addNewPrescription()">Nouvelle Prescription</button>
-            </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    </div>
         </div>
     </div>
 </div>
@@ -470,7 +448,12 @@ function markAsAdministered(prescriptionId) {
         .then(data => {
             if (data.success) {
                 alert('Médicament marqué comme administré !');
-                window.location.reload();
+                // Recharger les prescriptions du patient dans le modal
+                if (currentPatientId) {
+                    viewPrescriptions(currentPatientId);
+                } else {
+                    window.location.reload();
+                }
             } else {
                 alert('Erreur: ' + data.message);
             }
@@ -502,9 +485,9 @@ function generatePrescriptionsHTML(prescriptions) {
                 <td>${prescription.prescription?.name || 'Prescription #' + prescription.id}</td>
                 <td>${prescription.dosage || 'N/A'}</td>
                 <td>${new Date(prescription.created_at).toLocaleDateString('fr-FR')}</td>
-                <td>${getStatusBadge(prescription.status)}</td>
+                <td>${getStatusBadge(prescription.is_done ? 'administered' : 'pending')}</td>
                 <td>
-                    ${getActionButtons(prescription)}
+                    ${getActionButtons(prescription.is_done ? 'administered' : 'pending', prescription.id)}
                 </td>
             </tr>
         `;
@@ -531,32 +514,25 @@ function getStatusBadge(status) {
     switch(status) {
         case 'administered':
             return '<span class="badge bg-success">Administré</span>';
-        case 'in_progress':
-            return '<span class="badge bg-info">En Cours</span>';
         case 'pending':
         default:
             return '<span class="badge bg-warning">En Attente</span>';
     }
 }
 
-function getActionButtons(prescription) {
+function getActionButtons(status, prescriptionId) {
     let buttons = '';
     
-    if (prescription.status === 'pending') {
-        buttons += '<button class="btn btn-sm btn-info" onclick="markAsInProgress(' + prescription.id + ')" title="Commencer traitement"><i class="fas fa-play"></i></button>';
-    } else if (prescription.status === 'in_progress') {
-        buttons += '<button class="btn btn-sm btn-success" onclick="markAsAdministered(' + prescription.id + ')" title="Marquer comme administré"><i class="fas fa-check"></i></button>';
+    if (status === 'pending') {
+        buttons += '<button class="btn btn-sm btn-success" onclick="markAsAdministered(' + prescriptionId + ')" title="Marquer comme administré"><i class="fas fa-check"></i></button>';
     }
     
-    buttons += '<button class="btn btn-sm btn-primary" onclick="viewPrescriptionDetails(' + prescription.id + ')" title="Voir détails"><i class="fas fa-eye"></i></button>';
+    buttons += '<button class="btn btn-sm btn-primary" onclick="viewPrescriptionDetails(' + prescriptionId + ')" title="Voir détails"><i class="fas fa-eye"></i></button>';
     
     return buttons;
 }
 
 // Fonctions des boutons des modals
-function addNewPrescription() {
-    alert('Fonctionnalité d\'ajout de prescription à implémenter');
-}
 
 function confirmAdministration() {
     const selectedPrescription = document.getElementById('selectedPrescription').value;
@@ -581,13 +557,18 @@ function confirmAdministration() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert('Médicament administré avec succès !');
-            bootstrap.Modal.getInstance(document.getElementById('administerModal')).hide();
-            window.location.reload();
-        } else {
-            alert('Erreur: ' + data.message);
-        }
+            if (data.success) {
+                alert('Médicament administré avec succès !');
+                bootstrap.Modal.getInstance(document.getElementById('administerModal')).hide();
+                // Recharger les prescriptions du patient dans le modal
+                if (currentPatientId) {
+                    viewPrescriptions(currentPatientId);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert('Erreur: ' + data.message);
+            }
     })
     .catch(error => {
         console.error('Error:', error);

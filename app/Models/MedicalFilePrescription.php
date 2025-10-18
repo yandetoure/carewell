@@ -29,14 +29,12 @@ class MedicalFilePrescription extends Model
         }
 
         /**
-         * Get the status based on is_done and updated_at
+         * Get the status based on is_done
          */
         public function getStatusAttribute()
         {
             if ($this->is_done) {
                 return 'administered';
-            } elseif ($this->updated_at && $this->updated_at != $this->created_at) {
-                return 'in_progress';
             } else {
                 return 'pending';
             }
@@ -67,11 +65,11 @@ class MedicalFilePrescription extends Model
         }
 
         /**
-         * Mark prescription as in progress
+         * Mark prescription as in progress (same as administered for simplicity)
          */
         public function markAsInProgress()
         {
-            $this->update(['updated_at' => now()]);
+            $this->update(['is_done' => true]);
         }
 
         /**

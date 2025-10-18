@@ -143,7 +143,6 @@ class NurseController extends Controller
         // Statistics
         $totalHospitalized = $hospitalizedPatients->count();
         $pendingPrescriptions = $prescriptions->where('status', 'pending')->count();
-        $inProgressPrescriptions = $prescriptions->where('status', 'in_progress')->count();
         $completedPrescriptions = $prescriptions->where('status', 'administered')->count();
 
         return view('nurse.medications', compact(
@@ -151,7 +150,6 @@ class NurseController extends Controller
             'prescriptions',
             'totalHospitalized',
             'pendingPrescriptions',
-            'inProgressPrescriptions',
             'completedPrescriptions',
             'nurse'
         ));
@@ -818,7 +816,7 @@ class NurseController extends Controller
             ], 400);
         }
 
-        $prescriptions = $patient->medicalFile->medicalprescription->load('prescription') ?? collect();
+        $prescriptions = $patient->medicalFile->medicalprescription()->with('prescription')->get() ?? collect();
 
         return response()->json([
             'success' => true,
@@ -846,7 +844,7 @@ class NurseController extends Controller
             ], 400);
         }
 
-        $prescriptions = $patient->medicalFile->medicalprescription->where('is_done', false)->load('prescription') ?? collect();
+        $prescriptions = $patient->medicalFile->medicalprescription()->with('prescription')->where('is_done', false)->get() ?? collect();
 
         return response()->json([
             'success' => true,
