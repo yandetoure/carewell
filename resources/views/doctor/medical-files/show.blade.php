@@ -154,19 +154,24 @@
                         @foreach($medicalFile->medicalprescription->sortByDesc('created_at') as $prescription)
                             <div class="border-bottom pb-3 mb-3">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">{{ $prescription->prescription->medication_name ?? 'Prescription' }}</h6>
+                                    <h6 class="mb-0">{{ $prescription->prescription->name ?? 'Prescription' }}</h6>
                                     <small class="text-muted">{{ $prescription->created_at->format('d/m/Y H:i') }}</small>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Posologie:</strong> {{ $prescription->prescription->dosage ?? 'N/A' }}</p>
-                                        <p class="mb-1"><strong>Durée:</strong> {{ $prescription->prescription->duration ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Quantité:</strong> {{ $prescription->quantity ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Fréquence:</strong> {{ $prescription->frequency ?? 'N/A' }}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Instructions:</strong> {{ $prescription->prescription->instructions ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Durée:</strong> {{ $prescription->duration ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Instructions:</strong> {{ $prescription->instructions ?? 'N/A' }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
                                         <p class="mb-1"><strong>Statut:</strong> 
-                                            <span class="badge bg-{{ $prescription->prescription->status == 'active' ? 'success' : 'secondary' }}">
-                                                {{ ucfirst($prescription->prescription->status ?? 'N/A') }}
+                                            <span class="badge bg-{{ $prescription->is_done ? 'success' : 'warning' }}">
+                                                {{ $prescription->is_done ? 'Terminé' : 'En cours' }}
                                             </span>
                                         </p>
                                     </div>
@@ -204,11 +209,11 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Type:</strong> {{ $exam->exam->type ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Type:</strong> {{ $exam->type ?? 'N/A' }}</p>
                                         <p class="mb-1"><strong>Description:</strong> {{ $exam->exam->description ?? 'N/A' }}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Instructions:</strong> {{ $exam->exam->instructions ?? 'N/A' }}</p>
+                                        <p class="mb-1"><strong>Instructions:</strong> {{ $exam->instructions ?? 'N/A' }}</p>
                                         <p class="mb-1"><strong>Statut:</strong> 
                                             <span class="badge bg-{{ $exam->is_done ? 'success' : 'warning' }}">
                                                 {{ $exam->is_done ? 'Terminé' : 'En attente' }}
@@ -311,36 +316,37 @@
                 </div>
             </div>
 
-            <!-- Recent Appointments -->
+            <!-- Ordonnances -->
             <div class="card mb-4">
                 <div class="card-header">
                     <h6 class="mb-0">
-                        <i class="fas fa-calendar-check text-primary me-2"></i>
-                        Rendez-vous récents
+                        <i class="fas fa-prescription-bottle-alt text-danger me-2"></i>
+                        Ordonnances récentes
                     </h6>
                 </div>
                 <div class="card-body">
-                    @if($patient->appointments && $patient->appointments->count() > 0)
-                        @foreach($patient->appointments->sortByDesc('appointment_date')->take(5) as $appointment)
-                            <div class="border-bottom pb-2 mb-2">
+                    @if($ordonnances && $ordonnances->count() > 0)
+                        @foreach($ordonnances->take(5) as $ordonnance)
+                            <div class="border-bottom pb-2 mb-2 cursor-pointer" onclick="showOrdonnanceDetails({{ $ordonnance->id }})" style="cursor: pointer;">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <strong>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d/m/Y') }}</strong><br>
-                                        <small class="text-muted">{{ $appointment->appointment_time }}</small>
+                                        <strong>{{ $ordonnance->numero_ordonnance }}</strong><br>
+                                        <small class="text-muted">{{ $ordonnance->created_at->format('d/m/Y H:i') }}</small>
                                     </div>
-                                    <span class="badge bg-{{ $appointment->status == 'confirmed' ? 'success' : ($appointment->status == 'pending' ? 'warning' : 'danger') }}">
-                                        {{ ucfirst($appointment->status) }}
+                                    <span class="badge bg-{{ $ordonnance->statut == 'active' ? 'success' : ($ordonnance->statut == 'expiree' ? 'danger' : 'secondary') }}">
+                                        {{ ucfirst($ordonnance->statut) }}
                                     </span>
                                 </div>
-                                @if($appointment->service)
-                                    <small class="text-muted">{{ $appointment->service->name }}</small>
-                                @endif
+                                <small class="text-muted">
+                                    <i class="fas fa-pills me-1"></i>
+                                    {{ $ordonnance->medicaments->count() }} médicament(s)
+                                </small>
                             </div>
                         @endforeach
                     @else
                         <div class="text-center text-muted py-3">
-                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
-                            <p class="mb-0">Aucun rendez-vous</p>
+                            <i class="fas fa-prescription-bottle-alt fa-2x mb-2"></i>
+                            <p class="mb-0">Aucune ordonnance</p>
                         </div>
                     @endif
                 </div>
@@ -1427,6 +1433,121 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Fonction pour afficher les détails d'une ordonnance
+function showOrdonnanceDetails(ordonnanceId) {
+    // Récupérer les données de l'ordonnance depuis les données passées à la vue
+    const ordonnances = @json($ordonnances);
+    const ordonnance = ordonnances.find(o => o.id === ordonnanceId);
+    
+    if (!ordonnance) {
+        alert('Ordonnance non trouvée');
+        return;
+    }
+    
+    // Construire le contenu HTML
+    let content = `
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h6 class="text-danger">Informations de l'ordonnance</h6>
+                <p><strong>Numéro:</strong> ${ordonnance.numero_ordonnance}</p>
+                <p><strong>Date de prescription:</strong> ${new Date(ordonnance.date_prescription).toLocaleDateString('fr-FR')}</p>
+                <p><strong>Date de validité:</strong> ${ordonnance.date_validite ? new Date(ordonnance.date_validite).toLocaleDateString('fr-FR') : 'N/A'}</p>
+                <p><strong>Statut:</strong> 
+                    <span class="badge bg-${ordonnance.statut === 'active' ? 'success' : (ordonnance.statut === 'expiree' ? 'danger' : 'secondary')}">
+                        ${ordonnance.statut.charAt(0).toUpperCase() + ordonnance.statut.slice(1)}
+                    </span>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-danger">Informations du patient</h6>
+                <p><strong>Patient:</strong> ${ordonnance.patient_first_name} ${ordonnance.patient_last_name}</p>
+                <p><strong>Médecin:</strong> ${ordonnance.medecin_first_name} ${ordonnance.medecin_last_name}</p>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <h6 class="text-danger mb-3">Médicaments prescrits</h6>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Médicament</th>
+                        <th>Quantité</th>
+                        <th>Posologie</th>
+                        <th>Durée</th>
+                        <th>Instructions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    ordonnance.medicaments.forEach(medicament => {
+        content += `
+            <tr>
+                <td>
+                    <strong>${medicament.nom}</strong><br>
+                    <small class="text-muted">${medicament.forme || ''} ${medicament.dosage || ''}</small>
+                </td>
+                <td>${medicament.pivot.quantite}</td>
+                <td>${medicament.pivot.posologie}</td>
+                <td>${medicament.pivot.duree_jours ? medicament.pivot.duree_jours + ' jours' : 'N/A'}</td>
+                <td>${medicament.pivot.instructions_speciales || 'N/A'}</td>
+            </tr>
+        `;
+    });
+    
+    content += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    if (ordonnance.instructions) {
+        content += `
+            <hr>
+            <h6 class="text-danger">Instructions générales</h6>
+            <p>${ordonnance.instructions}</p>
+        `;
+    }
+    
+    // Afficher le modal
+    document.getElementById('ordonnanceDetailsContent').innerHTML = content;
+    const modal = new bootstrap.Modal(document.getElementById('ordonnanceDetailsModal'));
+    modal.show();
+}
+
+// Fonction pour imprimer l'ordonnance
+function printOrdonnance() {
+    const content = document.getElementById('ordonnanceDetailsContent').innerHTML;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Ordonnance</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                @media print {
+                    body { margin: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container mt-4">
+                <div class="text-center mb-4">
+                    <h2 class="text-danger">ORDONNANCE MÉDICALE</h2>
+                    <hr>
+                </div>
+                ${content}
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+}
 </script>
 
 <style>
@@ -1562,4 +1683,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+
+<!-- Modal pour afficher les détails d'une ordonnance -->
+<div class="modal fade" id="ordonnanceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Détails de l'ordonnance</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="ordonnanceDetailsContent">
+                <!-- Le contenu sera chargé dynamiquement -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-danger" onclick="printOrdonnance()">
+                    <i class="fas fa-print me-2"></i>Imprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection

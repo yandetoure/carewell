@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -14,6 +14,8 @@ class MedicalFileExam extends Model
         'exam_id',
         'is_done',
         'doctor_id',
+        'type',
+        'instructions'
     ];
     
     public function medicalFile()
@@ -29,6 +31,11 @@ class MedicalFileExam extends Model
     public function result()
     {
         return $this->hasOne(Result::class, 'exam_id');
+    }
+
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_id');
     }
 
 }

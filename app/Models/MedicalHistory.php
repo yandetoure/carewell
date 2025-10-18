@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -19,6 +19,11 @@ class MedicalHistory extends Model
     // Déclaration de la relation avec MedicalFile
     public function medicalFile(){
         return $this->belongsTo(MedicalFile::class);
+    }
+    
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_id');
     }
     
 }

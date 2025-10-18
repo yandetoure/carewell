@@ -65,7 +65,13 @@ class MedicalFileController extends Controller
             ->findOrFail($patientId);
         
         // Récupérer le dossier médical du patient
-        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
+        $medicalFile = MedicalFile::with([
+            'note.doctor', 
+            'medicalHistories.doctor', 
+            'medicalprescription.doctor', 
+            'medicalexam.doctor',
+            'user'
+        ])
             ->where('user_id', $patientId)
             ->first();
         
@@ -90,7 +96,15 @@ class MedicalFileController extends Controller
         // Récupérer la liste des médicaments pour le modal ordonnance
         $medicaments = \App\Models\Medicament::disponible()->orderBy('nom')->get();
         
-        return view('doctor.medical-files.show', compact('medicalFile', 'patient', 'diseases', 'prescriptions', 'exams', 'medicaments'));
+        // Récupérer les ordonnances du patient
+        $ordonnances = \App\Models\Ordonnance::where('patient_id', $patientId)
+            ->with(['medicaments' => function($query) {
+                $query->withPivot(['quantite', 'posologie', 'duree_jours', 'instructions_speciales']);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('doctor.medical-files.show', compact('medicalFile', 'patient', 'diseases', 'prescriptions', 'exams', 'medicaments', 'ordonnances'));
     }
 
     /**
@@ -203,6 +217,10 @@ class MedicalFileController extends Controller
 {
     $validated = $request->validate([
         'prescription_id' => 'required|exists:prescriptions,id',
+        'quantity' => 'nullable|integer|min:1',
+        'frequency' => 'nullable|string',
+        'duration' => 'nullable|string',
+        'instructions' => 'nullable|string',
     ]);
 
     $medicalFile = MedicalFile::find($id);
@@ -229,6 +247,10 @@ class MedicalFileController extends Controller
     $medicalFile->medicalprescription()->create([
         'prescription_id' => $prescription->id,
         'doctor_id' => Auth::id(),
+        'quantity' => $validated['quantity'] ?? null,
+        'frequency' => $validated['frequency'] ?? null,
+        'duration' => $validated['duration'] ?? null,
+        'instructions' => $validated['instructions'] ?? null,
     ]);
 
     // Créer le ticket en ajoutant l'ID du patient
@@ -247,6 +269,12 @@ class MedicalFileController extends Controller
 
     public function addExam(Request $request, string $id)
     {
+        $validated = $request->validate([
+            'exam_id' => 'required|exists:exams,id',
+            'type' => 'nullable|string',
+            'instructions' => 'nullable|string',
+        ]);
+
         $medicalFile = MedicalFile::find($id);
     
         if (!$medicalFile) {
@@ -257,7 +285,7 @@ class MedicalFileController extends Controller
         //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter un examen.'], 403);
         // }
     
-        $exam = Exam::find($request->exam_id);
+        $exam = Exam::find($validated['exam_id']);
         if (!$exam) {
             return response()->json(['message' => 'Examen non trouvé'], 404);
         }
@@ -266,6 +294,8 @@ class MedicalFileController extends Controller
         $medicalFile->medicalexam()->create([
             'exam_id' => $exam->id,
             'doctor_id' => Auth::id(),
+            'type' => $validated['type'] ?? null,
+            'instructions' => $validated['instructions'] ?? null,
         ]);    
 
 

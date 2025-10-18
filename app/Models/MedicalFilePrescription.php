@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -14,6 +14,11 @@ class MedicalFilePrescription extends Model
         'prescription_id',
         'is_done',
         'doctor_id',
+        'dosage',
+        'duration',
+        'instructions',
+        'quantity',
+        'frequency'
     ];
 
  
@@ -26,6 +31,11 @@ class MedicalFilePrescription extends Model
         public function prescription() 
         {
             return $this->belongsTo(Prescription::class); 
+        }
+
+        public function doctor()
+        {
+            return $this->belongsTo(User::class, 'doctor_id');
         }
 
 }

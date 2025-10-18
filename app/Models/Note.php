@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -19,5 +19,10 @@ class Note extends Model
     public function medicalFile()
     {
         return $this->belongsTo(MedicalFile::class);
+    }
+
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_id');
     }
 }
