@@ -36,7 +36,7 @@
                             <i class="fas fa-bell text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $notifications->count() }}</h4>
+                            <h4 class="mb-1">{{ $totalNotifications }}</h4>
                             <p class="text-muted mb-0">Total notifications</p>
                         </div>
                     </div>
@@ -51,7 +51,7 @@
                             <i class="fas fa-check-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $notifications->where('is_read', true)->count() }}</h4>
+                            <h4 class="mb-1">{{ $totalNotifications - $unreadNotifications }}</h4>
                             <p class="text-muted mb-0">Lues</p>
                         </div>
                     </div>
@@ -66,7 +66,7 @@
                             <i class="fas fa-exclamation-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $notifications->where('is_read', false)->count() }}</h4>
+                            <h4 class="mb-1">{{ $unreadNotifications }}</h4>
                             <p class="text-muted mb-0">Non lues</p>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $notifications->where('created_at', '>=', now()->subDays(7))->count() }}</h4>
+                            <h4 class="mb-1">{{ $weekNotifications }}</h4>
                             <p class="text-muted mb-0">Cette semaine</p>
                         </div>
                     </div>

@@ -36,7 +36,7 @@
                             <i class="fas fa-envelope text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $messages->count() }}</h4>
+                            <h4 class="mb-1">{{ $totalMessages }}</h4>
                             <p class="text-muted mb-0">Total messages</p>
                         </div>
                     </div>
@@ -51,7 +51,7 @@
                             <i class="fas fa-check-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $messages->where('is_read', true)->count() }}</h4>
+                            <h4 class="mb-1">{{ $totalMessages - $unreadMessages }}</h4>
                             <p class="text-muted mb-0">Messages lus</p>
                         </div>
                     </div>
@@ -66,7 +66,7 @@
                             <i class="fas fa-exclamation-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $messages->where('is_read', false)->count() }}</h4>
+                            <h4 class="mb-1">{{ $unreadMessages }}</h4>
                             <p class="text-muted mb-0">Non lus</p>
                         </div>
                     </div>
@@ -81,8 +81,8 @@
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $messages->where('created_at', '>=', now()->subDays(7))->count() }}</h4>
-                            <p class="text-muted mb-0">Cette semaine</p>
+                            <h4 class="mb-1">{{ $todayMessages }}</h4>
+                            <p class="text-muted mb-0">Aujourd'hui</p>
                         </div>
                     </div>
                 </div>
@@ -100,6 +100,9 @@
                             <i class="fas fa-envelope me-2"></i>Messages du service
                         </h5>
                         <div class="d-flex gap-2">
+                            <a href="{{ route('doctor.messages.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Nouvelle conversation
+                            </a>
                             <a href="{{ route('doctor.patients') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-users me-2"></i>Mes patients
                             </a>
@@ -113,87 +116,73 @@
         </div>
     </div>
 
-    <!-- Liste des messages -->
+    <!-- Liste des discussions -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    @if($messages->count() > 0)
+                    @if(count($result) > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Expéditeur</th>
-                                        <th>Destinataire</th>
-                                        <th>Sujet</th>
-                                        <th>Message</th>
+                                        <th>Patient</th>
+                                        <th>Dernier message</th>
+                                        <th>Heure</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($messages as $message)
-                                        <tr class="{{ $message->is_read ? '' : 'table-warning' }}">
+                                    @foreach($result as $discussion)
+                                        <tr class="{{ $discussion['unread_count'] > 0 ? 'table-warning' : '' }}">
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <i class="fas fa-calendar text-primary me-2"></i>
-                                                    {{ \Carbon\Carbon::parse($message->created_at)->format('d/m/Y H:i') }}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-user text-success me-2"></i>
-                                                    <div>
-                                                        <div class="fw-bold">{{ $message->sender->first_name ?? 'N/A' }} {{ $message->sender->last_name ?? 'N/A' }}</div>
-                                                        <small class="text-muted">{{ $message->sender->email ?? 'Email non renseigné' }}</small>
+                                                    <div class="patient-avatar me-3">
+                                                        @if($discussion['user_photo'])
+                                                            <img src="{{ $discussion['user_photo'] }}" alt="Photo" class="rounded-circle" width="40" height="40">
+                                                        @else
+                                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                                        @endif
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-user-md text-primary me-2"></i>
                                                     <div>
-                                                        <div class="fw-bold">{{ $message->recipient->first_name ?? 'N/A' }} {{ $message->recipient->last_name ?? 'N/A' }}</div>
-                                                        <small class="text-muted">{{ $message->recipient->email ?? 'Email non renseigné' }}</small>
+                                                        <div class="fw-bold">{{ $discussion['user_first_name'] }} {{ $discussion['user_last_name'] }}</div>
+                                                        <small class="text-muted">Patient</small>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-tag text-warning me-2"></i>
-                                                    {{ $message->subject ?? 'Sujet non spécifié' }}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-envelope text-info me-2"></i>
-                                                    {{ Str::limit($message->message ?? 'Message non disponible', 50) }}
+                                                    {{ Str::limit($discussion['last_message'], 50) }}
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $message->is_read ? 'success' : 'warning' }}">
-                                                    {{ $message->is_read ? 'Lu' : 'Non lu' }}
-                                                </span>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-clock text-secondary me-2"></i>
+                                                    {{ $discussion['last_message_time'] }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($discussion['unread_count'] > 0)
+                                                    <span class="badge bg-warning">
+                                                        {{ $discussion['unread_count'] }} non lu(s)
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-success">Tous lus</span>
+                                                @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button type="button" class="btn btn-outline-primary" 
-                                                            onclick="showMessageDetails({{ $message->id }}, '{{ $message->subject ?? 'Sujet non spécifié' }}', '{{ $message->message ?? 'Message non disponible' }}', '{{ $message->sender->first_name ?? 'N/A' }} {{ $message->sender->last_name ?? 'N/A' }}', '{{ \Carbon\Carbon::parse($message->created_at)->format('d/m/Y H:i') }}')" 
-                                                            title="Voir le message">
-                                                        <i class="fas fa-eye"></i>
+                                                            onclick="openChat({{ $discussion['user_id'] }}, '{{ $discussion['user_first_name'] }} {{ $discussion['user_last_name'] }}')" 
+                                                            title="Ouvrir la conversation">
+                                                        <i class="fas fa-comments"></i>
                                                     </button>
-                                                    @if(!$message->is_read)
-                                                        <button type="button" class="btn btn-outline-success" 
-                                                                onclick="markAsRead({{ $message->id }})" 
-                                                                title="Marquer comme lu">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    @endif
-                                                    <a href="{{ route('doctor.messages.create', $message->sender) }}" 
-                                                       class="btn btn-outline-info" 
-                                                       title="Répondre">
-                                                        <i class="fas fa-reply"></i>
+                                                    <a href="{{ route('doctor.messages.create', $discussion['user_id']) }}" 
+                                                       class="btn btn-outline-success" 
+                                                       title="Nouveau message">
+                                                        <i class="fas fa-plus"></i>
                                                     </a>
                                                 </div>
                                             </td>
@@ -205,11 +194,16 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-envelope fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">Aucun message</h5>
-                            <p class="text-muted">Aucun message n'a été trouvé pour ce service.</p>
-                            <a href="{{ route('doctor.patients') }}" class="btn btn-primary">
-                                <i class="fas fa-users me-2"></i>Voir mes patients
-                            </a>
+                            <h5 class="text-muted">Aucune conversation</h5>
+                            <p class="text-muted">Aucune conversation n'a été trouvée avec les patients de votre service.</p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="{{ route('doctor.messages.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Nouvelle conversation
+                                </a>
+                                <a href="{{ route('doctor.patients') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-users me-2"></i>Voir mes patients
+                                </a>
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -231,10 +225,10 @@
                         <div class="col-md-6">
                             <h6 class="text-primary">📊 Statistiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-envelope text-primary me-2"></i><strong>Total messages:</strong> {{ $messages->count() }}</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Messages lus:</strong> {{ $messages->where('is_read', true)->count() }}</li>
-                                <li><i class="fas fa-exclamation-circle text-warning me-2"></i><strong>Non lus:</strong> {{ $messages->where('is_read', false)->count() }}</li>
-                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $messages->where('created_at', '>=', now()->subDays(7))->count() }}</li>
+                                <li><i class="fas fa-envelope text-primary me-2"></i><strong>Total messages:</strong> {{ $totalMessages }}</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Messages lus:</strong> {{ $totalMessages - $unreadMessages }}</li>
+                                <li><i class="fas fa-exclamation-circle text-warning me-2"></i><strong>Non lus:</strong> {{ $unreadMessages }}</li>
+                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Aujourd'hui:</strong> {{ $todayMessages }}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -308,11 +302,24 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
+
+.patient-avatar {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 </style>
 @endpush
 
 @push('scripts')
 <script>
+function openChat(userId, userName) {
+    // Rediriger vers une page de chat avec l'utilisateur spécifique
+    window.location.href = `/doctor/messages/chat/${userId}`;
+}
+
 function showMessageDetails(id, subject, message, sender, date) {
     document.getElementById('messageDetailsContent').innerHTML = `
         <div class="card">
@@ -346,11 +353,28 @@ function showMessageDetails(id, subject, message, sender, date) {
 }
 
 function markAsRead(messageId) {
-    // Ici vous pouvez ajouter une requête AJAX pour marquer le message comme lu
-    // Pour l'instant, on recharge la page
-    if (confirm('Marquer ce message comme lu ?')) {
-        location.reload();
-    }
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/messages/${messageId}/mark-read`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status) {
+            location.reload();
+        } else {
+            alert('Erreur lors de la mise à jour du statut');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la mise à jour du statut');
+    });
 }
 </script>
 @endpush

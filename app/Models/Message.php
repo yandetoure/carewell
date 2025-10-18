@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -13,6 +13,7 @@ class Message extends Model
         'sender_id',
         'receiver_id',
         'message',
+        'subject',
         'photo',
         'is_deleted',
         'updated_message',

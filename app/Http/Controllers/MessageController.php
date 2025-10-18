@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Http\Controllers;
 
@@ -59,6 +59,7 @@ class MessageController extends Controller
        $request->validate([
            'receiver_id' => 'required|exists:users,id',
            'message' => 'required|string|max:5000',
+           'subject' => 'nullable|string|max:255',
        ]);
 
        try {
@@ -67,6 +68,7 @@ class MessageController extends Controller
                'sender_id' => Auth::id(),
                'receiver_id' => $request->receiver_id,
                'message' => $request->message,
+               'subject' => $request->subject,
            ]);
 
            return response()->json([
@@ -212,5 +214,117 @@ public function markAsRead($id)
         return response()->json(['error' => 'Failed to mark message as read', 'details' => $e->getMessage()], 500);
     }
 }
+
+    /**
+     * Afficher les messages pour les médecins
+     */
+    public function doctorMessages()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les discussions du médecin
+        $discussions = Message::where('sender_id', $doctor->id)
+            ->orWhere('receiver_id', $doctor->id)
+            ->with(['sender', 'receiver'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy(function($message) use ($doctor) {
+                return $message->sender_id === $doctor->id ? $message->receiver_id : $message->sender_id;
+            });
+
+        $result = [];
+        foreach ($discussions as $userId => $messages) {
+            $lastMessage = $messages->last();
+            $unreadCount = $messages->where('is_read', false)->where('receiver_id', $doctor->id)->count();
+            
+            $user = $messages->first()->sender_id === $doctor->id ? $messages->first()->receiver : $messages->first()->sender;
+
+            $result[] = [
+                'user_id' => $userId,
+                'user_first_name' => $user->first_name,
+                'user_last_name' => $user->last_name,
+                'user_photo' => $user->photo ? asset('storage/' . $user->photo) : null,
+                'last_message' => $lastMessage->message,
+                'last_message_time' => $lastMessage->created_at->format('H:i'),
+                'unread_count' => $unreadCount,
+            ];
+        }
+
+        // Statistiques des messages
+        $totalMessages = Message::where('sender_id', $doctor->id)->count();
+        $unreadMessages = Message::where('receiver_id', $doctor->id)->where('is_read', false)->count();
+        $todayMessages = Message::where('sender_id', $doctor->id)
+            ->whereDate('created_at', today())
+            ->count();
+
+        return view('doctor.messages', compact('result', 'totalMessages', 'unreadMessages', 'todayMessages', 'doctor'));
+    }
+
+    /**
+     * Créer un nouveau message pour les médecins
+     */
+    public function createMessage($patientId = null)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les patients du service du médecin
+        $patients = \App\Models\User::whereHas('appointments', function($query) use ($doctor) {
+            $query->where('service_id', $doctor->service_id);
+        })->get();
+
+        $selectedPatient = null;
+        if ($patientId) {
+            $selectedPatient = \App\Models\User::find($patientId);
+        }
+
+        return view('doctor.messages.create', compact('patients', 'selectedPatient', 'doctor'));
+    }
+
+    /**
+     * Afficher la conversation avec un utilisateur spécifique
+     */
+    public function chatWithUser($userId)
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Vérifier que l'utilisateur existe
+        $user = \App\Models\User::find($userId);
+        if (!$user) {
+            abort(404, 'Utilisateur non trouvé');
+        }
+
+        // Récupérer les messages entre le médecin et l'utilisateur
+        $messages = Message::where(function($query) use ($doctor, $userId) {
+                $query->where('sender_id', $doctor->id)
+                      ->where('receiver_id', $userId);
+            })
+            ->orWhere(function($query) use ($doctor, $userId) {
+                $query->where('sender_id', $userId)
+                      ->where('receiver_id', $doctor->id);
+            })
+            ->with(['sender', 'receiver'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Marquer les messages comme lus
+        Message::where('sender_id', $userId)
+            ->where('receiver_id', $doctor->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return view('doctor.messages.chat', compact('messages', 'user', 'doctor'));
+    }
 
 }

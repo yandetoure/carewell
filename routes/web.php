@@ -196,7 +196,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/notes', [NoteController::class, 'doctorNotes'])->name('doctor.notes');
         Route::get('/follow-up', [AppointmentController::class, 'doctorFollowUp'])->name('doctor.follow-up');
         Route::get('/messages', [MessageController::class, 'doctorMessages'])->name('doctor.messages');
-        Route::get('/messages/create/{patient}', [MessageController::class, 'createMessage'])->name('doctor.messages.create');
+        Route::get('/messages/create', [MessageController::class, 'createMessage'])->name('doctor.messages.create');
+        Route::get('/messages/create/{patient}', [MessageController::class, 'createMessage'])->name('doctor.messages.create.with-patient');
+        Route::get('/messages/chat/{userId}', [MessageController::class, 'chatWithUser'])->name('doctor.messages.chat');
+        Route::post('/messages/send', [MessageController::class, 'sendMessage'])->name('doctor.messages.send');
         Route::get('/notifications', [NotificationController::class, 'doctorNotifications'])->name('doctor.notifications');
         Route::get('/profile', [ProfileController::class, 'doctorProfile'])->name('doctor.profile');
         Route::get('/settings', [ProfileController::class, 'doctorSettings'])->name('doctor.settings');
