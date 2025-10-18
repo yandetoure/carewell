@@ -367,19 +367,24 @@ public function getUsers()
         ->orderBy('created_at', 'desc')
         ->paginate(20);
 
-    return view('admin.users.index', compact('users'));
+    $roles = \Spatie\Permission\Models\Role::all();
+
+    return view('admin.users.index', compact('users', 'roles'));
 }
 
 
 public function store(Request $request)
 {
+    // Récupérer tous les noms de rôles disponibles
+    $availableRoles = \Spatie\Permission\Models\Role::pluck('name')->toArray();
+    
     $validated = $request->validate([
         'first_name' => 'required|string|max:255',
         'last_name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users',
         'phone_number' => 'nullable|string|max:20',
         'password' => 'required|string|min:8',
-        'role' => 'required|string|in:Patient,Doctor,Secretary,Admin',
+        'role' => 'required|string|in:' . implode(',', $availableRoles),
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
@@ -447,8 +452,11 @@ public function update(Request $request, User $user)
 
 public function updateRole(Request $request, User $user)
 {
+    // Récupérer tous les noms de rôles disponibles
+    $availableRoles = \Spatie\Permission\Models\Role::pluck('name')->toArray();
+    
     $validated = $request->validate([
-        'role' => 'required|string|in:patient,doctor,secretary,admin',
+        'role' => 'required|string|in:' . implode(',', $availableRoles),
     ]);
 
     $user->syncRoles([$validated['role']]);

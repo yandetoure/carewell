@@ -71,10 +71,11 @@
                         <div class="col-md-3">
                             <select class="form-select" id="filterRole">
                                 <option value="">Tous les rôles</option>
-                                <option value="patient">Patient</option>
-                                <option value="doctor">Médecin</option>
-                                <option value="secretary">Secrétaire</option>
-                                <option value="admin">Administrateur</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ strtolower($role->name) }}">
+                                        {{ $role->display_name ?? $role->name }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -138,14 +139,22 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($user->hasRole('Admin'))
-                                            <span class="badge bg-danger">Administrateur</span>
-                                        @elseif($user->hasRole('Doctor'))
-                                            <span class="badge bg-primary">Médecin</span>
-                                        @elseif($user->hasRole('Secretary'))
-                                            <span class="badge bg-warning">Secrétaire</span>
+                                        @if($user->roles->count() > 0)
+                                            @foreach($user->roles as $role)
+                                                @if($role->name === 'Admin')
+                                                    <span class="badge bg-danger">Administrateur</span>
+                                                @elseif($role->name === 'Doctor')
+                                                    <span class="badge bg-primary">Médecin</span>
+                                                @elseif($role->name === 'Secretary')
+                                                    <span class="badge bg-warning">Secrétaire</span>
+                                                @elseif($role->name === 'Patient')
+                                                    <span class="badge bg-success">Patient</span>
+                                                @else
+                                                    <span class="badge bg-info">{{ $role->display_name ?? $role->name }}</span>
+                                                @endif
+                                            @endforeach
                                         @else
-                                            <span class="badge bg-success">Patient</span>
+                                            <span class="badge bg-secondary">Aucun rôle</span>
                                         @endif
                                     </td>
                                     <td>
@@ -262,10 +271,11 @@
                                 <label for="role" class="form-label">Rôle *</label>
                                 <select class="form-select" id="role" name="role" required>
                                     <option value="">Sélectionner un rôle</option>
-                                    <option value="Patient">Patient</option>
-                                    <option value="Doctor">Médecin</option>
-                                    <option value="Secretary">Secrétaire</option>
-                                    <option value="Admin">Administrateur</option>
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->name }}">
+                                            {{ $role->display_name ?? $role->name }}
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
                         </div>
@@ -300,10 +310,12 @@
                     <div class="mb-3">
                         <label for="new_role" class="form-label">Nouveau rôle</label>
                         <select class="form-select" id="new_role" name="role" required>
-                            <option value="patient">Patient</option>
-                            <option value="doctor">Médecin</option>
-                            <option value="secretary">Secrétaire</option>
-                            <option value="admin">Administrateur</option>
+                            <option value="">Sélectionner un rôle</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->name }}">
+                                    {{ $role->display_name ?? $role->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="alert alert-warning">
