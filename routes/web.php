@@ -182,6 +182,13 @@ Route::middleware('auth')->group(function () {
                 // Routes pour l'assignation de lits
                 Route::post('/patients/{patientId}/assign-bed', [NurseController::class, 'assignBedToPatient'])->name('nurse.patients.assign-bed');
                 Route::post('/patients/{patientId}/discharge', [NurseController::class, 'dischargePatient'])->name('nurse.patients.discharge');
+                
+                // Routes pour les prescriptions
+                Route::get('/patients/{patientId}/prescriptions', [NurseController::class, 'getPatientPrescriptions'])->name('nurse.patients.prescriptions');
+                Route::get('/patients/{patientId}/pending-prescriptions', [NurseController::class, 'getPatientPendingPrescriptions'])->name('nurse.patients.pending-prescriptions');
+                Route::post('/prescriptions/{prescriptionId}/mark-administered', [NurseController::class, 'markPrescriptionAsAdministered'])->name('nurse.prescriptions.mark-administered');
+                Route::post('/prescriptions/{prescriptionId}/mark-in-progress', [NurseController::class, 'markPrescriptionAsInProgress'])->name('nurse.prescriptions.mark-in-progress');
+                Route::post('/prescriptions/{prescriptionId}/administer', [NurseController::class, 'administerPrescription'])->name('nurse.prescriptions.administer');
             });
 
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)

@@ -134,7 +134,7 @@ class NurseController extends Controller
         $prescriptions = MedicalFilePrescription::whereHas('medicalFile.beds', function($query) {
                 $query->where('status', 'occupe');
             })
-            ->with(['medicalFile.user', 'medicalFile.beds' => function($query) {
+            ->with(['medicalFile.user', 'prescription', 'medicalFile.beds' => function($query) {
                 $query->where('status', 'occupe');
             }])
             ->orderBy('created_at', 'desc')
@@ -142,14 +142,16 @@ class NurseController extends Controller
 
         // Statistics
         $totalHospitalized = $hospitalizedPatients->count();
-        $pendingPrescriptions = $prescriptions->where('is_done', false)->count();
-        $completedPrescriptions = $prescriptions->where('is_done', true)->count();
+        $pendingPrescriptions = $prescriptions->where('status', 'pending')->count();
+        $inProgressPrescriptions = $prescriptions->where('status', 'in_progress')->count();
+        $completedPrescriptions = $prescriptions->where('status', 'administered')->count();
 
         return view('nurse.medications', compact(
             'hospitalizedPatients',
             'prescriptions',
             'totalHospitalized',
             'pendingPrescriptions',
+            'inProgressPrescriptions',
             'completedPrescriptions',
             'nurse'
         ));
@@ -793,6 +795,143 @@ class NurseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Patient sorti avec succès'
+        ]);
+    }
+
+    /**
+     * Get prescriptions for a specific patient
+     */
+    public function getPatientPrescriptions($patientId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $patient = User::findOrFail($patientId);
+        
+        if (!$patient->medicalFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le patient n\'a pas de dossier médical'
+            ], 400);
+        }
+
+        $prescriptions = $patient->medicalFile->medicalprescription->load('prescription') ?? collect();
+
+        return response()->json([
+            'success' => true,
+            'prescriptions' => $prescriptions
+        ]);
+    }
+
+    /**
+     * Get pending prescriptions for a specific patient
+     */
+    public function getPatientPendingPrescriptions($patientId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $patient = User::findOrFail($patientId);
+        
+        if (!$patient->medicalFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le patient n\'a pas de dossier médical'
+            ], 400);
+        }
+
+        $prescriptions = $patient->medicalFile->medicalprescription->where('is_done', false)->load('prescription') ?? collect();
+
+        return response()->json([
+            'success' => true,
+            'prescriptions' => $prescriptions
+        ]);
+    }
+
+    /**
+     * Mark a prescription as administered
+     */
+    public function markPrescriptionAsAdministered(Request $request, $prescriptionId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $prescription = MedicalFilePrescription::findOrFail($prescriptionId);
+
+        $prescription->update([
+            'is_done' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prescription marquée comme administrée'
+        ]);
+    }
+
+    /**
+     * Administer a prescription
+     */
+    public function administerPrescription(Request $request, $prescriptionId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $prescription = MedicalFilePrescription::findOrFail($prescriptionId);
+
+        if ($prescription->is_done) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette prescription a déjà été administrée'
+            ], 400);
+        }
+
+        $prescription->update([
+            'is_done' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Médicament administré avec succès'
+        ]);
+    }
+
+    /**
+     * Mark a prescription as in progress
+     */
+    public function markPrescriptionAsInProgress(Request $request, $prescriptionId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $prescription = MedicalFilePrescription::findOrFail($prescriptionId);
+
+        if ($prescription->status === 'administered') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette prescription a déjà été administrée'
+            ], 400);
+        }
+
+        $prescription->markAsInProgress();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prescription marquée comme en cours'
         ]);
     }
 }

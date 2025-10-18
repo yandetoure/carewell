@@ -18,13 +18,70 @@ class MedicalFilePrescription extends Model
         'duration',
         'instructions',
         'quantity',
-        'frequency'
+        'frequency',
+        'medication_name'
     ];
 
  
         public function medicalFile()
         {
             return $this->belongsTo(MedicalFile::class, 'medical_files_id');
+        }
+
+        /**
+         * Get the status based on is_done and updated_at
+         */
+        public function getStatusAttribute()
+        {
+            if ($this->is_done) {
+                return 'administered';
+            } elseif ($this->updated_at && $this->updated_at != $this->created_at) {
+                return 'in_progress';
+            } else {
+                return 'pending';
+            }
+        }
+
+        /**
+         * Check if prescription is pending
+         */
+        public function isPending()
+        {
+            return $this->status === 'pending';
+        }
+
+        /**
+         * Check if prescription is in progress
+         */
+        public function isInProgress()
+        {
+            return $this->status === 'in_progress';
+        }
+
+        /**
+         * Check if prescription is administered
+         */
+        public function isAdministered()
+        {
+            return $this->status === 'administered';
+        }
+
+        /**
+         * Mark prescription as in progress
+         */
+        public function markAsInProgress()
+        {
+            $this->update(['updated_at' => now()]);
+        }
+
+        /**
+         * Mark prescription as administered
+         */
+        public function markAsAdministered()
+        {
+            $this->update([
+                'is_done' => true
+            ]);
         }
 
 

@@ -50,7 +50,22 @@
                         </div>
                         <div>
                             <h4 class="mb-0">{{ $pendingPrescriptions }}</h4>
-                            <small>Prescriptions en Cours</small>
+                            <small>En Attente</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-white bg-opacity-25 me-3">
+                            <i class="fas fa-play text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">{{ $inProgressPrescriptions }}</h4>
+                            <small>En Cours</small>
                         </div>
                     </div>
                 </div>
@@ -222,7 +237,7 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="fw-bold">{{ $prescription->medication_name ?? 'N/A' }}</span>
+                                            <span class="fw-bold">{{ $prescription->prescription->name ?? 'Prescription #' . $prescription->id }}</span>
                                         </td>
                                         <td>
                                             <span class="text-muted">{{ $prescription->dosage ?? 'N/A' }}</span>
@@ -231,20 +246,26 @@
                                             <span class="text-muted">{{ \Carbon\Carbon::parse($prescription->created_at)->format('d/m/Y H:i') }}</span>
                                         </td>
                                         <td>
-                                            @if($prescription->is_done)
-                                                <span class="badge bg-success">Terminé</span>
+                                            @if($prescription->status === 'administered')
+                                                <span class="badge bg-success">Administré</span>
+                                            @elseif($prescription->status === 'in_progress')
+                                                <span class="badge bg-info">En Cours</span>
                                             @else
-                                                <span class="badge bg-warning">En cours</span>
+                                                <span class="badge bg-warning">En Attente</span>
                                             @endif
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                @if(!$prescription->is_done)
+                                                @if($prescription->status === 'pending')
+                                                    <button type="button" class="btn btn-outline-info" title="Commencer traitement" onclick="markAsInProgress({{ $prescription->id }})">
+                                                        <i class="fas fa-play"></i>
+                                                    </button>
+                                                @elseif($prescription->status === 'in_progress')
                                                     <button type="button" class="btn btn-outline-success" title="Marquer comme administré" onclick="markAsAdministered({{ $prescription->id }})">
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                 @endif
-                                                <button type="button" class="btn btn-outline-info" title="Voir détails" onclick="viewPrescriptionDetails({{ $prescription->id }})">
+                                                <button type="button" class="btn btn-outline-primary" title="Voir détails" onclick="viewPrescriptionDetails({{ $prescription->id }})">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                             </div>
@@ -405,6 +426,34 @@ function administerMedication(patientId) {
     });
 }
 
+// Fonction pour marquer une prescription comme en cours
+function markAsInProgress(prescriptionId) {
+    if (confirm('Commencer le traitement de ce médicament ?')) {
+        fetch(`/nurse/prescriptions/${prescriptionId}/mark-in-progress`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Traitement commencé !');
+                window.location.reload();
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la mise à jour');
+        });
+    }
+}
+
 // Fonction pour marquer une prescription comme administrée
 function markAsAdministered(prescriptionId) {
     if (confirm('Confirmer l\'administration de ce médicament ?')) {
@@ -450,12 +499,12 @@ function generatePrescriptionsHTML(prescriptions) {
     prescriptions.forEach(prescription => {
         html += `
             <tr>
-                <td>${prescription.medication_name || 'N/A'}</td>
+                <td>${prescription.prescription?.name || 'Prescription #' + prescription.id}</td>
                 <td>${prescription.dosage || 'N/A'}</td>
                 <td>${new Date(prescription.created_at).toLocaleDateString('fr-FR')}</td>
-                <td>${prescription.is_done ? '<span class="badge bg-success">Terminé</span>' : '<span class="badge bg-warning">En cours</span>'}</td>
+                <td>${getStatusBadge(prescription.status)}</td>
                 <td>
-                    ${!prescription.is_done ? '<button class="btn btn-sm btn-success" onclick="markAsAdministered(' + prescription.id + ')"><i class="fas fa-check"></i></button>' : ''}
+                    ${getActionButtons(prescription)}
                 </td>
             </tr>
         `;
@@ -469,12 +518,39 @@ function generateAdministrationHTML(prescriptions) {
     let html = '<div class="mb-3"><label for="selectedPrescription">Sélectionner le médicament à administrer:</label><select class="form-select" id="selectedPrescription">';
     
     prescriptions.forEach(prescription => {
-        html += `<option value="${prescription.id}">${prescription.medication_name} - ${prescription.dosage}</option>`;
+        html += `<option value="${prescription.id}">${prescription.prescription?.name || 'Prescription #' + prescription.id} - ${prescription.dosage || 'N/A'}</option>`;
     });
     
     html += '</select></div><div class="mb-3"><label for="administrationNotes">Notes d\'administration:</label><textarea class="form-control" id="administrationNotes" rows="3" placeholder="Ajouter des notes..."></textarea></div>';
     
     return html;
+}
+
+// Fonctions utilitaires pour les statuts et boutons
+function getStatusBadge(status) {
+    switch(status) {
+        case 'administered':
+            return '<span class="badge bg-success">Administré</span>';
+        case 'in_progress':
+            return '<span class="badge bg-info">En Cours</span>';
+        case 'pending':
+        default:
+            return '<span class="badge bg-warning">En Attente</span>';
+    }
+}
+
+function getActionButtons(prescription) {
+    let buttons = '';
+    
+    if (prescription.status === 'pending') {
+        buttons += '<button class="btn btn-sm btn-info" onclick="markAsInProgress(' + prescription.id + ')" title="Commencer traitement"><i class="fas fa-play"></i></button>';
+    } else if (prescription.status === 'in_progress') {
+        buttons += '<button class="btn btn-sm btn-success" onclick="markAsAdministered(' + prescription.id + ')" title="Marquer comme administré"><i class="fas fa-check"></i></button>';
+    }
+    
+    buttons += '<button class="btn btn-sm btn-primary" onclick="viewPrescriptionDetails(' + prescription.id + ')" title="Voir détails"><i class="fas fa-eye"></i></button>';
+    
+    return buttons;
 }
 
 // Fonctions des boutons des modals
