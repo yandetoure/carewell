@@ -192,47 +192,31 @@ class AppointmentController extends \Illuminate\Routing\Controller
         // Définir la limite par page (par défaut 15)
         $limit = $request->input('limit', 15);
 
-        // Récupérer les rendez-vous du docteur connecté avec pagination
-        $appointments = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
+        // Récupérer les rendez-vous du service du docteur connecté avec pagination
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $doctor->service_id)
             ->orderByRaw('CASE WHEN appointment_date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime])
             ->orderBy('appointment_date', 'desc')
             ->paginate($limit);
 
-        // Statistiques pour le docteur
-        $todayAppointments = Appointment::where('doctor_id', $doctor->id)
+        // Statistiques pour le service du docteur
+        $todayAppointments = Appointment::where('service_id', $doctor->service_id)
             ->whereDate('appointment_date', now()->toDateString())
             ->count();
 
-        $pendingAppointments = Appointment::where('doctor_id', $doctor->id)
+        $pendingAppointments = Appointment::where('service_id', $doctor->service_id)
             ->where('status', 'pending')
             ->count();
 
-        $confirmedAppointments = Appointment::where('doctor_id', $doctor->id)
+        $confirmedAppointments = Appointment::where('service_id', $doctor->service_id)
             ->where('status', 'confirmed')
             ->count();
 
-        $urgentAppointments = Appointment::where('doctor_id', $doctor->id)
+        $urgentAppointments = Appointment::where('service_id', $doctor->service_id)
             ->where('is_urgent', true)
             ->where('status', '!=', 'cancelled')
             ->count();
 
-        // Rendez-vous d'aujourd'hui
-        $todayAppointmentsList = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
-            ->whereDate('appointment_date', now()->toDateString())
-            ->orderBy('appointment_time')
-            ->get();
-
-        // Rendez-vous à venir (prochains 7 jours)
-        $upcomingAppointments = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
-            ->where('appointment_date', '>', now()->toDateString())
-            ->where('status', 'confirmed')
-            ->orderBy('appointment_date')
-            ->orderBy('appointment_time')
-            ->limit(5)
-            ->get();
 
         return view('doctor.appointments.index', compact(
             'appointments',
@@ -240,8 +224,7 @@ class AppointmentController extends \Illuminate\Routing\Controller
             'pendingAppointments',
             'confirmedAppointments',
             'urgentAppointments',
-            'todayAppointmentsList',
-            'upcomingAppointments'
+            'doctor'
         ));
     }
 
@@ -252,21 +235,35 @@ class AppointmentController extends \Illuminate\Routing\Controller
     {
         $doctor = Auth::user();
 
-        // Vérifier que le rendez-vous appartient au docteur connecté
-        if ($appointment->doctor_id !== $doctor->id) {
-    return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à modifier ce rendez-vous.'
-    ], 403);
-}
+        // Vérifier que le rendez-vous appartient au service du docteur connecté
+        if ($appointment->service_id && $doctor->service_id && $appointment->service_id !== $doctor->service_id) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'êtes pas autorisé à modifier ce rendez-vous.'
+                ], 403);
+            }
+            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier ce rendez-vous.']);
+        }
 
-        $request->validate([
-            'status' => 'required|in:pending,confirmed,cancelled,completed'
-        ]);
+        try {
+            $request->validate([
+                'status' => 'required|in:pending,confirmed,cancelled,completed'
+            ]);
 
-        $appointment->update([
-            'status' => $request->status
-        ]);
+            $appointment->update([
+                'status' => $request->status
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur de validation',
+                    'errors' => $e->validator->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->validator->errors());
+        }
 
         // Créer une notification pour le patient
         Notification::create([
@@ -276,11 +273,15 @@ class AppointmentController extends \Illuminate\Routing\Controller
             'is_read' => false,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Statut du rendez-vous mis à jour avec succès.',
-            'appointment' => $appointment
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Statut du rendez-vous mis à jour avec succès.',
+                'appointment' => $appointment
+            ]);
+        }
+        
+        return redirect()->back()->with('success', 'Statut du rendez-vous mis à jour avec succès.');
     }
 
     /**
@@ -672,20 +673,53 @@ class AppointmentController extends \Illuminate\Routing\Controller
      */
     public function show(string $id)
     {
+        $user = Auth::user();
+        
         // Récupérer les détails d'un rendez-vous
         $appointment = Appointment::with(['user', 'service', 'doctor'])->find($id);
 
         if (!$appointment) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Rendez-vous non trouvé',
-            ], 404);
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Rendez-vous non trouvé',
+                ], 404);
+            }
+            return redirect()->back()->withErrors(['error' => 'Rendez-vous non trouvé.']);
         }
 
-        return response()->json([
-            'status' => true,
-            'data' => $appointment,
-        ]);
+        // Vérifier les autorisations selon le rôle
+        if ($user->hasRole('Doctor')) {
+            // Un médecin peut voir les rendez-vous de son service
+            if ($appointment->service_id && $user->service_id && $appointment->service_id !== $user->service_id) {
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Vous n\'êtes pas autorisé à voir ce rendez-vous',
+                    ], 403);
+                }
+                return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à voir ce rendez-vous.']);
+            }
+        }
+
+        if ($user->hasRole('Patient') && $appointment->user_id !== $user->id) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Vous n\'êtes pas autorisé à voir ce rendez-vous',
+                ], 403);
+            }
+            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à voir ce rendez-vous.']);
+        }
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status' => true,
+                'data' => $appointment,
+            ]);
+        }
+
+        return view('appointments.show', compact('appointment'));
     }
 
     /**
@@ -705,10 +739,13 @@ class AppointmentController extends \Illuminate\Routing\Controller
         $appointment = Appointment::find($id);
     
         if (!$appointment) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Rendez-vous non trouvé',
-            ], 404);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Rendez-vous non trouvé',
+                ], 404);
+            }
+            return redirect()->back()->withErrors(['error' => 'Rendez-vous non trouvé.']);
         }
     
         // Vérifier si la modification est possible (24h avant le rendez-vous)
@@ -1437,6 +1474,117 @@ public function updateAppointmentStatus(Request $request, $id)
             'recentAppointments',
             'todayAppointmentsList'
         ));
+    }
+
+    /**
+     * Afficher les consultations du médecin
+     */
+    public function doctorConsultations()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les consultations (rendez-vous terminés ou en cours)
+        $consultations = Appointment::with(['user', 'service'])
+            ->where('doctor_id', $doctor->id)
+            ->whereIn('status', ['completed', 'confirmed'])
+            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_time', 'desc')
+            ->paginate(20);
+
+        // Statistiques des consultations
+        $totalConsultations = Appointment::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['completed', 'confirmed'])
+            ->count();
+        
+        $completedConsultations = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'completed')
+            ->count();
+        
+        $confirmedConsultations = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'confirmed')
+            ->count();
+
+        // Consultations récentes (dernières 7 jours)
+        $recentConsultations = Appointment::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['completed', 'confirmed'])
+            ->where('appointment_date', '>=', now()->subDays(7))
+            ->count();
+
+        return view('doctor.consultations', compact(
+            'consultations',
+            'totalConsultations',
+            'completedConsultations',
+            'confirmedConsultations',
+            'recentConsultations'
+        ));
+    }
+
+    /**
+     * Afficher le suivi des patients du médecin
+     */
+    public function doctorFollowUp()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les patients avec des rendez-vous récents
+        $patients = User::whereHas('appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id)
+                      ->where('appointment_date', '>=', now()->subDays(30));
+            })
+            ->with(['appointments' => function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id)
+                      ->orderBy('appointment_date', 'desc')
+                      ->limit(3);
+            }])
+            ->paginate(15);
+
+        // Statistiques du suivi
+        $totalPatients = User::whereHas('appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id);
+            })->count();
+
+        $activePatients = User::whereHas('appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id)
+                      ->where('appointment_date', '>=', now()->subDays(30));
+            })->count();
+
+        $followUpNeeded = User::whereHas('appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id)
+                      ->where('status', 'completed')
+                      ->where('appointment_date', '>=', now()->subDays(90))
+                      ->where('appointment_date', '<=', now()->subDays(30));
+            })->count();
+
+        return view('doctor.follow-up', compact(
+            'patients',
+            'totalPatients',
+            'activePatients',
+            'followUpNeeded'
+        ));
+    }
+
+    /**
+     * Afficher les statistiques rapides du médecin
+     */
+    public function doctorStats()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Rediriger vers la page des statistiques avec une notification
+        return redirect()->route('doctor.statistics')
+            ->with('success', 'Statistiques mises à jour avec succès.');
     }
 
 }

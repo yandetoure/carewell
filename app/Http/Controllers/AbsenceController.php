@@ -213,11 +213,12 @@ class AbsenceController extends Controller
 
         $availabilities = Availability::where('doctor_id', $doctor->id)
             ->whereBetween('available_date', [$startDate, $endDate])
+            ->with('service')
             ->get()
             ->map(function($availability) {
                 return [
                     'id' => 'avail_' . $availability->id,
-                    'title' => 'Disponible: ' . $availability->service->name,
+                    'title' => 'Disponible: ' . ($availability->service->name ?? 'Service non spécifié'),
                     'start' => $availability->available_date,
                     'end' => $availability->available_date,
                     'color' => '#28a745',

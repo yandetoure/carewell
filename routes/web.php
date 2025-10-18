@@ -48,7 +48,6 @@ Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.
 
 // Routes des services
 Route::get('/services', [ServiceController::class, 'index'])->name('services');
-Route::get('/services/{service}', [ServiceController::class, 'show'])->name('services.show');
 
 // Routes des articles
 Route::get('/articles', [ArticleController::class, 'index'])->name('articles');
@@ -153,7 +152,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'doctorDashboard'])->name('doctor.dashboard');
         Route::get('/appointments', [AppointmentController::class, 'doctorAppointments'])->name('doctor.appointments');
         Route::post('/appointments', [AppointmentController::class, 'store'])->name('doctor.appointments.store');
-        Route::post('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('doctor.appointments.status');
+        Route::get('/appointments/{appointment}', [AppointmentController::class, 'show'])->name('doctor.appointments.show');
+        Route::patch('/appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])->name('doctor.appointments.status');
         Route::get('/appointments/today', [AppointmentController::class, 'doctorTodayAppointments'])->name('doctor.appointments.today');
         Route::get('/appointments/week', [AppointmentController::class, 'doctorWeekAppointments'])->name('doctor.appointments.week');
         Route::get('/patients', [AppointmentController::class, 'getPatientsWithAppointments'])->name('doctor.patients');

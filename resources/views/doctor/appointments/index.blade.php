@@ -1,8 +1,8 @@
 @extends('layouts.doctor')
 
-@section('title', 'Mes Rendez-vous - Docteur')
-@section('page-title', 'Mes Rendez-vous')
-@section('page-subtitle', 'Gestion de vos rendez-vous')
+@section('title', 'Rendez-vous du Service - Docteur')
+@section('page-title', 'Rendez-vous du Service')
+@section('page-subtitle', 'Gestion des rendez-vous de votre service')
 @section('user-role', 'Médecin')
 
 @push('head')
@@ -100,12 +100,12 @@
 
     <div class="row">
         <!-- Liste des rendez-vous -->
-        <div class="col-md-8">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-calendar-alt me-2"></i>Tous mes rendez-vous
+                            <i class="fas fa-calendar-alt me-2"></i>Tous les rendez-vous du service
                         </h5>
                         <div class="d-flex gap-2">
                             <select class="form-select form-select-sm" id="statusFilter" onchange="filterAppointments()">
@@ -131,6 +131,7 @@
                                         <th>Date</th>
                                         <th>Heure</th>
                                         <th>Service</th>
+                                        <th>Médecin</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
@@ -177,6 +178,12 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-user-md text-success me-2"></i>
+                                                    {{ $appointment->doctor ? $appointment->doctor->first_name . ' ' . $appointment->doctor->last_name : 'Non assigné' }}
+                                                </div>
+                                            </td>
+                                            <td>
                                                 <span class="badge bg-{{ $appointment->status == 'confirmed' ? 'success' : ($appointment->status == 'pending' ? 'warning' : ($appointment->status == 'completed' ? 'info' : 'danger')) }}">
                                                     <i class="fas fa-{{ $appointment->status == 'confirmed' ? 'check' : ($appointment->status == 'pending' ? 'clock' : ($appointment->status == 'completed' ? 'check-double' : 'times')) }} me-1"></i>
                                                     {{ ucfirst($appointment->status) }}
@@ -189,26 +196,32 @@
                                                             title="Voir les détails">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    @if($appointment->status == 'pending')
-                                                        <button type="button" class="btn btn-outline-success" 
-                                                                onclick="confirmAppointment({{ $appointment->id }})" 
-                                                                title="Confirmer">
-                                                            <i class="fas fa-check"></i>
-                                                        </button>
-                                                    @endif
-                                                    @if($appointment->status == 'confirmed')
-                                                        <button type="button" class="btn btn-outline-info" 
-                                                                onclick="markAsCompleted({{ $appointment->id }})" 
-                                                                title="Marquer comme terminé">
-                                                            <i class="fas fa-check-double"></i>
-                                                        </button>
-                                                    @endif
-                                                    @if($appointment->status != 'cancelled' && $appointment->status != 'completed')
-                                                        <button type="button" class="btn btn-outline-danger" 
-                                                                onclick="cancelAppointment({{ $appointment->id }})" 
-                                                                title="Annuler">
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
+                                                    @if($appointment->service_id == $doctor->service_id)
+                                                        @if($appointment->status == 'pending')
+                                                            <button type="button" class="btn btn-outline-success" 
+                                                                    onclick="confirmAppointment({{ $appointment->id }})" 
+                                                                    title="Confirmer">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-danger" 
+                                                                    onclick="cancelAppointment({{ $appointment->id }})" 
+                                                                    title="Annuler">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        @elseif($appointment->status == 'confirmed')
+                                                            <button type="button" class="btn btn-outline-info" 
+                                                                    onclick="markAsCompleted({{ $appointment->id }})" 
+                                                                    title="Marquer comme terminé">
+                                                                <i class="fas fa-check-double"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-danger" 
+                                                                    onclick="cancelAppointment({{ $appointment->id }})" 
+                                                                    title="Annuler">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted small">Autre service</span>
                                                     @endif
                                                 </div>
                                             </td>
@@ -235,132 +248,26 @@
                 </div>
             </div>
         </div>
-
-        <!-- Sidebar avec informations utiles -->
-        <div class="col-md-4">
-            <!-- Rendez-vous d'aujourd'hui -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-day me-2"></i>Rendez-vous d'aujourd'hui
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if($todayAppointmentsList->count() > 0)
-                        @foreach($todayAppointmentsList as $appointment)
-                            <div class="d-flex align-items-center mb-3 p-2 rounded {{ $appointment->is_urgent ? 'bg-warning bg-opacity-10' : 'bg-light' }}">
-                                <div class="flex-shrink-0">
-                                    <div class="avatar bg-primary text-white">
-                                        {{ strtoupper(substr($appointment->user->first_name, 0, 1)) }}
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-1">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h6>
-                                    <small class="text-muted">
-                                        <i class="fas fa-clock me-1"></i>
-                                        {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('H:i') }}
-                                        <span class="mx-1">•</span>
-                                        {{ $appointment->service->name ?? 'Service' }}
-                                    </small>
-                                    @if($appointment->is_urgent)
-                                        <span class="badge bg-danger ms-1">
-                                            <i class="fas fa-exclamation-triangle"></i> Urgent
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="flex-shrink-0">
-                                    <span class="badge bg-{{ $appointment->status == 'confirmed' ? 'success' : 'warning' }}">
-                                        {{ ucfirst($appointment->status) }}
-                                    </span>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <div class="text-center text-muted py-3">
-                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
-                            <p>Aucun rendez-vous aujourd'hui</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Prochains rendez-vous -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-plus me-2"></i>Prochains rendez-vous
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if($upcomingAppointments->count() > 0)
-                        @foreach($upcomingAppointments as $appointment)
-                            <div class="d-flex align-items-center mb-3 p-2 rounded bg-light">
-                                <div class="flex-shrink-0">
-                                    <div class="avatar bg-success text-white">
-                                        {{ strtoupper(substr($appointment->user->first_name, 0, 1)) }}
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-1">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h6>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar me-1"></i>
-                                        {{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d/m/Y') }}
-                                        <span class="mx-1">•</span>
-                                        {{ \Carbon\Carbon::parse($appointment->appointment_time)->format('H:i') }}
-                                    </small>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <div class="text-center text-muted py-3">
-                            <i class="fas fa-calendar-plus fa-2x mb-2"></i>
-                            <p>Aucun prochain rendez-vous</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Actions rapides -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-bolt me-2"></i>Actions rapides
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('doctor.patients') }}" class="btn btn-primary">
-                            <i class="fas fa-users me-2"></i>Mes patients
-                        </a>
-                        <a href="{{ route('doctor.patients.new') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-user-plus me-2"></i>Nouveau patient
-                        </a>
-                        <a href="{{ route('doctor.appointments.today') }}" class="btn btn-outline-info">
-                            <i class="fas fa-calendar-day me-2"></i>Rendez-vous d'aujourd'hui
-                        </a>
-                        <a href="{{ route('doctor.appointments.week') }}" class="btn btn-outline-success">
-                            <i class="fas fa-calendar-week me-2"></i>Cette semaine
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
 <!-- Modal pour voir les détails d'un rendez-vous -->
 <div class="modal fade" id="appointmentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Détails du rendez-vous</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-alt me-2"></i>Détails du rendez-vous
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="appointmentDetails">
                 <!-- Contenu dynamique -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Fermer
+                </button>
             </div>
         </div>
     </div>
@@ -437,25 +344,105 @@ function viewAppointment(appointmentId) {
     const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
     modal.show();
     
-    // Ici vous pouvez ajouter une requête AJAX pour récupérer les détails
-    setTimeout(() => {
-        document.getElementById('appointmentDetails').innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6>Informations du patient</h6>
-                    <p><strong>Nom:</strong> Patient Name</p>
-                    <p><strong>Téléphone:</strong> +123456789</p>
-                    <p><strong>Email:</strong> patient@example.com</p>
+    // Récupérer les détails du rendez-vous via AJAX
+    fetch(`/doctor/appointments/${appointmentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status && data.data) {
+                const appointment = data.data;
+                document.getElementById('appointmentDetails').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user me-2"></i>Informations du patient</h6>
+                            <div class="mb-3">
+                                <strong>Nom complet:</strong><br>
+                                ${appointment.user.first_name} ${appointment.user.last_name}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Téléphone:</strong><br>
+                                ${appointment.user.phone_number || 'Non renseigné'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Email:</strong><br>
+                                ${appointment.user.email}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Date de naissance:</strong><br>
+                                ${appointment.user.day_of_birth ? new Date(appointment.user.day_of_birth).toLocaleDateString('fr-FR') : 'Non renseignée'}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-calendar me-2"></i>Détails du rendez-vous</h6>
+                            <div class="mb-3">
+                                <strong>Date:</strong><br>
+                                ${new Date(appointment.appointment_date).toLocaleDateString('fr-FR')}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Heure:</strong><br>
+                                ${appointment.appointment_time}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Service:</strong><br>
+                                ${appointment.service ? appointment.service.name : 'Service non spécifié'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Statut:</strong><br>
+                                <span class="badge bg-${appointment.status == 'confirmed' ? 'success' : (appointment.status == 'pending' ? 'warning' : (appointment.status == 'completed' ? 'info' : 'danger'))}">
+                                    ${appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                                </span>
+                            </div>
+                            ${appointment.reason ? `
+                            <div class="mb-3">
+                                <strong>Motif:</strong><br>
+                                ${appointment.reason}
+                            </div>
+                            ` : ''}
+                            ${appointment.symptoms ? `
+                            <div class="mb-3">
+                                <strong>Symptômes:</strong><br>
+                                ${appointment.symptoms}
+                            </div>
+                            ` : ''}
+                            ${appointment.notes ? `
+                            <div class="mb-3">
+                                <strong>Notes:</strong><br>
+                                ${appointment.notes}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-info-circle me-2"></i>Informations supplémentaires</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Créé le:</strong> ${new Date(appointment.created_at).toLocaleDateString('fr-FR')} à ${new Date(appointment.created_at).toLocaleTimeString('fr-FR')}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Modifié le:</strong> ${new Date(appointment.updated_at).toLocaleDateString('fr-FR')} à ${new Date(appointment.updated_at).toLocaleTimeString('fr-FR')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('appointmentDetails').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur lors du chargement des détails: ${data.message || 'Erreur inconnue'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('appointmentDetails').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erreur lors du chargement des détails du rendez-vous.
                 </div>
-                <div class="col-md-6">
-                    <h6>Détails du rendez-vous</h6>
-                    <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-                    <p><strong>Heure:</strong> 10:30</p>
-                    <p><strong>Service:</strong> Consultation</p>
-                </div>
-            </div>
-        `;
-    }, 1000);
+            `;
+        });
 }
 
 function confirmAppointment(appointmentId) {
@@ -484,7 +471,8 @@ function updateAppointmentStatus(appointmentId, status) {
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': token,
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-HTTP-Method-Override': 'PATCH'
         },
         body: JSON.stringify({
             status: status
