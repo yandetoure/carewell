@@ -179,4 +179,87 @@ class ServiceController extends Controller
 
         return view('patient.services.show', compact('service', 'relatedServices', 'doctors'));
     }
+
+    /**
+     * Afficher la page de gestion des catégories pour l'admin
+     */
+    public function getCategories()
+    {
+        // Pour l'instant, on utilise des catégories statiques
+        // Vous pouvez modifier cela pour récupérer depuis la base de données
+        $categories = [
+            'general' => [
+                'name' => 'Santé générale',
+                'description' => 'Services de santé générale et consultations de routine',
+                'icon' => 'fas fa-heartbeat',
+                'color' => 'primary',
+                'count' => Service::where('category', 'general')->count()
+            ],
+            'prevention' => [
+                'name' => 'Prévention',
+                'description' => 'Services de prévention et dépistage',
+                'icon' => 'fas fa-shield-alt',
+                'color' => 'success',
+                'count' => Service::where('category', 'prevention')->count()
+            ],
+            'nutrition' => [
+                'name' => 'Nutrition',
+                'description' => 'Conseils nutritionnels et diététique',
+                'icon' => 'fas fa-apple-alt',
+                'color' => 'warning',
+                'count' => Service::where('category', 'nutrition')->count()
+            ],
+            'fitness' => [
+                'name' => 'Fitness',
+                'description' => 'Services de remise en forme et sport',
+                'icon' => 'fas fa-dumbbell',
+                'color' => 'info',
+                'count' => Service::where('category', 'fitness')->count()
+            ],
+            'dermatology' => [
+                'name' => 'Dermatologie',
+                'description' => 'Soins de la peau et maladies cutanées',
+                'icon' => 'fas fa-hand-holding-medical',
+                'color' => 'secondary',
+                'count' => Service::where('category', 'dermatology')->count()
+            ],
+            'cardiology' => [
+                'name' => 'Cardiologie',
+                'description' => 'Soins du cœur et système cardiovasculaire',
+                'icon' => 'fas fa-heart',
+                'color' => 'danger',
+                'count' => Service::where('category', 'cardiology')->count()
+            ],
+            'neurology' => [
+                'name' => 'Neurologie',
+                'description' => 'Soins du système nerveux et du cerveau',
+                'icon' => 'fas fa-brain',
+                'color' => 'dark',
+                'count' => Service::where('category', 'neurology')->count()
+            ],
+            'pediatrics' => [
+                'name' => 'Pédiatrie',
+                'description' => 'Soins médicaux pour enfants',
+                'icon' => 'fas fa-child',
+                'color' => 'primary',
+                'count' => Service::where('category', 'pediatrics')->count()
+            ],
+            'gynecology' => [
+                'name' => 'Gynécologie',
+                'description' => 'Soins de santé féminine',
+                'icon' => 'fas fa-female',
+                'color' => 'pink',
+                'count' => Service::where('category', 'gynecology')->count()
+            ],
+            'orthopedics' => [
+                'name' => 'Orthopédie',
+                'description' => 'Soins des os, articulations et muscles',
+                'icon' => 'fas fa-bone',
+                'color' => 'warning',
+                'count' => Service::where('category', 'orthopedics')->count()
+            ],
+        ];
+
+        return view('admin.categories.index', compact('categories'));
+    }
 }

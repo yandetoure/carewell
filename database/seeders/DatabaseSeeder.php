@@ -16,7 +16,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             UserSeeder::class,
+            CategoryTableSeeder::class, // Crée la table des catégories
             ServiceSeeder::class,
+            CategorySeeder::class, // Ajoute les catégories aux services
             DiseaseSeeder::class,
             PrescriptionSeeder::class,
             ExamSeeder::class,
