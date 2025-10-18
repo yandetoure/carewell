@@ -118,27 +118,21 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="specialty" class="form-label">
+                                    <label for="service_id" class="form-label">
                                         <i class="fas fa-stethoscope me-1"></i>
-                                        Spécialité
+                                        Spécialité (Service)
                                     </label>
-                                    <select class="form-select @error('specialty') is-invalid @enderror"
-                                            id="specialty"
-                                            name="specialty">
-                                        <option value="">Sélectionner une spécialité</option>
-                                        <option value="Médecine générale" {{ old('specialty') == 'Médecine générale' ? 'selected' : '' }}>Médecine générale</option>
-                                        <option value="Cardiologie" {{ old('specialty') == 'Cardiologie' ? 'selected' : '' }}>Cardiologie</option>
-                                        <option value="Dermatologie" {{ old('specialty') == 'Dermatologie' ? 'selected' : '' }}>Dermatologie</option>
-                                        <option value="Gynécologie" {{ old('specialty') == 'Gynécologie' ? 'selected' : '' }}>Gynécologie</option>
-                                        <option value="Pédiatrie" {{ old('specialty') == 'Pédiatrie' ? 'selected' : '' }}>Pédiatrie</option>
-                                        <option value="Neurologie" {{ old('specialty') == 'Neurologie' ? 'selected' : '' }}>Neurologie</option>
-                                        <option value="Orthopédie" {{ old('specialty') == 'Orthopédie' ? 'selected' : '' }}>Orthopédie</option>
-                                        <option value="Ophtalmologie" {{ old('specialty') == 'Ophtalmologie' ? 'selected' : '' }}>Ophtalmologie</option>
-                                        <option value="Psychiatrie" {{ old('specialty') == 'Psychiatrie' ? 'selected' : '' }}>Psychiatrie</option>
-                                        <option value="Radiologie" {{ old('specialty') == 'Radiologie' ? 'selected' : '' }}>Radiologie</option>
-                                        <option value="Autre" {{ old('specialty') == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                    <select class="form-select @error('service_id') is-invalid @enderror"
+                                            id="service_id"
+                                            name="service_id">
+                                        <option value="">Sélectionner un service</option>
+                                        @foreach($services as $service)
+                                            <option value="{{ $service->id }}" {{ old('service_id') == $service->id ? 'selected' : '' }}>
+                                                {{ $service->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
-                                    @error('specialty')
+                                    @error('service_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>

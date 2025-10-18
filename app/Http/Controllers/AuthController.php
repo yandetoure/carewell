@@ -494,7 +494,8 @@ public function getDoctors()
 
 public function createDoctor()
 {
-    return view('admin.doctors.create');
+    $services = \App\Models\Service::all();
+    return view('admin.doctors.create', compact('services'));
 }
 
 public function storeDoctor(Request $request)
@@ -504,7 +505,7 @@ public function storeDoctor(Request $request)
         'last_name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users',
         'phone' => 'required|string|max:20',
-        'specialty' => 'nullable|string|max:255',
+        'service_id' => 'nullable|exists:services,id',
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         'status' => 'required|in:active,inactive,pending',
         'description' => 'nullable|string|max:1000',
@@ -527,6 +528,7 @@ public function storeDoctor(Request $request)
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
         'phone_number' => $validated['phone'],
+        'service_id' => $validated['service_id'] ?? null,
         'password' => Hash::make($autoPassword),
         'photo' => $validated['photo'] ?? null,
         'status' => $validated['status'],
@@ -550,7 +552,8 @@ public function showDoctor(User $doctor)
 
 public function editDoctor(User $doctor)
 {
-    return view('admin.doctors.edit', compact('doctor'));
+    $services = \App\Models\Service::all();
+    return view('admin.doctors.edit', compact('doctor', 'services'));
 }
 
 public function updateDoctor(Request $request, User $doctor)
@@ -560,30 +563,33 @@ public function updateDoctor(Request $request, User $doctor)
         'last_name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users,email,' . $doctor->id,
         'phone' => 'required|string|max:20',
-        'specialty' => 'nullable|string|max:255',
+        'service_id' => 'nullable|exists:services,id',
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         'status' => 'required|in:active,inactive,pending',
         'description' => 'nullable|string|max:1000',
     ]);
+
+    // Préparer les données de mise à jour
+    $updateData = [
+        'first_name' => $validated['first_name'],
+        'last_name' => $validated['last_name'],
+        'email' => $validated['email'],
+        'phone_number' => $validated['phone'],
+        'service_id' => $validated['service_id'] ?? null,
+        'status' => $validated['status'],
+        'biographie' => $validated['description'] ?? null,
+    ];
 
     // Gestion de la photo
     if ($request->hasFile('photo')) {
         if ($doctor->photo) {
             Storage::delete('public/' . $doctor->photo);
         }
-        $validated['photo'] = $request->file('photo')->store('doctors', 'public');
+        $updateData['photo'] = $request->file('photo')->store('doctors', 'public');
     }
 
-    // Mettre à jour seulement les colonnes qui existent dans la table users
-    $doctor->update([
-        'first_name' => $validated['first_name'],
-        'last_name' => $validated['last_name'],
-        'email' => $validated['email'],
-        'phone_number' => $validated['phone'],
-        'photo' => $validated['photo'] ?? $doctor->photo,
-        'status' => $validated['status'],
-        'biographie' => $validated['description'] ?? null, // Utiliser biographie au lieu de description
-    ]);
+    // Mettre à jour le médecin
+    $doctor->update($updateData);
 
     return redirect()->route('admin.doctors')->with('success', 'Médecin mis à jour avec succès.');
 }

@@ -11,7 +11,7 @@
                 <div>
                     <h1 class="h3 mb-0">
                         <i class="fas fa-user-edit me-2"></i>
-                        Modifier {{ $doctor->name }}
+                        Modifier {{ $doctor->first_name }} {{ $doctor->last_name }}
                     </h1>
                     <p class="text-muted mb-0">Modifiez les informations du médecin</p>
                 </div>
@@ -113,7 +113,7 @@
                                            class="form-control @error('phone') is-invalid @enderror"
                                            id="phone"
                                            name="phone"
-                                           value="{{ old('phone', $doctor->phone) }}"
+                                           value="{{ old('phone', $doctor->phone_number) }}"
                                            placeholder="+237 6XX XXX XXX"
                                            required>
                                     @error('phone')
@@ -126,27 +126,21 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="specialty" class="form-label">
+                                    <label for="service_id" class="form-label">
                                         <i class="fas fa-stethoscope me-1"></i>
-                                        Spécialité
+                                        Spécialité (Service)
                                     </label>
-                                    <select class="form-select @error('specialty') is-invalid @enderror"
-                                            id="specialty"
-                                            name="specialty">
-                                        <option value="">Sélectionner une spécialité</option>
-                                        <option value="Médecine générale" {{ old('specialty', $doctor->specialty) == 'Médecine générale' ? 'selected' : '' }}>Médecine générale</option>
-                                        <option value="Cardiologie" {{ old('specialty', $doctor->specialty) == 'Cardiologie' ? 'selected' : '' }}>Cardiologie</option>
-                                        <option value="Dermatologie" {{ old('specialty', $doctor->specialty) == 'Dermatologie' ? 'selected' : '' }}>Dermatologie</option>
-                                        <option value="Gynécologie" {{ old('specialty', $doctor->specialty) == 'Gynécologie' ? 'selected' : '' }}>Gynécologie</option>
-                                        <option value="Pédiatrie" {{ old('specialty', $doctor->specialty) == 'Pédiatrie' ? 'selected' : '' }}>Pédiatrie</option>
-                                        <option value="Neurologie" {{ old('specialty', $doctor->specialty) == 'Neurologie' ? 'selected' : '' }}>Neurologie</option>
-                                        <option value="Orthopédie" {{ old('specialty', $doctor->specialty) == 'Orthopédie' ? 'selected' : '' }}>Orthopédie</option>
-                                        <option value="Ophtalmologie" {{ old('specialty', $doctor->specialty) == 'Ophtalmologie' ? 'selected' : '' }}>Ophtalmologie</option>
-                                        <option value="Psychiatrie" {{ old('specialty', $doctor->specialty) == 'Psychiatrie' ? 'selected' : '' }}>Psychiatrie</option>
-                                        <option value="Radiologie" {{ old('specialty', $doctor->specialty) == 'Radiologie' ? 'selected' : '' }}>Radiologie</option>
-                                        <option value="Autre" {{ old('specialty', $doctor->specialty) == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                    <select class="form-select @error('service_id') is-invalid @enderror"
+                                            id="service_id"
+                                            name="service_id">
+                                        <option value="">Sélectionner un service</option>
+                                        @foreach($services as $service)
+                                            <option value="{{ $service->id }}" {{ old('service_id', $doctor->service_id) == $service->id ? 'selected' : '' }}>
+                                                {{ $service->name }}
+                                            </option>
+                                        @endforeach
                                     </select>
-                                    @error('specialty')
+                                    @error('service_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -225,7 +219,7 @@
                                       id="description"
                                       name="description"
                                       rows="4"
-                                      placeholder="Décrivez l'expérience et les compétences du médecin...">{{ old('description', $doctor->description) }}</textarea>
+                                      placeholder="Décrivez l'expérience et les compétences du médecin...">{{ old('description', $doctor->biographie) }}</textarea>
                             @error('description')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
