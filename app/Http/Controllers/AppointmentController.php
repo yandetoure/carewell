@@ -13,6 +13,7 @@ use App\Models\Notification;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends \Illuminate\Routing\Controller
@@ -1364,15 +1365,78 @@ public function updateAppointmentStatus(Request $request, $id)
 
     $appointment->is_visited = $request->input('is_visited');
     $appointment->save();
-        // Création de la notification
-        Notification::create([
-            'user_id' => $user->id,
-            'title' => 'Rendez-vous confirmé',
-            'message' => 'Votre rendez-vous avec le Dr. ' . $selectedDoctor->name . ' est confirmé pour le ' . $request->date . ' à ' . $request->time . '.',
-            'type' => 'appointment',
-            'is_read' => false,
-        ]);
+    
     return response()->json(['message' => 'Statut mis à jour avec succès.', 'data' => $appointment], 200);
-}
+    }
+
+    /**
+     * Afficher les statistiques du médecin
+     */
+    public function doctorStatistics()
+    {
+        $doctor = Auth::user();
+
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Statistiques générales
+        $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
+        $todayAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('appointment_date', now()->toDateString())
+            ->count();
+        
+        $pendingAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'pending')
+            ->count();
+        
+        $confirmedAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'confirmed')
+            ->count();
+        
+        $completedAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->where('status', 'completed')
+            ->count();
+
+        // Statistiques mensuelles
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        
+        $monthlyAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->whereMonth('appointment_date', $currentMonth)
+            ->whereYear('appointment_date', $currentYear)
+            ->count();
+
+        // Patients uniques
+        $uniquePatients = Appointment::where('doctor_id', $doctor->id)
+            ->distinct('user_id')
+            ->count('user_id');
+
+        // Rendez-vous récents
+        $recentAppointments = Appointment::where('doctor_id', $doctor->id)
+            ->with(['user', 'service'])
+            ->orderBy('appointment_date', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Rendez-vous d'aujourd'hui
+        $todayAppointmentsList = Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('appointment_date', now()->toDateString())
+            ->with(['user', 'service'])
+            ->orderBy('appointment_time')
+            ->get();
+
+        return view('doctor.statistics', compact(
+            'totalAppointments',
+            'todayAppointments',
+            'pendingAppointments',
+            'confirmedAppointments',
+            'completedAppointments',
+            'monthlyAppointments',
+            'uniquePatients',
+            'recentAppointments',
+            'todayAppointmentsList'
+        ));
+    }
 
 }
