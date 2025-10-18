@@ -56,7 +56,7 @@ class MedicalFileController extends Controller
      */
     public function showPatientMedicalFile($patientId)
     {
-        $doctor = Auth::user();
+        $doctor = Auth::user()->load('service');
         
         // Vérifier que le patient a eu des rendez-vous avec ce docteur
         $patient = \App\Models\User::whereHas('appointments', function($query) use ($doctor) {
@@ -104,7 +104,7 @@ class MedicalFileController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        return view('doctor.medical-files.show', compact('medicalFile', 'patient', 'diseases', 'prescriptions', 'exams', 'medicaments', 'ordonnances'));
+        return view('doctor.medical-files.show', compact('medicalFile', 'patient', 'doctor', 'diseases', 'prescriptions', 'exams', 'medicaments', 'ordonnances'));
     }
 
     /**

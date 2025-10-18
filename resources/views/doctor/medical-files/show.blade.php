@@ -109,6 +109,46 @@
                 </div>
             </div>
 
+            <!-- Diagnosed Diseases -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-virus text-primary me-2"></i>
+                        Maladies diagnostiquées
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if($medicalFile->medicaldisease && $medicalFile->medicaldisease->count() > 0)
+                        @foreach($medicalFile->medicaldisease->sortByDesc('created_at') as $disease)
+                            <div class="border-bottom pb-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">{{ $disease->disease->name ?? 'Maladie' }}</h6>
+                                    <small class="text-muted">{{ $disease->created_at->format('d/m/Y H:i') }}</small>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>État:</strong> 
+                                            <span class="badge bg-{{ $disease->state == 'guéri' ? 'success' : ($disease->state == 'chronique' ? 'warning' : 'danger') }}">
+                                                {{ ucfirst($disease->state ?? 'N/A') }}
+                                            </span>
+                                        </p>
+                                        <p class="mb-1"><strong>Traitement:</strong> {{ $disease->treatment ?? 'N/A' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Description:</strong> {{ $disease->disease->description ?? 'N/A' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-virus fa-2x mb-2"></i>
+                            <p class="mb-0">Aucune maladie diagnostiquée</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Medical Notes -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -237,44 +277,6 @@
             </div>
 
             <!-- Diseases -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-virus text-primary me-2"></i>
-                        Maladies diagnostiquées
-                    </h5>
-                </div>
-                <div class="card-body">
-                    @if($medicalFile->medicaldisease && $medicalFile->medicaldisease->count() > 0)
-                        @foreach($medicalFile->medicaldisease->sortByDesc('created_at') as $disease)
-                            <div class="border-bottom pb-3 mb-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-0">{{ $disease->disease->name ?? 'Maladie' }}</h6>
-                                    <small class="text-muted">{{ $disease->created_at->format('d/m/Y H:i') }}</small>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-1"><strong>État:</strong> 
-                                            <span class="badge bg-{{ $disease->state == 'guéri' ? 'success' : ($disease->state == 'chronique' ? 'warning' : 'danger') }}">
-                                                {{ ucfirst($disease->state ?? 'N/A') }}
-                                            </span>
-                                        </p>
-                                        <p class="mb-1"><strong>Traitement:</strong> {{ $disease->treatment ?? 'N/A' }}</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-1"><strong>Description:</strong> {{ $disease->disease->description ?? 'N/A' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-virus fa-2x mb-2"></i>
-                            <p class="mb-0">Aucune maladie diagnostiquée</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
         </div>
 
         <!-- Right Column -->

@@ -421,8 +421,13 @@
             
             <div class="user-menu">
                 <div class="user-info">
-                    <div class="user-name">{{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</div>
+                    <div class="user-name">{{ $currentUser->first_name ?? Auth::user()->first_name }} {{ $currentUser->last_name ?? Auth::user()->last_name }}</div>
                     <div class="user-role">@yield('user-role', 'Utilisateur')</div>
+                    @if(($currentUser->service ?? Auth::user()->service))
+                        <div class="user-specialty" style="font-size: 0.75rem; color: var(--primary-color); font-weight: 500;">
+                            <i class="fas fa-stethoscope me-1"></i>{{ ($currentUser->service ?? Auth::user()->service)->name }}
+                        </div>
+                    @endif
                 </div>
                 <div class="dropdown">
                     <div class="user-avatar" data-bs-toggle="dropdown" style="cursor: pointer;">
