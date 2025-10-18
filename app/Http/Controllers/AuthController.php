@@ -479,7 +479,7 @@ public function destroy(User $user)
 public function getDoctors()
 {
     $doctors = User::role('Doctor', 'web')
-        ->with(['services', 'appointments'])
+        ->with(['service', 'appointments'])
         ->orderBy('created_at', 'desc')
         ->paginate(20);
     
@@ -487,7 +487,7 @@ public function getDoctors()
     $totalDoctors = User::role('Doctor', 'web')->count();
     $activeDoctors = User::role('Doctor', 'web')->where('status', 'active')->count();
     $newThisMonth = User::role('Doctor', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
-    $withServices = User::role('Doctor', 'web')->whereHas('services')->count();
+    $withServices = User::role('Doctor', 'web')->whereNotNull('service_id')->count();
     
     return view('admin.doctors.index', compact('doctors', 'totalDoctors', 'activeDoctors', 'newThisMonth', 'withServices'));
 }

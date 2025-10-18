@@ -119,7 +119,7 @@
                                     <td>
                                         @if($doctor->photo)
                                             <img src="{{ asset('storage/' . $doctor->photo) }}"
-                                                 alt="{{ $doctor->name }}"
+                                                 alt="{{ $doctor->first_name }} {{ $doctor->last_name }}"
                                                  class="rounded-circle"
                                                  style="width: 50px; height: 50px; object-fit: cover;">
                                         @else
@@ -130,13 +130,19 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="fw-bold">{{ $doctor->name }}</div>
+                                        <div class="fw-bold">{{ $doctor->first_name }} {{ $doctor->last_name }}</div>
                                         <small class="text-muted">{{ $doctor->email }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">
-                                            {{ $doctor->services_count ?? 0 }} services
-                                        </span>
+                                        @if($doctor->service)
+                                            <span class="badge bg-primary">
+                                                {{ $doctor->service->name }}
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary">
+                                                Aucun service
+                                            </span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge bg-primary">
