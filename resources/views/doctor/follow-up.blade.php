@@ -1,8 +1,8 @@
 @extends('layouts.doctor')
 
-@section('title', 'Suivi des Patients - Docteur')
-@section('page-title', 'Suivi des Patients')
-@section('page-subtitle', 'Gérez le suivi médical de vos patients')
+@section('title', 'Patients Hospitalisés - Docteur')
+@section('page-title', 'Patients Hospitalisés')
+@section('page-subtitle', 'Surveillez les patients hospitalisés de votre service')
 @section('user-role', 'Médecin')
 
 @section('content')
@@ -26,18 +26,18 @@
         </div>
     @endif
 
-    <!-- Statistiques du suivi -->
+    <!-- Statistiques des patients hospitalisés -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-primary">
-                            <i class="fas fa-users text-white"></i>
+                            <i class="fas fa-bed text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalPatients }}</h4>
-                            <p class="text-muted mb-0">Total patients</p>
+                            <h4 class="mb-1">{{ $totalHospitalized }}</h4>
+                            <p class="text-muted mb-0">Patients hospitalisés</p>
                         </div>
                     </div>
                 </div>
@@ -48,11 +48,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-success">
-                            <i class="fas fa-user-check text-white"></i>
+                            <i class="fas fa-user-plus text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $activePatients }}</h4>
-                            <p class="text-muted mb-0">Patients actifs</p>
+                            <h4 class="mb-1">{{ $newAdmissions }}</h4>
+                            <p class="text-muted mb-0">Nouvelles admissions</p>
                         </div>
                     </div>
                 </div>
@@ -63,11 +63,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-warning">
-                            <i class="fas fa-exclamation-triangle text-white"></i>
+                            <i class="fas fa-clock text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $followUpNeeded }}</h4>
-                            <p class="text-muted mb-0">Suivi requis</p>
+                            <h4 class="mb-1">{{ $longStayPatients }}</h4>
+                            <p class="text-muted mb-0">Séjours longs (>30j)</p>
                         </div>
                     </div>
                 </div>
@@ -78,11 +78,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-info">
-                            <i class="fas fa-calendar-alt text-white"></i>
+                            <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ now()->format('M Y') }}</h4>
-                            <p class="text-muted mb-0">Mois actuel</p>
+                            <h4 class="mb-1">{{ $expectedDischarges }}</h4>
+                            <p class="text-muted mb-0">Sorties prévues</p>
                         </div>
                     </div>
                 </div>
@@ -97,14 +97,14 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-user-friends me-2"></i>Liste des patients
+                            <i class="fas fa-bed me-2"></i>Patients hospitalisés
                         </h5>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('doctor.patients') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-list me-2"></i>Tous les patients
+                            <a href="{{ route('doctor.appointments') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-calendar me-2"></i>Rendez-vous
                             </a>
-                            <a href="{{ route('doctor.patients.new') }}" class="btn btn-outline-success">
-                                <i class="fas fa-user-plus me-2"></i>Nouveau patient
+                            <a href="{{ route('doctor.consultations') }}" class="btn btn-outline-success">
+                                <i class="fas fa-stethoscope me-2"></i>Consultations
                             </a>
                         </div>
                     </div>
@@ -113,118 +113,122 @@
         </div>
     </div>
 
-    <!-- Liste des patients -->
+    <!-- Liste des patients hospitalisés -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    @if($patients->count() > 0)
+                    @if($hospitalizedPatients->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Patient</th>
-                                        <th>Contact</th>
-                                        <th>Dernier RDV</th>
-                                        <th>Prochain RDV</th>
+                                        <th>Lit</th>
+                                        <th>Date d'admission</th>
+                                        <th>Sortie prévue</th>
+                                        <th>Durée</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($patients as $patient)
+                                    @foreach($hospitalizedPatients as $bed)
                                         @php
-                                            $lastAppointment = $patient->appointments->first();
-                                            $nextAppointment = $patient->appointments->where('appointment_date', '>=', now()->toDateString())->first();
-                                            $isFollowUpNeeded = $lastAppointment && 
-                                                $lastAppointment->status == 'completed' && 
-                                                $lastAppointment->appointment_date <= now()->subDays(30)->toDateString() &&
-                                                $lastAppointment->appointment_date >= now()->subDays(90)->toDateString();
+                                            $patient = $bed->medicalFile->user ?? null;
+                                            $daysAdmitted = $bed->days_admitted;
+                                            $isLongStay = $daysAdmitted > 30;
+                                            $isDischargeSoon = $bed->expected_discharge_date && 
+                                                $bed->expected_discharge_date <= now()->addDays(3) &&
+                                                $bed->expected_discharge_date >= now();
                                         @endphp
-                                        <tr class="{{ $isFollowUpNeeded ? 'table-warning' : '' }}">
+                                        <tr class="{{ $isLongStay ? 'table-warning' : ($isDischargeSoon ? 'table-info' : '') }}">
+                                            <td>
+                                                @if($patient)
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="patient-avatar me-3">
+                                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ $patient->first_name }} {{ $patient->last_name }}</div>
+                                                            <small class="text-muted">{{ $patient->identification_number }}</small>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <span class="text-muted">Patient non assigné</span>
+                                                @endif
+                                            </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="patient-avatar me-3">
-                                                        <i class="fas fa-user-circle fa-2x text-primary"></i>
-                                                    </div>
+                                                    <i class="fas fa-bed text-primary me-2"></i>
                                                     <div>
-                                                        <div class="fw-bold">{{ $patient->first_name }} {{ $patient->last_name }}</div>
-                                                        <small class="text-muted">{{ $patient->identification_number }}</small>
+                                                        <div class="fw-bold">Lit {{ $bed->bed_number }}</div>
+                                                        <small class="text-muted">Chambre {{ $bed->room_number }}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div>
-                                                    <div><i class="fas fa-envelope text-info me-1"></i>{{ $patient->email }}</div>
-                                                    <div><i class="fas fa-phone text-success me-1"></i>{{ $patient->phone_number ?? 'Non renseigné' }}</div>
+                                                    <div class="fw-bold">{{ \Carbon\Carbon::parse($bed->admission_date)->format('d/m/Y') }}</div>
+                                                    <small class="text-muted">{{ \Carbon\Carbon::parse($bed->admission_date)->format('H:i') }}</small>
                                                 </div>
                                             </td>
                                             <td>
-                                                @if($lastAppointment)
+                                                @if($bed->expected_discharge_date)
                                                     <div>
-                                                        <div class="fw-bold">{{ \Carbon\Carbon::parse($lastAppointment->appointment_date)->format('d/m/Y') }}</div>
-                                                        <small class="text-muted">{{ \Carbon\Carbon::parse($lastAppointment->appointment_time)->format('H:i') }}</small>
-                                                        <br>
-                                                        <span class="badge bg-{{ $lastAppointment->status == 'completed' ? 'success' : 'info' }}">
-                                                            {{ ucfirst($lastAppointment->status) }}
-                                                        </span>
+                                                        <div class="fw-bold">{{ \Carbon\Carbon::parse($bed->expected_discharge_date)->format('d/m/Y') }}</div>
+                                                        <small class="text-muted">{{ \Carbon\Carbon::parse($bed->expected_discharge_date)->diffForHumans() }}</small>
                                                     </div>
                                                 @else
-                                                    <span class="text-muted">Aucun RDV</span>
+                                                    <span class="text-muted">Non définie</span>
                                                 @endif
                                             </td>
                                             <td>
-                                                @if($nextAppointment)
-                                                    <div>
-                                                        <div class="fw-bold">{{ \Carbon\Carbon::parse($nextAppointment->appointment_date)->format('d/m/Y') }}</div>
-                                                        <small class="text-muted">{{ \Carbon\Carbon::parse($nextAppointment->appointment_time)->format('H:i') }}</small>
-                                                        <br>
-                                                        <span class="badge bg-{{ $nextAppointment->status == 'confirmed' ? 'success' : 'warning' }}">
-                                                            {{ ucfirst($nextAppointment->status) }}
-                                                        </span>
-                                                    </div>
-                                                @else
-                                                    <span class="text-muted">Aucun RDV prévu</span>
-                                                @endif
+                                                <div>
+                                                    <div class="fw-bold">{{ $daysAdmitted }} jours</div>
+                                                    <small class="text-muted">{{ \Carbon\Carbon::parse($bed->admission_date)->diffForHumans() }}</small>
+                                                </div>
                                             </td>
                                             <td>
-                                                @if($isFollowUpNeeded)
+                                                @if($isLongStay)
                                                     <span class="badge bg-warning">
-                                                        <i class="fas fa-exclamation-triangle me-1"></i>Suivi requis
+                                                        <i class="fas fa-clock me-1"></i>Séjour long
                                                     </span>
-                                                @elseif($patient->appointments->where('appointment_date', '>=', now()->subDays(30))->count() > 0)
-                                                    <span class="badge bg-success">
-                                                        <i class="fas fa-check-circle me-1"></i>Actif
+                                                @elseif($isDischargeSoon)
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-calendar-check me-1"></i>Sortie prévue
                                                     </span>
                                                 @else
-                                                    <span class="badge bg-secondary">
-                                                        <i class="fas fa-clock me-1"></i>Inactif
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Hospitalisé
                                                     </span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ route('doctor.patients.show', $patient) }}" 
-                                                       class="btn btn-outline-primary" 
-                                                       title="Voir le profil">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <a href="{{ route('doctor.patients.history', $patient) }}" 
-                                                       class="btn btn-outline-info" 
-                                                       title="Historique">
-                                                        <i class="fas fa-history"></i>
-                                                    </a>
-                                                    <a href="{{ route('doctor.patients.appointments', $patient) }}" 
-                                                       class="btn btn-outline-success" 
-                                                       title="RDV">
-                                                        <i class="fas fa-calendar"></i>
-                                                    </a>
-                                                    @if($isFollowUpNeeded)
-                                                        <a href="{{ route('doctor.patients.new') }}?patient_id={{ $patient->id }}" 
-                                                           class="btn btn-outline-warning" 
-                                                           title="Planifier un suivi">
-                                                            <i class="fas fa-calendar-plus"></i>
+                                                    @if($patient)
+                                                        <a href="{{ route('doctor.medical-files.show', $patient) }}" 
+                                                           class="btn btn-outline-primary" 
+                                                           title="Voir le dossier médical">
+                                                            <i class="fas fa-file-medical"></i>
                                                         </a>
+                                                        <a href="{{ route('doctor.patients.show', $patient) }}" 
+                                                           class="btn btn-outline-info" 
+                                                           title="Voir le profil">
+                                                            <i class="fas fa-user"></i>
+                                                        </a>
+                                                    @endif
+                                                    <button type="button" class="btn btn-outline-success" 
+                                                            onclick="viewBedDetails({{ $bed->id }})" 
+                                                            title="Détails du lit">
+                                                        <i class="fas fa-bed"></i>
+                                                    </button>
+                                                    @if($isDischargeSoon)
+                                                        <button type="button" class="btn btn-outline-warning" 
+                                                                onclick="prepareDischarge({{ $bed->id }})" 
+                                                                title="Préparer la sortie">
+                                                            <i class="fas fa-sign-out-alt"></i>
+                                                        </button>
                                                     @endif
                                                 </div>
                                             </td>
@@ -236,15 +240,15 @@
 
                         <!-- Pagination -->
                         <div class="d-flex justify-content-center mt-4">
-                            {{ $patients->links() }}
+                            {{ $hospitalizedPatients->links() }}
                         </div>
                     @else
                         <div class="text-center py-5">
-                            <i class="fas fa-user-friends fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">Aucun patient récent</h5>
-                            <p class="text-muted">Vous n'avez pas de patients avec des rendez-vous récents.</p>
-                            <a href="{{ route('doctor.patients') }}" class="btn btn-primary">
-                                <i class="fas fa-users me-2"></i>Voir tous les patients
+                            <i class="fas fa-bed fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun patient hospitalisé</h5>
+                            <p class="text-muted">Aucun patient n'est actuellement hospitalisé dans votre service.</p>
+                            <a href="{{ route('doctor.appointments') }}" class="btn btn-primary">
+                                <i class="fas fa-calendar me-2"></i>Voir les rendez-vous
                             </a>
                         </div>
                     @endif
@@ -253,33 +257,33 @@
         </div>
     </div>
 
-    <!-- Conseils pour le suivi -->
+    <!-- Conseils pour le suivi hospitalier -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-lightbulb me-2"></i>Conseils pour le suivi médical
+                        <i class="fas fa-lightbulb me-2"></i>Conseils pour le suivi hospitalier
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6 class="text-primary">📋 Suivi recommandé</h6>
+                            <h6 class="text-primary">📋 Surveillance recommandée</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-check-circle text-success me-2"></i>Patients avec RDV dans les 30 derniers jours</li>
-                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Patients nécessitant un suivi (30-90 jours)</li>
-                                <li><i class="fas fa-clock text-info me-2"></i>Patients avec RDV confirmés à venir</li>
-                                <li><i class="fas fa-user-check text-primary me-2"></i>Patients avec consultations terminées</li>
+                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Patients avec séjours longs (>30 jours)</li>
+                                <li><i class="fas fa-calendar-check text-info me-2"></i>Patients avec sorties prévues dans les 3 jours</li>
+                                <li><i class="fas fa-user-plus text-success me-2"></i>Nouvelles admissions (dernière semaine)</li>
+                                <li><i class="fas fa-bed text-primary me-2"></i>Surveillance continue des signes vitaux</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-success">💡 Bonnes pratiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-calendar-plus text-primary me-2"></i>Planifiez les rendez-vous de suivi à l'avance</li>
-                                <li><i class="fas fa-bell text-info me-2"></i>Activez les rappels pour les patients</li>
-                                <li><i class="fas fa-file-medical text-success me-2"></i>Consultez régulièrement les dossiers médicaux</li>
-                                <li><i class="fas fa-notes-medical text-warning me-2"></i>Prenez des notes sur l'évolution des patients</li>
+                                <li><i class="fas fa-file-medical text-primary me-2"></i>Consultez régulièrement les dossiers médicaux</li>
+                                <li><i class="fas fa-clock text-info me-2"></i>Planifiez les visites de routine</li>
+                                <li><i class="fas fa-sign-out-alt text-warning me-2"></i>Préparez les sorties à l'avance</li>
+                                <li><i class="fas fa-notes-medical text-success me-2"></i>Documentez l'évolution des patients</li>
                             </ul>
                         </div>
                     </div>
@@ -310,6 +314,10 @@
     background-color: rgba(255, 193, 7, 0.1);
 }
 
+.table-info {
+    background-color: rgba(23, 162, 184, 0.1);
+}
+
 .patient-avatar {
     width: 40px;
     height: 40px;
@@ -335,17 +343,32 @@
 
 @push('scripts')
 <script>
-// Auto-refresh de la page toutes les 10 minutes pour le suivi
+// Auto-refresh de la page toutes les 5 minutes pour le suivi hospitalier
 setTimeout(function() {
     location.reload();
-}, 600000);
+}, 300000);
+
+// Fonction pour voir les détails du lit
+function viewBedDetails(bedId) {
+    // Pour l'instant, afficher une alerte simple
+    // Plus tard, on pourra créer un modal pour afficher les détails complets
+    alert('Fonctionnalité de visualisation des détails du lit en cours de développement pour le lit ID: ' + bedId);
+}
+
+// Fonction pour préparer la sortie d'un patient
+function prepareDischarge(bedId) {
+    if (confirm('Êtes-vous sûr de vouloir préparer la sortie de ce patient ?')) {
+        // Logique de préparation de sortie
+        alert('Fonctionnalité de préparation de sortie en cours de développement pour le lit ID: ' + bedId);
+    }
+}
 
 // Confirmation pour les actions importantes
 document.addEventListener('DOMContentLoaded', function() {
-    const followUpButtons = document.querySelectorAll('a[title="Planifier un suivi"]');
-    followUpButtons.forEach(button => {
+    const dischargeButtons = document.querySelectorAll('button[title="Préparer la sortie"]');
+    dischargeButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-            if (!confirm('Êtes-vous sûr de vouloir planifier un rendez-vous de suivi pour ce patient ?')) {
+            if (!confirm('Êtes-vous sûr de vouloir préparer la sortie de ce patient ?')) {
                 e.preventDefault();
             }
         });

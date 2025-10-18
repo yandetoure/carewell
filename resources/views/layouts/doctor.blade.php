@@ -126,8 +126,8 @@
         </div>
         <div class="nav-item">
             <a href="{{ route('doctor.follow-up') }}" class="nav-link {{ request()->routeIs('doctor.follow-up*') ? 'active' : '' }}">
-                <i class="fas fa-calendar-check"></i>
-                <span>Suivi des patients</span>
+                <i class="fas fa-bed"></i>
+                <span>Patients hospitalisés</span>
             </a>
         </div>
     </div>

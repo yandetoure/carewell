@@ -1527,7 +1527,7 @@ public function updateAppointmentStatus(Request $request, $id)
     }
 
     /**
-     * Afficher le suivi des patients du médecin
+     * Afficher les patients hospitalisés du service du médecin
      */
     public function doctorFollowUp()
     {
@@ -1537,40 +1537,41 @@ public function updateAppointmentStatus(Request $request, $id)
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les patients avec des rendez-vous récents
-        $patients = User::whereHas('appointments', function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id)
-                      ->where('appointment_date', '>=', now()->subDays(30));
-            })
-            ->with(['appointments' => function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id)
-                      ->orderBy('appointment_date', 'desc')
-                      ->limit(3);
-            }])
+        // Récupérer les lits occupés du service du médecin
+        $hospitalizedPatients = \App\Models\Bed::with(['medicalFile.user', 'service', 'currentAdmission'])
+            ->where('service_id', $doctor->service_id)
+            ->where('status', 'occupe')
+            ->orderBy('admission_date', 'desc')
             ->paginate(15);
 
-        // Statistiques du suivi
-        $totalPatients = User::whereHas('appointments', function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id);
-            })->count();
+        // Statistiques des patients hospitalisés
+        $totalHospitalized = \App\Models\Bed::where('service_id', $doctor->service_id)
+            ->where('status', 'occupe')
+            ->count();
 
-        $activePatients = User::whereHas('appointments', function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id)
-                      ->where('appointment_date', '>=', now()->subDays(30));
-            })->count();
+        $newAdmissions = \App\Models\Bed::where('service_id', $doctor->service_id)
+            ->where('status', 'occupe')
+            ->where('admission_date', '>=', now()->subDays(7))
+            ->count();
 
-        $followUpNeeded = User::whereHas('appointments', function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id)
-                      ->where('status', 'completed')
-                      ->where('appointment_date', '>=', now()->subDays(90))
-                      ->where('appointment_date', '<=', now()->subDays(30));
-            })->count();
+        $longStayPatients = \App\Models\Bed::where('service_id', $doctor->service_id)
+            ->where('status', 'occupe')
+            ->where('admission_date', '<=', now()->subDays(30))
+            ->count();
+
+        $expectedDischarges = \App\Models\Bed::where('service_id', $doctor->service_id)
+            ->where('status', 'occupe')
+            ->where('expected_discharge_date', '<=', now()->addDays(3))
+            ->where('expected_discharge_date', '>=', now())
+            ->count();
 
         return view('doctor.follow-up', compact(
-            'patients',
-            'totalPatients',
-            'activePatients',
-            'followUpNeeded'
+            'hospitalizedPatients',
+            'totalHospitalized',
+            'newAdmissions',
+            'longStayPatients',
+            'expectedDischarges',
+            'doctor'
         ));
     }
 
