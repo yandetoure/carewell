@@ -212,10 +212,10 @@
                         <div class="col-md-6">
                             <h6 class="text-primary">📊 Statistiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-bell text-primary me-2"></i><strong>Total notifications:</strong> {{ $notifications->count() }}</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Notifications lues:</strong> {{ $notifications->where('is_read', true)->count() }}</li>
-                                <li><i class="fas fa-exclamation-circle text-warning me-2"></i><strong>Non lues:</strong> {{ $notifications->where('is_read', false)->count() }}</li>
-                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $notifications->where('created_at', '>=', now()->subDays(7))->count() }}</li>
+                                <li><i class="fas fa-bell text-primary me-2"></i><strong>Total notifications:</strong> {{ $totalNotifications }}</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Notifications lues:</strong> {{ $totalNotifications - $unreadNotifications }}</li>
+                                <li><i class="fas fa-exclamation-circle text-warning me-2"></i><strong>Non lues:</strong> {{ $unreadNotifications }}</li>
+                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $weekNotifications }}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -321,18 +321,54 @@ function showNotificationDetails(title, message, date) {
 }
 
 function markAsRead(notificationId) {
-    // Ici vous pouvez ajouter une requête AJAX pour marquer la notification comme lue
-    // Pour l'instant, on recharge la page
-    if (confirm('Marquer cette notification comme lue ?')) {
-        location.reload();
-    }
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/notifications/${notificationId}/mark-read`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            location.reload();
+        } else {
+            alert('Erreur lors de la mise à jour du statut');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la mise à jour du statut');
+    });
 }
 
 function markAllAsRead() {
-    // Ici vous pouvez ajouter une requête AJAX pour marquer toutes les notifications comme lues
-    // Pour l'instant, on recharge la page
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
     if (confirm('Marquer toutes les notifications comme lues ?')) {
-        location.reload();
+        fetch('/doctor/notifications/mark-all-read', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status) {
+                location.reload();
+            } else {
+                alert('Erreur lors de la mise à jour');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la mise à jour');
+        });
     }
 }
 </script>

@@ -201,6 +201,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/messages/chat/{userId}', [MessageController::class, 'chatWithUser'])->name('doctor.messages.chat');
         Route::post('/messages/send', [MessageController::class, 'sendMessage'])->name('doctor.messages.send');
         Route::get('/notifications', [NotificationController::class, 'doctorNotifications'])->name('doctor.notifications');
+        Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('doctor.notifications.mark-read');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('doctor.notifications.mark-all-read');
         Route::get('/profile', [ProfileController::class, 'doctorProfile'])->name('doctor.profile');
         Route::get('/settings', [ProfileController::class, 'doctorSettings'])->name('doctor.settings');
 
