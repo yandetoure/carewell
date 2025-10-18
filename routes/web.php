@@ -18,6 +18,8 @@ use App\Http\Controllers\MedicalFileController;
 use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\AccountantController;
+use App\Http\Controllers\NurseController;
 use App\Http\Controllers\ExamPrescriptionController;
 use App\Http\Controllers\MedicalFilePrescriptionController;
 
@@ -147,6 +149,41 @@ Route::middleware('auth')->group(function () {
     Route::put('/availability/{availability}', [AvailabilityController::class, 'update'])->name('availability.update');
     Route::delete('/availability/{availability}', [AvailabilityController::class, 'destroy'])->name('availability.destroy');
 
+    // Routes pour les comptables
+    Route::group(['prefix' => 'accountant'], function () {
+        Route::get('/dashboard', [AccountantController::class, 'dashboard'])->name('accountant.dashboard');
+        Route::get('/reports', [AccountantController::class, 'reports'])->name('accountant.reports');
+        Route::get('/billing', [AccountantController::class, 'billing'])->name('accountant.billing');
+    });
+
+            // Routes pour les infirmières
+            Route::group(['prefix' => 'nurse'], function () {
+                Route::get('/dashboard', [NurseController::class, 'dashboard'])->name('nurse.dashboard');
+                Route::get('/patients', [NurseController::class, 'patients'])->name('nurse.patients');
+                Route::get('/medications', [NurseController::class, 'medications'])->name('nurse.medications');
+                Route::get('/beds', [NurseController::class, 'beds'])->name('nurse.beds');
+                Route::get('/patient-records', [NurseController::class, 'patientRecords'])->name('nurse.patient-records');
+                Route::get('/vital-signs', [NurseController::class, 'vitalSigns'])->name('nurse.vital-signs');
+                Route::get('/appointments', [NurseController::class, 'appointments'])->name('nurse.appointments');
+                Route::get('/prescriptions', [NurseController::class, 'prescriptions'])->name('nurse.prescriptions');
+                Route::get('/profile', [NurseController::class, 'profile'])->name('nurse.profile');
+                Route::put('/profile', [NurseController::class, 'updateProfile'])->name('nurse.profile.update');
+                Route::put('/profile/password', [NurseController::class, 'updatePassword'])->name('nurse.profile.password');
+                Route::get('/settings', [NurseController::class, 'settings'])->name('nurse.settings');
+                Route::put('/settings', [NurseController::class, 'updateSettings'])->name('nurse.settings.update');
+                
+                // Routes AJAX pour les modals
+                Route::get('/patients/{patientId}/details', [NurseController::class, 'getPatientDetails'])->name('nurse.patients.details');
+                Route::get('/patients/{patientId}/medical-file', [NurseController::class, 'getMedicalFile'])->name('nurse.patients.medical-file');
+                Route::get('/patients/{patientId}/vital-signs', [NurseController::class, 'getVitalSigns'])->name('nurse.patients.vital-signs');
+                Route::get('/beds/available', [NurseController::class, 'getAvailableBeds'])->name('nurse.beds.available');
+                Route::get('/appointments/{appointmentId}/details', [NurseController::class, 'getAppointmentDetails'])->name('nurse.appointments.details');
+                
+                // Routes pour l'assignation de lits
+                Route::post('/patients/{patientId}/assign-bed', [NurseController::class, 'assignBedToPatient'])->name('nurse.patients.assign-bed');
+                Route::post('/patients/{patientId}/discharge', [NurseController::class, 'dischargePatient'])->name('nurse.patients.discharge');
+            });
+
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)
     Route::group(['prefix' => 'doctor'], function () {
         Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'doctorDashboard'])->name('doctor.dashboard');
@@ -204,7 +241,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('doctor.notifications.mark-read');
         Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('doctor.notifications.mark-all-read');
         Route::get('/profile', [ProfileController::class, 'doctorProfile'])->name('doctor.profile');
+        Route::put('/profile', [ProfileController::class, 'updateDoctorProfile'])->name('doctor.profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('doctor.profile.password');
         Route::get('/settings', [ProfileController::class, 'doctorSettings'])->name('doctor.settings');
+        Route::put('/settings', [ProfileController::class, 'updateDoctorSettings'])->name('doctor.settings.update');
 
         // Gestion des prescriptions
         Route::put('/prescriptions/{prescription}/status', [MedicalFilePrescriptionController::class, 'updatePrescriptionStatus'])->name('prescriptions.updateStatus');

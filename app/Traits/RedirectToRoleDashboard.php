@@ -22,9 +22,9 @@ trait RedirectToRoleDashboard
         } elseif ($roles->contains('Secretary')) {
             return redirect()->route('secretary.dashboard');
         } elseif ($roles->contains('Accountant')) {
-            // Pour l'instant, rediriger vers le dashboard patient
-            // Vous pouvez créer un dashboard spécifique pour les comptables plus tard
-            return redirect()->route('patient.dashboard');
+            return redirect()->route('accountant.dashboard');
+        } elseif ($roles->contains('Nurse')) {
+            return redirect()->route('nurse.dashboard');
         } else {
             // Par défaut, dashboard patient
             return redirect()->route('patient.dashboard');

@@ -281,14 +281,14 @@
                     <div class="row">
                         <div class="col-6">
                             <div class="text-center">
-                                <h4 class="text-primary">{{ $doctor->created_at ? \Carbon\Carbon::parse($doctor->created_at)->diffInDays(now()) : 0 }}</h4>
-                                <p class="text-muted mb-0">Jours d'activité</p>
+                                <h4 class="text-primary">{{ $totalAppointments }}</h4>
+                                <p class="text-muted mb-0">Total rendez-vous</p>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="text-center">
-                                <h4 class="text-success">{{ $doctor->experience_years ?? 0 }}</h4>
-                                <p class="text-muted mb-0">Années d'expérience</p>
+                                <h4 class="text-success">{{ $todayAppointments }}</h4>
+                                <p class="text-muted mb-0">RDV aujourd'hui</p>
                             </div>
                         </div>
                     </div>
@@ -298,17 +298,25 @@
                     <div class="row">
                         <div class="col-6">
                             <div class="text-center">
-                                <h4 class="text-info">{{ $doctor->consultation_fee ?? 0 }}</h4>
-                                <p class="text-muted mb-0">Frais de consultation</p>
+                                <h4 class="text-info">{{ $totalPatients }}</h4>
+                                <p class="text-muted mb-0">Patients</p>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="text-center">
-                                <h4 class="text-warning">{{ $doctor->numero_ordre ? 'Validé' : 'Non validé' }}</h4>
-                                <p class="text-muted mb-0">Statut professionnel</p>
+                                <h4 class="text-warning">{{ $totalMessages }}</h4>
+                                <p class="text-muted mb-0">Messages envoyés</p>
                             </div>
                         </div>
                     </div>
+                    
+                    @if($service)
+                    <hr>
+                    <div class="text-center">
+                        <h6 class="text-secondary">Service</h6>
+                        <p class="mb-0">{{ $service->name }}</p>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

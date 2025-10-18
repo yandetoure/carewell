@@ -197,28 +197,28 @@
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     @if($appointment->service_id == $doctor->service_id)
-                                                        @if($appointment->status == 'pending')
-                                                            <button type="button" class="btn btn-outline-success" 
-                                                                    onclick="confirmAppointment({{ $appointment->id }})" 
-                                                                    title="Confirmer">
-                                                                <i class="fas fa-check"></i>
-                                                            </button>
+                                                    @if($appointment->status == 'pending')
+                                                        <button type="button" class="btn btn-outline-success" 
+                                                                onclick="confirmAppointment({{ $appointment->id }})" 
+                                                                title="Confirmer">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
                                                             <button type="button" class="btn btn-outline-danger" 
                                                                     onclick="cancelAppointment({{ $appointment->id }})" 
                                                                     title="Annuler">
                                                                 <i class="fas fa-times"></i>
                                                             </button>
                                                         @elseif($appointment->status == 'confirmed')
-                                                            <button type="button" class="btn btn-outline-info" 
-                                                                    onclick="markAsCompleted({{ $appointment->id }})" 
-                                                                    title="Marquer comme terminé">
-                                                                <i class="fas fa-check-double"></i>
-                                                            </button>
-                                                            <button type="button" class="btn btn-outline-danger" 
-                                                                    onclick="cancelAppointment({{ $appointment->id }})" 
-                                                                    title="Annuler">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
+                                                        <button type="button" class="btn btn-outline-info" 
+                                                                onclick="markAsCompleted({{ $appointment->id }})" 
+                                                                title="Marquer comme terminé">
+                                                            <i class="fas fa-check-double"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-danger" 
+                                                                onclick="cancelAppointment({{ $appointment->id }})" 
+                                                                title="Annuler">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
                                                         @endif
                                                     @else
                                                         <span class="text-muted small">Autre service</span>
@@ -363,9 +363,9 @@ function viewAppointment(appointmentId) {
             console.log('Response data:', data); // Debug log
             if (data.status && data.data) {
                 const appointment = data.data;
-                document.getElementById('appointmentDetails').innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
+        document.getElementById('appointmentDetails').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
                             <h6><i class="fas fa-user me-2"></i>Informations du patient</h6>
                             <div class="mb-3">
                                 <strong>Nom complet:</strong><br>
@@ -430,14 +430,14 @@ function viewAppointment(appointmentId) {
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Créé le:</strong> ${new Date(appointment.created_at).toLocaleDateString('fr-FR')} à ${new Date(appointment.created_at).toLocaleTimeString('fr-FR')}
-                                </div>
-                                <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
                                     <strong>Modifié le:</strong> ${new Date(appointment.updated_at).toLocaleDateString('fr-FR')} à ${new Date(appointment.updated_at).toLocaleTimeString('fr-FR')}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                `;
+                </div>
+            </div>
+        `;
             } else {
                 document.getElementById('appointmentDetails').innerHTML = `
                     <div class="alert alert-danger">
