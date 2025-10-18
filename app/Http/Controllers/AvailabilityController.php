@@ -259,17 +259,34 @@ class AvailabilityController extends Controller
             ->orderBy('start_time', 'desc')
             ->paginate(15);
 
+        // Récupérer les absences du médecin
+        $absences = \App\Models\Absence::where('doctor_id', $doctor->id)
+            ->where('start_date', '>=', now()->startOfMonth())
+            ->where('end_date', '<=', now()->addMonths(2)->endOfMonth())
+            ->orderBy('start_date', 'asc')
+            ->get();
+
         $services = \App\Models\Service::all();
         $totalAvailabilities = $availabilities->total();
         $thisWeekAvailabilities = Availability::where('doctor_id', $doctor->id)
             ->whereBetween('available_date', [now()->startOfWeek(), now()->endOfWeek()])
             ->count();
 
+        // Statistiques des absences
+        $totalAbsences = $absences->count();
+        $upcomingAbsences = $absences->where('start_date', '>', now()->toDateString())->count();
+        $currentAbsences = $absences->where('start_date', '<=', now()->toDateString())
+            ->where('end_date', '>=', now()->toDateString())->count();
+
         return view('doctor.availability.index', compact(
             'availabilities',
+            'absences',
             'services',
             'totalAvailabilities',
-            'thisWeekAvailabilities'
+            'thisWeekAvailabilities',
+            'totalAbsences',
+            'upcomingAbsences',
+            'currentAbsences'
         ));
     }
 

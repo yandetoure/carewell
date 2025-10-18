@@ -28,7 +28,7 @@
 
     <!-- Statistiques -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -43,7 +43,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -58,6 +58,36 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-calendar-times text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $totalAbsences }}</h4>
+                            <p class="text-muted mb-0">Absences</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-danger">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $currentAbsences }}</h4>
+                            <p class="text-muted mb-0">En cours</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Liste des disponibilités -->
@@ -65,16 +95,19 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-clock me-2"></i>Mes créneaux de disponibilité
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <a href="{{ route('doctor.availability.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Nouveau créneau
-                            </a>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-clock me-2"></i>Mes créneaux de disponibilité
+                            </h5>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('doctor.availability.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Nouveau créneau
+                                </a>
+                                <a href="{{ route('doctor.calendar') }}" class="btn btn-info">
+                                    <i class="fas fa-calendar-alt me-2"></i>Voir le calendrier
+                                </a>
+                            </div>
                         </div>
-                    </div>
                 </div>
                 <div class="card-body">
                     @if($availabilities->count() > 0)
@@ -170,6 +203,110 @@
         </div>
     </div>
 
+    <!-- Liste des absences -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-times me-2"></i>Mes absences et congés
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('doctor.calendar.create-absence') }}" class="btn btn-warning">
+                                <i class="fas fa-plus me-2"></i>Nouvelle absence
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if($absences->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Type</th>
+                                        <th>Date de début</th>
+                                        <th>Date de fin</th>
+                                        <th>Durée</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($absences as $absence)
+                                        <tr class="{{ $absence->start_date <= now()->toDateString() && $absence->end_date >= now()->toDateString() ? 'table-warning' : '' }}">
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-calendar-times text-warning me-2"></i>
+                                                    {{ $absence->title }}
+                                                    @if($absence->start_date <= now()->toDateString() && $absence->end_date >= now()->toDateString())
+                                                        <span class="badge bg-warning ms-2">En cours</span>
+                                                    @elseif($absence->start_date > now()->toDateString())
+                                                        <span class="badge bg-info ms-2">À venir</span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $absence->type == 'congé' ? 'warning' : ($absence->type == 'formation' ? 'info' : ($absence->type == 'maladie' ? 'danger' : ($absence->type == 'personnel' ? 'secondary' : 'purple'))) }}">
+                                                    {{ $absence->getFormattedType() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-calendar text-primary me-2"></i>
+                                                    {{ \Carbon\Carbon::parse($absence->start_date)->format('d/m/Y') }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-calendar text-danger me-2"></i>
+                                                    {{ \Carbon\Carbon::parse($absence->end_date)->format('d/m/Y') }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ $absence->getDurationInDays() }} jour{{ $absence->getDurationInDays() > 1 ? 's' : '' }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $absence->status == 'planned' ? 'secondary' : ($absence->status == 'confirmed' ? 'success' : 'danger') }}">
+                                                    {{ $absence->getFormattedStatus() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ route('doctor.calendar.edit-absence', $absence) }}" 
+                                                       class="btn btn-outline-primary" 
+                                                       title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-outline-danger" 
+                                                            onclick="deleteAbsence({{ $absence->id }})" 
+                                                            title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-check fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucune absence planifiée</h5>
+                            <p class="text-muted">Vous n'avez pas encore planifié d'absence ou de congé.</p>
+                            <a href="{{ route('doctor.calendar.create-absence') }}" class="btn btn-warning">
+                                <i class="fas fa-plus me-2"></i>Planifier une absence
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Conseils et informations -->
     <div class="row mt-4">
         <div class="col-12">
@@ -231,6 +368,32 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmation de suppression d'absence -->
+<div class="modal fade" id="deleteAbsenceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer cette absence ?</p>
+                <p class="text-muted">Cette action est irréversible et pourrait affecter les rendez-vous en attente.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteAbsenceForm" method="POST" style="display: inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
@@ -252,6 +415,14 @@
 .table-secondary {
     opacity: 0.6;
 }
+
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
 </style>
 @endpush
 
@@ -262,6 +433,14 @@ function deleteAvailability(availabilityId) {
     form.action = `/doctor/availability/${availabilityId}`;
     
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+function deleteAbsence(absenceId) {
+    const form = document.getElementById('deleteAbsenceForm');
+    form.action = `/doctor/calendar/absence/${absenceId}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteAbsenceModal'));
     modal.show();
 }
 </script>

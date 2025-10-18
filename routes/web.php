@@ -173,6 +173,15 @@ Route::middleware('auth')->group(function () {
         Route::put('/availability/{availability}', [AvailabilityController::class, 'doctorUpdateAvailability'])->name('doctor.availability.update');
         Route::delete('/availability/{availability}', [AvailabilityController::class, 'doctorDestroyAvailability'])->name('doctor.availability.destroy');
         
+        // Routes pour le calendrier et les absences
+        Route::get('/calendar', [App\Http\Controllers\AbsenceController::class, 'calendar'])->name('doctor.calendar');
+        Route::get('/calendar/data', [App\Http\Controllers\AbsenceController::class, 'getCalendarData'])->name('doctor.calendar.data');
+        Route::get('/calendar/absence/create', [App\Http\Controllers\AbsenceController::class, 'create'])->name('doctor.calendar.create-absence');
+        Route::post('/calendar/absence', [App\Http\Controllers\AbsenceController::class, 'store'])->name('doctor.calendar.store-absence');
+        Route::get('/calendar/absence/{absence}/edit', [App\Http\Controllers\AbsenceController::class, 'edit'])->name('doctor.calendar.edit-absence');
+        Route::put('/calendar/absence/{absence}', [App\Http\Controllers\AbsenceController::class, 'update'])->name('doctor.calendar.update-absence');
+        Route::delete('/calendar/absence/{absence}', [App\Http\Controllers\AbsenceController::class, 'destroy'])->name('doctor.calendar.destroy-absence');
+        
         Route::get('/stats', [AppointmentController::class, 'doctorStats'])->name('doctor.stats');
         Route::get('/statistics', [AppointmentController::class, 'doctorStatistics'])->name('doctor.statistics');
         Route::get('/prescriptions', [MedicalFilePrescriptionController::class, 'getPrescriptionsByService'])->name('doctor.prescriptions');

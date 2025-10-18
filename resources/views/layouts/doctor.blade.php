@@ -74,6 +74,12 @@
                 <span>Mes disponibilités</span>
             </a>
         </div>
+        <div class="nav-item">
+            <a href="{{ route('doctor.calendar') }}" class="nav-link {{ request()->routeIs('doctor.calendar*') ? 'active' : '' }}">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Mon calendrier</span>
+            </a>
+        </div>
     </div>
 
     <div class="nav-section">
