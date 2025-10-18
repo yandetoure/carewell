@@ -69,7 +69,7 @@
             </a>
         </div>
         <div class="nav-item">
-            <a href="{{ route('availability.index') }}" class="nav-link {{ request()->routeIs('availability*') ? 'active' : '' }}">
+            <a href="{{ route('doctor.availability') }}" class="nav-link {{ request()->routeIs('doctor.availability*') ? 'active' : '' }}">
                 <i class="fas fa-clock"></i>
                 <span>Mes disponibilités</span>
             </a>

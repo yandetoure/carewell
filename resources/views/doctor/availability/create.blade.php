@@ -48,16 +48,33 @@
                             
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="service_id" class="form-label">Service <span class="text-danger">*</span></label>
+                                    <label for="service_id" class="form-label">Service</label>
                                     <select class="form-select @error('service_id') is-invalid @enderror" 
-                                            id="service_id" name="service_id" required>
-                                        <option value="">Sélectionner un service...</option>
-                                        @foreach($services as $service)
-                                            <option value="{{ $service->id }}" {{ old('service_id') == $service->id ? 'selected' : '' }}>
-                                                {{ $service->name }} - {{ number_format($service->price, 0, ',', ' ') }} FCFA
+                                            id="service_id" name="service_id">
+                                        @if($doctor->service)
+                                            <option value="{{ $doctor->service->id }}" selected>
+                                                {{ $doctor->service->name }} - {{ number_format($doctor->service->price, 0, ',', ' ') }} FCFA (Votre service)
                                             </option>
+                                        @else
+                                            <option value="">Aucun service associé</option>
+                                        @endif
+                                        @foreach($services as $service)
+                                            @if(!$doctor->service || $service->id != $doctor->service->id)
+                                                <option value="{{ $service->id }}" {{ old('service_id') == $service->id ? 'selected' : '' }}>
+                                                    {{ $service->name }} - {{ number_format($service->price, 0, ',', ' ') }} FCFA
+                                                </option>
+                                            @endif
                                         @endforeach
                                     </select>
+                                    @if($doctor->service)
+                                        <div class="form-text text-success">
+                                            <i class="fas fa-check-circle me-1"></i>Service automatiquement sélectionné
+                                        </div>
+                                    @else
+                                        <div class="form-text text-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Aucun service associé à votre compte
+                                        </div>
+                                    @endif
                                     @error('service_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -146,6 +163,7 @@
                                         <option value="none" {{ old('recurrence_type') == 'none' ? 'selected' : '' }}>Aucune récurrence</option>
                                         <option value="daily" {{ old('recurrence_type') == 'daily' ? 'selected' : '' }}>Quotidienne</option>
                                         <option value="weekly" {{ old('recurrence_type') == 'weekly' ? 'selected' : '' }}>Hebdomadaire</option>
+                                        <option value="monthly" {{ old('recurrence_type') == 'monthly' ? 'selected' : '' }}>Mensuelle</option>
                                     </select>
                                     @error('recurrence_type')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -190,6 +208,7 @@
                             <li>Planifiez à l'avance (minimum 24h)</li>
                             <li>Laissez du temps entre les RDV</li>
                             <li>Utilisez la récurrence pour les horaires réguliers</li>
+                            <li>Récurrence mensuelle : même jour chaque mois</li>
                         </ul>
                     </div>
                 </div>

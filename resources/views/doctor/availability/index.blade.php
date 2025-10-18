@@ -127,7 +127,7 @@
                                                 <span class="badge bg-info">{{ $availability->appointment_duration }} min</span>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $availability->recurrence_type == 'none' ? 'secondary' : ($availability->recurrence_type == 'daily' ? 'primary' : 'success') }}">
+                                                <span class="badge bg-{{ $availability->recurrence_type == 'none' ? 'secondary' : ($availability->recurrence_type == 'daily' ? 'primary' : ($availability->recurrence_type == 'weekly' ? 'success' : 'info')) }}">
                                                     {{ ucfirst($availability->recurrence_type) }}
                                                 </span>
                                             </td>

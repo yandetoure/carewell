@@ -170,6 +170,7 @@
                                         <option value="none" {{ old('recurrence_type', $availability->recurrence_type) == 'none' ? 'selected' : '' }}>Aucune récurrence</option>
                                         <option value="daily" {{ old('recurrence_type', $availability->recurrence_type) == 'daily' ? 'selected' : '' }}>Quotidienne</option>
                                         <option value="weekly" {{ old('recurrence_type', $availability->recurrence_type) == 'weekly' ? 'selected' : '' }}>Hebdomadaire</option>
+                                        <option value="monthly" {{ old('recurrence_type', $availability->recurrence_type) == 'monthly' ? 'selected' : '' }}>Mensuelle</option>
                                     </select>
                                     @error('recurrence_type')
                                         <div class="invalid-feedback">{{ $message }}</div>

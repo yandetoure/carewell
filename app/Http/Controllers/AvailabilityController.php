@@ -284,8 +284,11 @@ class AvailabilityController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
+        // Charger le service du médecin
+        $doctor->load('service');
+        
         $services = \App\Models\Service::all();
-        return view('doctor.availability.create', compact('services'));
+        return view('doctor.availability.create', compact('services', 'doctor'));
     }
 
     /**
@@ -300,20 +303,27 @@ class AvailabilityController extends Controller
         }
 
         $request->validate([
-            'service_id' => 'required|exists:services,id',
+            'service_id' => 'nullable|exists:services,id',
             'available_date' => 'required|date|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'appointment_duration' => 'required|integer|min:15|max:120',
-            'recurrence_type' => 'nullable|in:none,daily,weekly',
+            'recurrence_type' => 'nullable|in:none,daily,weekly,monthly',
         ]);
+
+        // Utiliser le service du médecin si aucun n'est spécifié
+        $serviceId = $request->service_id ?? $doctor->service_id;
+        
+        if (!$serviceId) {
+            return redirect()->back()->withErrors(['service_id' => 'Aucun service associé au médecin. Veuillez contacter l\'administrateur.']);
+        }
 
         // Calculer le jour de la semaine
         $dayOfWeek = date('w', strtotime($request->available_date));
 
         $availability = Availability::create([
             'doctor_id' => $doctor->id,
-            'service_id' => $request->service_id,
+            'service_id' => $serviceId,
             'available_date' => $request->available_date,
             'day_of_week' => $dayOfWeek,
             'start_time' => $request->start_time,
@@ -358,7 +368,7 @@ class AvailabilityController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'appointment_duration' => 'required|integer|min:15|max:120',
-            'recurrence_type' => 'nullable|in:none,daily,weekly',
+            'recurrence_type' => 'nullable|in:none,daily,weekly,monthly',
         ]);
 
         // Calculer le jour de la semaine
