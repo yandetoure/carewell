@@ -8,6 +8,7 @@ use App\Models\Disease;
 use App\Models\Service;
 use App\Models\MedicalFile;
 use App\Models\Prescription;
+use App\Models\Medicament;
 use Illuminate\Http\Request;
 use App\Models\medicalHystory;
 use Illuminate\Support\Facades\Auth; 
@@ -325,6 +326,55 @@ class MedicalFileController extends Controller
         ]);
     
         return response()->json(['message' => 'Maladie ajoutée avec succès']);
+    }
+    
+    public function addOrdonnance(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'medicaments' => 'required|array|min:1',
+            'medicaments.*.id' => 'required|exists:medicaments,id',
+            'medicaments.*.quantite' => 'required|integer|min:1',
+            'medicaments.*.posologie' => 'required|string',
+            'medicaments.*.duree_jours' => 'nullable|integer|min:1',
+            'medicaments.*.instructions_speciales' => 'nullable|string',
+        ]);
+    
+        $medicalFile = MedicalFile::find($id);
+    
+        if (!$medicalFile) {
+            return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+        }
+    
+        $doctor = Auth::user();
+        $patient = $medicalFile->user;
+    
+        // Créer l'ordonnance
+        $ordonnance = \App\Models\Ordonnance::create([
+            'patient_id' => $patient->id,
+            'medecin_id' => $doctor->id,
+            'patient_first_name' => $patient->first_name,
+            'patient_last_name' => $patient->last_name,
+            'medecin_first_name' => $doctor->first_name,
+            'medecin_last_name' => $doctor->last_name,
+            'date_prescription' => now(),
+            'date_validite' => now()->addDays(30), // Validité de 30 jours par défaut
+            'statut' => 'active',
+            'instructions' => 'Ordonnance créée depuis le dossier médical'
+        ]);
+    
+        // Ajouter chaque médicament à l'ordonnance
+        foreach ($validated['medicaments'] as $medicamentData) {
+            $ordonnance->medicaments()->attach($medicamentData['id'], [
+                'quantite' => $medicamentData['quantite'],
+                'posologie' => $medicamentData['posologie'],
+                'duree_jours' => $medicamentData['duree_jours'] ?? null,
+                'instructions_speciales' => $medicamentData['instructions_speciales'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+    
+        return response()->json(['message' => 'Ordonnance créée avec succès']);
     }
     
 }

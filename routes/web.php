@@ -198,11 +198,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/exams/{exam}/results', [ExamPrescriptionController::class, 'storeResult'])->name('exams.storeResult');
 
         // Gestion des dossiers médicaux
-        Route::post('/medical-files/{medicalFile}/addnote', [MedicalFileController::class, 'addNote'])->name('medical-files.addNote');
-        Route::post('/medical-files/{medicalFile}/addHistory', [MedicalFileController::class, 'addMedicalHistories'])->name('medical-files.addHistory');
-        Route::post('/medical-files/{medicalFile}/addprescription', [MedicalFileController::class, 'addPrescription'])->name('medical-files.addPrescription');
-        Route::post('/medical-files/{medicalFile}/addexam', [MedicalFileController::class, 'addExam'])->name('medical-files.addExam');
-        Route::post('/medical-files/{medicalFile}/adddisease', [MedicalFileController::class, 'addDisease'])->name('medical-files.addDisease');
+        Route::post('/medical-files/{id}/addnote', [MedicalFileController::class, 'addNote'])->name('medical-files.addNote');
+        Route::post('/medical-files/{id}/addHistory', [MedicalFileController::class, 'addMedicalHistories'])->name('medical-files.addHistory');
+        Route::post('/medical-files/{id}/addprescription', [MedicalFileController::class, 'addPrescription'])->name('medical-files.addPrescription');
+        Route::post('/medical-files/{id}/addexam', [MedicalFileController::class, 'addExam'])->name('medical-files.addExam');
+        Route::post('/medical-files/{id}/adddisease', [MedicalFileController::class, 'addDisease'])->name('medical-files.addDisease');
+        Route::post('/medical-files/{id}/addordonnance', [MedicalFileController::class, 'addOrdonnance'])->name('medical-files.addOrdonnance');
     });
 
     // Routes pour les patients uniquement (sans middleware de rôle pour l'instant)

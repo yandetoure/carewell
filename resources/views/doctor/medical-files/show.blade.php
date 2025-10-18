@@ -780,7 +780,7 @@ function saveNote() {
         return;
     }
     
-    fetch(`/medical-files/${currentMedicalFileId}/addnote`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/addnote`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -819,7 +819,7 @@ function saveMedicalHistory() {
         return;
     }
     
-    fetch(`/medical-files/${currentMedicalFileId}/addmedicalhistories`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/addHistory`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -868,7 +868,7 @@ function savePrescription() {
     }
     
     // Ajouter la prescription au dossier médical
-    fetch(`/medical-files/${currentMedicalFileId}/addprescription`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/addprescription`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -915,7 +915,7 @@ function saveExam() {
     }
     
     // Ajouter l'examen au dossier médical
-    fetch(`/medical-files/${currentMedicalFileId}/addexam`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/addexam`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -993,7 +993,7 @@ function saveDisease() {
     }
     
     // Ajouter la maladie au dossier médical
-    fetch(`/medical-files/${currentMedicalFileId}/adddisease`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/adddisease`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -1145,7 +1145,7 @@ function finalizeOrdonnance() {
     }
     
     // Envoyer tous les médicaments au serveur
-    fetch(`/medical-files/${currentMedicalFileId}/addordonnance`, {
+    fetch(`/doctor/medical-files/${currentMedicalFileId}/addordonnance`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -1206,7 +1206,7 @@ function saveNewDisease() {
     .then(data => {
         if (data.id) {
             // Ajouter la maladie au dossier médical
-            return fetch(`/medical-files/${currentMedicalFileId}/adddisease`, {
+            return fetch(`/doctor/medical-files/${currentMedicalFileId}/adddisease`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
