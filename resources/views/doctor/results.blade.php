@@ -36,7 +36,7 @@
                             <i class="fas fa-clipboard-list text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $results->count() }}</h4>
+                            <h4 class="mb-1">{{ $totalResults }}</h4>
                             <p class="text-muted mb-0">Total résultats</p>
                         </div>
                     </div>
@@ -51,7 +51,7 @@
                             <i class="fas fa-check-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $results->where('status', 'normal')->count() }}</h4>
+                            <h4 class="mb-1">{{ $normalResults }}</h4>
                             <p class="text-muted mb-0">Normaux</p>
                         </div>
                     </div>
@@ -66,7 +66,7 @@
                             <i class="fas fa-exclamation-triangle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $results->where('status', 'abnormal')->count() }}</h4>
+                            <h4 class="mb-1">{{ $abnormalResults }}</h4>
                             <p class="text-muted mb-0">Anormaux</p>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $results->where('created_at', '>=', now()->subDays(7))->count() }}</h4>
+                            <h4 class="mb-1">{{ $recentResults }}</h4>
                             <p class="text-muted mb-0">Cette semaine</p>
                         </div>
                     </div>
@@ -145,8 +145,8 @@
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-user text-success me-2"></i>
                                                     <div>
-                                                        <div class="fw-bold">{{ $result->patient->first_name ?? 'N/A' }} {{ $result->patient->last_name ?? 'N/A' }}</div>
-                                                        <small class="text-muted">{{ $result->patient->phone_number ?? 'Tél. non renseigné' }}</small>
+                                                        <div class="fw-bold">Patient non spécifié</div>
+                                                        <small class="text-muted">Informations non disponibles</small>
                                                     </div>
                                                 </div>
                                             </td>
@@ -159,32 +159,32 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-flask text-warning me-2"></i>
-                                                    {{ $result->exam_type ?? 'Type non spécifié' }}
+                                                    {{ $result->exam->name ?? 'Examen non spécifié' }}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-clipboard-list text-info me-2"></i>
-                                                    {{ Str::limit($result->result ?? 'Résultat non disponible', 50) }}
+                                                    {{ Str::limit($result->name ?? 'Résultat non disponible', 50) }}
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $result->status == 'normal' ? 'success' : ($result->status == 'abnormal' ? 'warning' : 'info') }}">
-                                                    {{ ucfirst($result->status ?? 'Non défini') }}
+                                                <span class="badge bg-{{ $result->status == 'normal' ? 'success' : ($result->status == 'abnormal' ? 'danger' : 'warning') }}">
+                                                    {{ $result->status == 'normal' ? 'Normal' : ($result->status == 'abnormal' ? 'Anormal' : 'En attente') }}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ route('doctor.medical-files.show', $result->patient) }}" 
-                                                       class="btn btn-outline-primary" 
-                                                       title="Voir le dossier">
+                                                    <button type="button" class="btn btn-outline-primary" 
+                                                            onclick="viewResultDetails({{ $result->id }})" 
+                                                            title="Voir les détails">
                                                         <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <a href="{{ route('doctor.patients.show', $result->patient) }}" 
-                                                       class="btn btn-outline-success" 
-                                                       title="Voir le patient">
-                                                        <i class="fas fa-user"></i>
-                                                    </a>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-success" 
+                                                            onclick="editResult({{ $result->id }})" 
+                                                            title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
                                                     @if($result->status == 'abnormal')
                                                         <button type="button" class="btn btn-outline-warning" 
                                                                 onclick="alert('Résultat anormal détecté - Consultation recommandée')" 
@@ -228,10 +228,10 @@
                         <div class="col-md-6">
                             <h6 class="text-primary">📊 Statistiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-clipboard-list text-primary me-2"></i><strong>Total résultats:</strong> {{ $results->count() }}</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Résultats normaux:</strong> {{ $results->where('status', 'normal')->count() }}</li>
-                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i><strong>Résultats anormaux:</strong> {{ $results->where('status', 'abnormal')->count() }}</li>
-                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $results->where('created_at', '>=', now()->subDays(7))->count() }}</li>
+                                <li><i class="fas fa-clipboard-list text-primary me-2"></i><strong>Total résultats:</strong> {{ $totalResults }}</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Résultats normaux:</strong> {{ $normalResults }}</li>
+                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i><strong>Résultats anormaux:</strong> {{ $abnormalResults }}</li>
+                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $recentResults }}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -245,6 +245,94 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour afficher les détails du résultat -->
+<div class="modal fade" id="viewResultModal" tabindex="-1" aria-labelledby="viewResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="viewResultModalLabel">
+                    <i class="fas fa-clipboard-list me-2"></i>Détails du résultat
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                <div id="viewResultContent">
+                    <!-- Le contenu sera inséré ici par JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour modifier le résultat -->
+<div class="modal fade" id="editResultModal" tabindex="-1" aria-labelledby="editResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="editResultModalLabel">
+                    <i class="fas fa-edit me-2"></i>Modifier le résultat
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editResultForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="editResult" class="form-label">Résultat de l'examen</label>
+                        <textarea class="form-control" id="editResult" name="name" rows="4" placeholder="Décrivez le résultat de l'examen..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editStatus" class="form-label">Statut du résultat</label>
+                        <select class="form-select" id="editStatus" name="status">
+                            <option value="normal">Normal</option>
+                            <option value="abnormal">Anormal</option>
+                            <option value="pending">En attente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Notes supplémentaires</label>
+                        <textarea class="form-control" id="editDescription" name="description" rows="3" placeholder="Notes ou recommandations..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editPhotos" class="form-label">Nouvelles photos (optionnel)</label>
+                        <input type="file" class="form-control" id="editPhotos" name="photos[]" multiple accept="image/*">
+                        <div class="form-text">Vous pouvez sélectionner plusieurs photos (JPG, PNG, GIF)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editPdfs" class="form-label">Nouveaux documents PDF (optionnel)</label>
+                        <input type="file" class="form-control" id="editPdfs" name="pdfs[]" multiple accept=".pdf">
+                        <div class="form-text">Vous pouvez sélectionner plusieurs fichiers PDF</div>
+                    </div>
+                    
+                    <!-- Aperçu des fichiers existants -->
+                    <div id="existingFilesPreview" class="mb-3" style="display: none;">
+                        <h6>Fichiers existants :</h6>
+                        <div id="existingFilesList"></div>
+                    </div>
+                    
+                    <!-- Aperçu des nouveaux fichiers -->
+                    <div id="newFilesPreview" class="mb-3" style="display: none;">
+                        <h6>Nouveaux fichiers sélectionnés :</h6>
+                        <div id="newFilesList"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-success" onclick="updateResult()">
+                    <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                </button>
             </div>
         </div>
     </div>
@@ -292,4 +380,313 @@
     font-size: 0.875rem;
 }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+let currentResultId = null;
+
+// Fonction pour afficher les détails du résultat
+function viewResultDetails(resultId) {
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/results/${resultId}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status && data.data) {
+            displayResultDetails(data.data);
+        } else {
+            alert('Erreur lors du chargement des détails: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors du chargement des détails');
+    });
+}
+
+// Fonction pour afficher les détails du résultat dans le modal
+function displayResultDetails(result) {
+    let filesHtml = '';
+    
+    if (result.files && result.files.length > 0) {
+        filesHtml = '<div class="mt-4"><h6>Fichiers joints :</h6><div class="row">';
+        
+        result.files.forEach(file => {
+            if (file.type === 'photo') {
+                filesHtml += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="/storage/${file.path}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${file.name}">
+                            <div class="card-body">
+                                <h6 class="card-title">${file.name}</h6>
+                                <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (file.type === 'pdf') {
+                filesHtml += `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                                <h6 class="card-title">${file.name}</h6>
+                                <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                                <br>
+                                <a href="/storage/${file.path}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="fas fa-download me-1"></i>Télécharger
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        filesHtml += '</div></div>';
+    }
+    
+    const content = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-clipboard-list me-2"></i>Résultat de l'examen
+                </h6>
+                <div class="alert alert-light">
+                    ${result.name}
+                </div>
+                
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Statut
+                </h6>
+                <span class="badge bg-${result.status === 'normal' ? 'success' : (result.status === 'abnormal' ? 'danger' : 'warning')} fs-6">
+                    ${result.status === 'normal' ? 'Normal' : (result.status === 'abnormal' ? 'Anormal' : 'En attente')}
+                </span>
+                
+                ${result.description ? `
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="fas fa-sticky-note me-2"></i>Notes
+                    </h6>
+                    <div class="alert alert-info">
+                        ${result.description}
+                    </div>
+                ` : ''}
+                
+                ${filesHtml}
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-user-md me-2"></i>Informations
+                </h6>
+                <div class="card">
+                    <div class="card-body">
+                        <p><strong>Médecin :</strong><br>${result.doctor ? result.doctor.first_name + ' ' + result.doctor.last_name : 'N/A'}</p>
+                        <p><strong>Examen :</strong><br>${result.exam ? result.exam.name : 'N/A'}</p>
+                        <p><strong>Date :</strong><br>${new Date(result.created_at).toLocaleDateString('fr-FR')}</p>
+                        <p><strong>Heure :</strong><br>${new Date(result.created_at).toLocaleTimeString('fr-FR')}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('viewResultContent').innerHTML = content;
+    
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById('viewResultModal'));
+    modal.show();
+}
+
+// Fonction pour éditer le résultat
+function editResult(resultId) {
+    currentResultId = resultId;
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/results/${resultId}`, {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status && data.data) {
+            populateEditForm(data.data);
+        } else {
+            alert('Erreur lors du chargement des données: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors du chargement des données');
+    });
+}
+
+// Fonction pour remplir le formulaire d'édition
+function populateEditForm(result) {
+    document.getElementById('editResult').value = result.name || '';
+    document.getElementById('editStatus').value = result.status || 'normal';
+    document.getElementById('editDescription').value = result.description || '';
+    
+    // Afficher les fichiers existants
+    if (result.files && result.files.length > 0) {
+        const existingFilesPreview = document.getElementById('existingFilesPreview');
+        const existingFilesList = document.getElementById('existingFilesList');
+        
+        existingFilesPreview.style.display = 'block';
+        existingFilesList.innerHTML = '';
+        
+        result.files.forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center mb-2 p-2 border rounded';
+            
+            if (file.type === 'photo') {
+                fileItem.innerHTML = `
+                    <i class="fas fa-image text-primary me-2"></i>
+                    <span class="me-2">${file.name}</span>
+                    <small class="text-muted me-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</small>
+                    <button type="button" class="btn btn-outline-danger btn-sm ms-auto" onclick="removeExistingFile('${file.path}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            } else if (file.type === 'pdf') {
+                fileItem.innerHTML = `
+                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                    <span class="me-2">${file.name}</span>
+                    <small class="text-muted me-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</small>
+                    <button type="button" class="btn btn-outline-danger btn-sm ms-auto" onclick="removeExistingFile('${file.path}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            }
+            
+            existingFilesList.appendChild(fileItem);
+        });
+    }
+    
+    // Afficher le modal d'édition
+    const modal = new bootstrap.Modal(document.getElementById('editResultModal'));
+    modal.show();
+}
+
+// Fonction pour mettre à jour le résultat
+function updateResult() {
+    const name = document.getElementById('editResult').value;
+    const status = document.getElementById('editStatus').value;
+    const description = document.getElementById('editDescription').value;
+    const photos = document.getElementById('editPhotos').files;
+    const pdfs = document.getElementById('editPdfs').files;
+    
+    if (!name.trim()) {
+        alert('Veuillez saisir le résultat de l\'examen');
+        return;
+    }
+    
+    // Créer FormData pour envoyer les fichiers
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('status', status);
+    formData.append('description', description);
+    
+    // Ajouter les nouvelles photos
+    for (let i = 0; i < photos.length; i++) {
+        formData.append('photos[]', photos[i]);
+    }
+    
+    // Ajouter les nouveaux PDFs
+    for (let i = 0; i < pdfs.length; i++) {
+        formData.append('pdfs[]', pdfs[i]);
+    }
+    
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/results/${currentResultId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-HTTP-Method-Override': 'PUT'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status) {
+            alert('Résultat mis à jour avec succès');
+            // Fermer le modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editResultModal'));
+            modal.hide();
+            // Recharger la page
+            location.reload();
+        } else {
+            alert('Erreur lors de la mise à jour: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la mise à jour');
+    });
+}
+
+// Fonction pour afficher l'aperçu des nouveaux fichiers
+function previewNewFiles() {
+    const photos = document.getElementById('editPhotos').files;
+    const pdfs = document.getElementById('editPdfs').files;
+    const newFilesPreview = document.getElementById('newFilesPreview');
+    const newFilesList = document.getElementById('newFilesList');
+    
+    if (photos.length > 0 || pdfs.length > 0) {
+        newFilesPreview.style.display = 'block';
+        newFilesList.innerHTML = '';
+        
+        // Afficher les nouvelles photos
+        for (let i = 0; i < photos.length; i++) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center mb-2';
+            fileItem.innerHTML = `
+                <i class="fas fa-image text-primary me-2"></i>
+                <span class="me-2">${photos[i].name}</span>
+                <small class="text-muted">(${(photos[i].size / 1024 / 1024).toFixed(2)} MB)</small>
+            `;
+            newFilesList.appendChild(fileItem);
+        }
+        
+        // Afficher les nouveaux PDFs
+        for (let i = 0; i < pdfs.length; i++) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center mb-2';
+            fileItem.innerHTML = `
+                <i class="fas fa-file-pdf text-danger me-2"></i>
+                <span class="me-2">${pdfs[i].name}</span>
+                <small class="text-muted">(${(pdfs[i].size / 1024 / 1024).toFixed(2)} MB)</small>
+            `;
+            newFilesList.appendChild(fileItem);
+        }
+    } else {
+        newFilesPreview.style.display = 'none';
+    }
+}
+
+// Ajouter les événements pour l'aperçu des fichiers
+document.addEventListener('DOMContentLoaded', function() {
+    const editPhotosInput = document.getElementById('editPhotos');
+    const editPdfsInput = document.getElementById('editPdfs');
+    
+    if (editPhotosInput) {
+        editPhotosInput.addEventListener('change', previewNewFiles);
+    }
+    
+    if (editPdfsInput) {
+        editPdfsInput.addEventListener('change', previewNewFiles);
+    }
+});
+</script>
 @endpush

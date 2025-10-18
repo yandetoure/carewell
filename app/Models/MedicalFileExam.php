@@ -10,7 +10,7 @@ class MedicalFileExam extends Model
     use HasFactory;
     
     protected $fillable = [
-        'medical_files_id',
+        'medical_file_id',
         'exam_id',
         'is_done',
         'doctor_id',

@@ -187,6 +187,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/prescriptions', [MedicalFilePrescriptionController::class, 'getPrescriptionsByService'])->name('doctor.prescriptions');
         Route::get('/exams', [ExamPrescriptionController::class, 'getExamByService'])->name('doctor.exams');
         Route::get('/results', [ResultController::class, 'doctorResults'])->name('doctor.results');
+        Route::get('/results/{result}', [ResultController::class, 'show'])->name('doctor.results.show');
+        Route::put('/results/{result}', [ResultController::class, 'update'])->name('doctor.results.update');
         Route::get('/consultations', [AppointmentController::class, 'doctorConsultations'])->name('doctor.consultations');
         Route::get('/medical-files', [MedicalFileController::class, 'doctorMedicalFiles'])->name('doctor.medical-files');
         Route::get('/medical-files/{patient}', [MedicalFileController::class, 'showPatientMedicalFile'])->name('doctor.medical-files.show');
@@ -204,6 +206,7 @@ Route::middleware('auth')->group(function () {
 
         // Gestion des examens
         Route::put('/exams/{exam}/status', [ExamPrescriptionController::class, 'updateExamStatus'])->name('exams.updateStatus');
+        Route::get('/exams/{exam}/results', [ExamPrescriptionController::class, 'getExamResult'])->name('exams.getResult');
         Route::post('/exams/{exam}/results', [ExamPrescriptionController::class, 'storeResult'])->name('exams.storeResult');
 
         // Gestion des dossiers médicaux

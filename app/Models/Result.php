@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1); 
 
 namespace App\Models;
 
@@ -14,7 +14,13 @@ class Result extends Model
         'exam_id',
         'image',
         'description',
-        'doctor_id'
+        'doctor_id',
+        'status',
+        'files'
+    ];
+
+    protected $casts = [
+        'files' => 'array'
     ];
 
     public function exam(){
@@ -23,6 +29,10 @@ class Result extends Model
     
     public function examprescription(){
         return $this->belongsTo(MedicalFileExam::class);
+    }
+    
+    public function doctor(){
+        return $this->belongsTo(User::class, 'doctor_id');
     }
     
 }
