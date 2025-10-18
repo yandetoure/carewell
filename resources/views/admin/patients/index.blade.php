@@ -107,8 +107,10 @@
                                     <th>Photo</th>
                                     <th>Nom & Email</th>
                                     <th>Téléphone</th>
+                                    <th>Statut</th>
                                     <th>Rendez-vous</th>
                                     <th>Dossier Médical</th>
+                                    <th>Date d'inscription</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -118,7 +120,7 @@
                                     <td>
                                         @if($patient->photo)
                                             <img src="{{ asset('storage/' . $patient->photo) }}"
-                                                 alt="{{ $patient->name }}"
+                                                 alt="{{ $patient->first_name }} {{ $patient->last_name }}"
                                                  class="rounded-circle"
                                                  style="width: 50px; height: 50px; object-fit: cover;">
                                         @else
@@ -129,11 +131,20 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="fw-bold">{{ $patient->name }}</div>
+                                        <div class="fw-bold">{{ $patient->first_name }} {{ $patient->last_name }}</div>
                                         <small class="text-muted">{{ $patient->email }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ $patient->phone ?? 'N/A' }}</span>
+                                        <span class="badge bg-info">{{ $patient->phone_number ?? 'N/A' }}</span>
+                                    </td>
+                                    <td>
+                                        @if($patient->status === 'active')
+                                            <span class="badge bg-success">Actif</span>
+                                        @elseif($patient->status === 'inactive')
+                                            <span class="badge bg-danger">Inactif</span>
+                                        @else
+                                            <span class="badge bg-warning">En attente</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge bg-primary">
@@ -154,6 +165,10 @@
                                                 </span>
                                             @endif
                                         </button>
+                                    </td>
+                                    <td>
+                                        <div>{{ $patient->created_at->format('d/m/Y') }}</div>
+                                        <small class="text-muted">{{ $patient->created_at->diffForHumans() }}</small>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
@@ -177,7 +192,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-5">
+                                    <td colspan="8" class="text-center text-muted py-5">
                                         <i class="fas fa-users fa-3x mb-3"></i>
                                         <h5>Aucun patient trouvé</h5>
                                         <p>Commencez par ajouter votre premier patient.</p>
