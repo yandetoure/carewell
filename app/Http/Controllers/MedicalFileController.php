@@ -51,6 +51,36 @@ class MedicalFileController extends Controller
     }
 
     /**
+     * Display medical file for a specific patient.
+     */
+    public function showPatientMedicalFile($patientId)
+    {
+        $doctor = Auth::user();
+        
+        // Vérifier que le patient a eu des rendez-vous avec ce docteur
+        $patient = \App\Models\User::whereHas('appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id);
+            })
+            ->findOrFail($patientId);
+        
+        // Récupérer le dossier médical du patient
+        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
+            ->where('user_id', $patientId)
+            ->first();
+        
+        // Si pas de dossier médical, en créer un
+        if (!$medicalFile) {
+            $medicalFile = MedicalFile::create([
+                'user_id' => $patientId,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+        
+        return view('doctor.medical-files.show', compact('medicalFile', 'patient'));
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)

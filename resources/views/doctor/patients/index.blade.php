@@ -70,7 +70,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-list me-2"></i>
-                        Patients avec rendez-vous dans votre service
+                        Mes Patients (avec rendez-vous)
                     </h5>
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-primary" onclick="refreshData()">
@@ -82,6 +82,13 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Information sur les patients affichés -->
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Information :</strong> Cette liste affiche uniquement les patients qui ont déjà eu ou ont des rendez-vous avec vous. 
+                        Les nouveaux patients peuvent être ajoutés via le bouton "Nouveau patient".
+                    </div>
+                    
                     @if($patients->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
@@ -187,7 +194,7 @@
                                                    title="Voir les détails">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ route('medical-files.show', $patient->id) }}" 
+                                                <a href="{{ route('doctor.medical-files.show', $patient->id) }}" 
                                                    class="btn btn-warning" 
                                                    title="Voir le dossier médical">
                                                     <i class="fas fa-file-medical"></i>
@@ -202,11 +209,11 @@
                                                    title="Gérer les RDV">
                                                     <i class="fas fa-calendar-plus"></i>
                                                 </a>
-                                                <button class="btn btn-warning" 
-                                                        onclick="sendMessage({{ $patient->id }})" 
-                                                        title="Envoyer message">
+                                                <a href="{{ route('doctor.messages.create', $patient->id) }}" 
+                                                   class="btn btn-warning" 
+                                                   title="Envoyer message">
                                                     <i class="fas fa-envelope"></i>
-                                                </button>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>

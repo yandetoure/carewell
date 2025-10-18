@@ -178,8 +178,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
 
 
     public function doctorAppointments(Request $request)
-    {
-        $doctor = Auth::user();
+{
+    $doctor = Auth::user();
 
         if (!$doctor || !$doctor->hasRole('Doctor')) {
             abort(403, 'Accès non autorisé');
@@ -253,11 +253,11 @@ class AppointmentController extends \Illuminate\Routing\Controller
 
         // Vérifier que le rendez-vous appartient au docteur connecté
         if ($appointment->doctor_id !== $doctor->id) {
-            return response()->json([
+    return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'êtes pas autorisé à modifier ce rendez-vous.'
-            ], 403);
-        }
+    ], 403);
+}
 
         $request->validate([
             'status' => 'required|in:pending,confirmed,cancelled,completed'
@@ -539,56 +539,56 @@ class AppointmentController extends \Illuminate\Routing\Controller
         if ($user->hasRole('Doctor')) {
             $doctorId = $user->id;
         } else {
-            // Vérifier si l'utilisateur a déjà un rendez-vous dans le même service dans les 48 dernières heures
+        // Vérifier si l'utilisateur a déjà un rendez-vous dans le même service dans les 48 dernières heures
             $recentAppointment = Appointment::where('user_id', $patientId)
-                ->where('service_id', $request->service_id)
-                ->where('created_at', '>=', now()->subHours(48))
-                ->first();
+            ->where('service_id', $request->service_id)
+            ->where('created_at', '>=', now()->subHours(48))
+            ->first();
 
-            if ($recentAppointment) {
+        if ($recentAppointment) {
                 if ($request->expectsJson()) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Vous avez déjà pris un rendez-vous dans ce service au cours des 48 dernières heures.',
-                    ], 422);
+            return response()->json([
+                'status' => false,
+                'message' => 'Vous avez déjà pris un rendez-vous dans ce service au cours des 48 dernières heures.',
+            ], 422);
                 }
                 return redirect()->back()->withErrors(['error' => 'Vous avez déjà pris un rendez-vous dans ce service au cours des 48 dernières heures.']);
-            }
+        }
 
-            // Recherche des disponibilités des médecins pour ce service à cette date et heure
-            $availableDoctors = Availability::where('service_id', $request->service_id)
+        // Recherche des disponibilités des médecins pour ce service à cette date et heure
+        $availableDoctors = Availability::where('service_id', $request->service_id)
                 ->where('available_date', $request->appointment_date)
                 ->where('start_time', '<=', $request->appointment_time)
                 ->where('end_time', '>=', $request->appointment_time)
-                ->get();
-        
-            $eligibleDoctors = [];
-            foreach ($availableDoctors as $availability) {
-                $doctor = User::find($availability->doctor_id);
-        
-                if ($doctor && $doctor->hasRole('Doctor')) {
-                    $appointmentCount = Appointment::where('doctor_id', $doctor->id)
+            ->get();
+    
+        $eligibleDoctors = [];
+        foreach ($availableDoctors as $availability) {
+            $doctor = User::find($availability->doctor_id);
+    
+            if ($doctor && $doctor->hasRole('Doctor')) {
+                $appointmentCount = Appointment::where('doctor_id', $doctor->id)
                         ->where('appointment_date', $request->appointment_date)
-                        ->count();
-        
-                    if ($appointmentCount < 15) {
-                        $eligibleDoctors[] = $doctor;
-                    }
+                    ->count();
+    
+                if ($appointmentCount < 15) {
+                    $eligibleDoctors[] = $doctor;
                 }
             }
-        
-            if (empty($eligibleDoctors)) {
+        }
+    
+        if (empty($eligibleDoctors)) {
                 if ($request->expectsJson()) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.',
-                    ], 422);
+            return response()->json([
+                'status' => false,
+                'message' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.',
+            ], 422);
                 }
                 return redirect()->back()->withErrors(['error' => 'Tous les médecins ont atteint la limite de rendez-vous pour cette date, choisissez une autre date.']);
-            }
-        
-            // Choisir un médecin au hasard parmi ceux qui sont éligibles
-            $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
+        }
+    
+        // Choisir un médecin au hasard parmi ceux qui sont éligibles
+        $selectedDoctor = $eligibleDoctors[array_rand($eligibleDoctors)];
             $doctorId = $selectedDoctor->id;
         }
         
@@ -620,26 +620,26 @@ class AppointmentController extends \Illuminate\Routing\Controller
         ]);
         
         // Création de la notification pour le patient
-        Notification::create([
+                Notification::create([
             'user_id' => $patientId,
-            'title' => 'Rendez-vous confirmé',
+                    'title' => 'Rendez-vous confirmé',
             'message' => 'Votre rendez-vous a été programmé avec succès.',
-            'is_read' => false,
-        ]);
+                    'is_read' => false,
+                ]);
         
         // Envoyer un email au patient
         Mail::to($patient->email)->send(new \App\Mail\Newappointment($patient));
 
         // Si c'est une requête AJAX, retourner JSON
         if ($request->expectsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Rendez-vous créé avec succès',
-                'data' => [
-                    'appointment' => $appointment,
-                    'ticket' => $ticket
-                ],
-            ], 201);
+        return response()->json([
+            'status' => true,
+            'message' => 'Rendez-vous créé avec succès',
+            'data' => [
+                'appointment' => $appointment,
+                'ticket' => $ticket
+            ],
+        ], 201);
         }
         
         // Redirection selon le contexte
@@ -802,7 +802,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
         $doctor = Auth::user();
         
         // Récupérer les patients qui ont eu ou ont des rendez-vous avec ce docteur
-        $patients = User::whereHas('appointments', function($query) use ($doctor) {
+        $patients = User::role('Patient')
+            ->whereHas('appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id);
             })
             ->with(['appointments' => function($query) use ($doctor) {
@@ -816,13 +817,15 @@ class AppointmentController extends \Illuminate\Routing\Controller
         
         // Statistiques
         $totalPatients = $patients->total();
-        $activePatients = User::whereHas('appointments', function($query) use ($doctor) {
+        $activePatients = User::role('Patient')
+            ->whereHas('appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id)
                       ->where('status', 'confirmed')
                       ->whereDate('appointment_date', '>=', now()->subMonths(3));
             })->count();
         
-        $recentPatients = User::whereHas('appointments', function($query) use ($doctor) {
+        $recentPatients = User::role('Patient')
+            ->whereHas('appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id)
                       ->where('created_at', '>=', now()->subDays(30));
             })->count();

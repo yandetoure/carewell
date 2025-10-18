@@ -177,10 +177,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/results', [ResultController::class, 'doctorResults'])->name('doctor.results');
         Route::get('/consultations', [AppointmentController::class, 'doctorConsultations'])->name('doctor.consultations');
         Route::get('/medical-files', [MedicalFileController::class, 'doctorMedicalFiles'])->name('doctor.medical-files');
+        Route::get('/medical-files/{patient}', [MedicalFileController::class, 'showPatientMedicalFile'])->name('doctor.medical-files.show');
         Route::get('/medical-history', [MedicalFileController::class, 'doctorMedicalHistory'])->name('doctor.medical-history');
         Route::get('/notes', [NoteController::class, 'doctorNotes'])->name('doctor.notes');
         Route::get('/follow-up', [AppointmentController::class, 'doctorFollowUp'])->name('doctor.follow-up');
         Route::get('/messages', [MessageController::class, 'doctorMessages'])->name('doctor.messages');
+        Route::get('/messages/create/{patient}', [MessageController::class, 'createMessage'])->name('doctor.messages.create');
         Route::get('/notifications', [NotificationController::class, 'doctorNotifications'])->name('doctor.notifications');
         Route::get('/profile', [ProfileController::class, 'doctorProfile'])->name('doctor.profile');
         Route::get('/settings', [ProfileController::class, 'doctorSettings'])->name('doctor.settings');
