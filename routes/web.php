@@ -96,10 +96,12 @@ Route::middleware('auth')->group(function () {
 
     // Prescriptions
     Route::get('/prescriptions', [PrescriptionController::class, 'index'])->name('prescriptions');
+    Route::post('/prescriptions', [PrescriptionController::class, 'store'])->name('prescriptions.store');
     Route::get('/prescriptions/{prescription}', [PrescriptionController::class, 'show'])->name('prescriptions.show');
 
     // Examens
     Route::get('/exams', [ExamController::class, 'index'])->name('exams');
+    Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');
     Route::get('/exams/{exam}', [ExamController::class, 'show'])->name('exams.show');
 
     // Résultats
@@ -112,6 +114,7 @@ Route::middleware('auth')->group(function () {
 
     // Maladies
     Route::get('/diseases', [DiseaseController::class, 'index'])->name('diseases');
+    Route::post('/diseases', [DiseaseController::class, 'store'])->name('diseases.store');
     Route::get('/diseases/{disease}', [DiseaseController::class, 'show'])->name('diseases.show');
 
     // Tickets

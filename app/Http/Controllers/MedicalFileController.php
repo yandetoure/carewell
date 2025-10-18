@@ -77,7 +77,19 @@ class MedicalFileController extends Controller
             ]);
         }
         
-        return view('doctor.medical-files.show', compact('medicalFile', 'patient'));
+        // Récupérer la liste des maladies pour le modal
+        $diseases = \App\Models\Disease::orderBy('name')->get();
+        
+        // Récupérer la liste des prescriptions (soins hospitaliers) pour le modal
+        $prescriptions = \App\Models\Prescription::with('service')->orderBy('name')->get();
+        
+        // Récupérer la liste des examens pour le modal
+        $exams = \App\Models\Exam::with('service')->orderBy('name')->get();
+        
+        // Récupérer la liste des médicaments pour le modal ordonnance
+        $medicaments = \App\Models\Medicament::disponible()->orderBy('nom')->get();
+        
+        return view('doctor.medical-files.show', compact('medicalFile', 'patient', 'diseases', 'prescriptions', 'exams', 'medicaments'));
     }
 
     /**
@@ -89,7 +101,7 @@ class MedicalFileController extends Controller
         return response()->json(['message' => 'Dossier médical créé avec succès', 'data' => $medicalFile]);
     }
 
-    public function medicalHystory(Reqquest $request)
+    public function medicalHystory(Request $request)
     {
         
     }
