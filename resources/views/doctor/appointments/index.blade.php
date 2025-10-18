@@ -345,9 +345,22 @@ function viewAppointment(appointmentId) {
     modal.show();
     
     // Récupérer les détails du rendez-vous via AJAX
-    fetch(`/doctor/appointments/${appointmentId}`)
-        .then(response => response.json())
+    fetch(`/doctor/appointments/${appointmentId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data); // Debug log
             if (data.status && data.data) {
                 const appointment = data.data;
                 document.getElementById('appointmentDetails').innerHTML = `
@@ -439,7 +452,7 @@ function viewAppointment(appointmentId) {
             document.getElementById('appointmentDetails').innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    Erreur lors du chargement des détails du rendez-vous.
+                    Erreur lors du chargement des détails du rendez-vous: ${error.message}
                 </div>
             `;
         });

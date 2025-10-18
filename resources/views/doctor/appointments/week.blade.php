@@ -170,30 +170,37 @@
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <a href="{{ route('appointments.show', $appointment) }}" 
+                                                        <a href="{{ route('doctor.appointments.show', $appointment) }}" 
                                                            class="btn btn-outline-primary" 
                                                            title="Voir">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        @if($appointment->status == 'pending')
-                                                            <form method="POST" action="{{ route('doctor.appointments.status', $appointment) }}" style="display: inline;">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <input type="hidden" name="status" value="confirmed">
-                                                                <button type="submit" class="btn btn-outline-success" title="Confirmer">
+                                                        @if($appointment->service_id == $doctor->service_id)
+                                                            @if($appointment->status == 'pending')
+                                                                <button type="button" class="btn btn-outline-success btn-sm" 
+                                                                        onclick="confirmAppointment({{ $appointment->id }})" 
+                                                                        title="Confirmer">
                                                                     <i class="fas fa-check"></i>
                                                                 </button>
-                                                            </form>
-                                                        @endif
-                                                        @if($appointment->status == 'confirmed')
-                                                            <form method="POST" action="{{ route('doctor.appointments.status', $appointment) }}" style="display: inline;">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <input type="hidden" name="status" value="completed">
-                                                                <button type="submit" class="btn btn-outline-success" title="Marquer comme terminé">
+                                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                                        onclick="cancelAppointment({{ $appointment->id }})" 
+                                                                        title="Annuler">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            @elseif($appointment->status == 'confirmed')
+                                                                <button type="button" class="btn btn-outline-info btn-sm" 
+                                                                        onclick="markAsCompleted({{ $appointment->id }})" 
+                                                                        title="Marquer comme terminé">
                                                                     <i class="fas fa-check-double"></i>
                                                                 </button>
-                                                            </form>
+                                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                                        onclick="cancelAppointment({{ $appointment->id }})" 
+                                                                        title="Annuler">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted small">Autre service</span>
                                                         @endif
                                                     </div>
                                                 </td>
@@ -301,24 +308,57 @@
 
 @push('scripts')
 <script>
+// Fonctions pour les actions
+function confirmAppointment(appointmentId) {
+    if (confirm('Êtes-vous sûr de vouloir confirmer ce rendez-vous ?')) {
+        updateAppointmentStatus(appointmentId, 'confirmed');
+    }
+}
+
+function cancelAppointment(appointmentId) {
+    if (confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) {
+        updateAppointmentStatus(appointmentId, 'cancelled');
+    }
+}
+
+function markAsCompleted(appointmentId) {
+    if (confirm('Marquer ce rendez-vous comme terminé ?')) {
+        updateAppointmentStatus(appointmentId, 'completed');
+    }
+}
+
+function updateAppointmentStatus(appointmentId, status) {
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/doctor/appointments/${appointmentId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json',
+            'X-HTTP-Method-Override': 'PATCH'
+        },
+        body: JSON.stringify({
+            status: status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur lors de la mise à jour: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la mise à jour');
+    });
+}
+
 // Auto-refresh de la page toutes les 5 minutes
 setTimeout(function() {
     location.reload();
 }, 300000);
-
-// Confirmation pour les actions de statut
-document.addEventListener('DOMContentLoaded', function() {
-    const statusForms = document.querySelectorAll('form[action*="status"]');
-    statusForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const status = this.querySelector('input[name="status"]').value;
-            const action = status === 'confirmed' ? 'confirmer' : 'marquer comme terminé';
-            
-            if (!confirm(`Êtes-vous sûr de vouloir ${action} ce rendez-vous ?`)) {
-                e.preventDefault();
-            }
-        });
-    });
-});
 </script>
 @endpush

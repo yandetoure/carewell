@@ -117,7 +117,7 @@
                                                     </div>
                                                     <div>
                                                         <h6 class="mb-1">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</h6>
-                                                        <small class="text-muted">{{ $appointment->user->phone }}</small>
+                                                        <small class="text-muted">{{ $appointment->user->phone_number ?? "Non renseigné" }}</small>
                                                     </div>
                                                 </div>
                                                 <div class="text-end">

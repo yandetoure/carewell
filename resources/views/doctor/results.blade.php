@@ -1,8 +1,8 @@
 @extends('layouts.doctor')
 
-@section('title', 'Consultations du Service - Docteur')
-@section('page-title', 'Consultations du Service')
-@section('page-subtitle', 'Historique des consultations et rendez-vous du service')
+@section('title', 'Résultats du Service - Docteur')
+@section('page-title', 'Résultats du Service')
+@section('page-subtitle', 'Gestion des résultats d\'examens du service')
 @section('user-role', 'Médecin')
 
 @section('content')
@@ -26,18 +26,18 @@
         </div>
     @endif
 
-    <!-- Statistiques des consultations -->
+    <!-- Statistiques des résultats -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="stat-icon bg-primary">
-                            <i class="fas fa-stethoscope text-white"></i>
+                            <i class="fas fa-clipboard-list text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalConsultations }}</h4>
-                            <p class="text-muted mb-0">Total consultations</p>
+                            <h4 class="mb-1">{{ $results->count() }}</h4>
+                            <p class="text-muted mb-0">Total résultats</p>
                         </div>
                     </div>
                 </div>
@@ -51,8 +51,23 @@
                             <i class="fas fa-check-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $completedConsultations }}</h4>
-                            <p class="text-muted mb-0">Terminées</p>
+                            <h4 class="mb-1">{{ $results->where('status', 'normal')->count() }}</h4>
+                            <p class="text-muted mb-0">Normaux</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-exclamation-triangle text-white"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h4 class="mb-1">{{ $results->where('status', 'abnormal')->count() }}</h4>
+                            <p class="text-muted mb-0">Anormaux</p>
                         </div>
                     </div>
                 </div>
@@ -66,22 +81,7 @@
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $confirmedConsultations }}</h4>
-                            <p class="text-muted mb-0">Confirmées</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning">
-                            <i class="fas fa-clock text-white"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h4 class="mb-1">{{ $recentConsultations }}</h4>
+                            <h4 class="mb-1">{{ $results->where('created_at', '>=', now()->subDays(7))->count() }}</h4>
                             <p class="text-muted mb-0">Cette semaine</p>
                         </div>
                     </div>
@@ -97,14 +97,14 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-stethoscope me-2"></i>Historique des consultations du service
+                            <i class="fas fa-clipboard-list me-2"></i>Résultats du service
                         </h5>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('doctor.appointments') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-calendar me-2"></i>Tous les RDV
+                            <a href="{{ route('doctor.exams') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-flask me-2"></i>Examens
                             </a>
-                            <a href="{{ route('doctor.appointments.today') }}" class="btn btn-outline-success">
-                                <i class="fas fa-calendar-day me-2"></i>Aujourd'hui
+                            <a href="{{ route('doctor.prescriptions') }}" class="btn btn-outline-success">
+                                <i class="fas fa-pills me-2"></i>Prescriptions
                             </a>
                         </div>
                     </div>
@@ -113,83 +113,83 @@
         </div>
     </div>
 
-    <!-- Liste des consultations -->
+    <!-- Liste des résultats -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    @if($consultations->count() > 0)
+                    @if($results->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Heure</th>
                                         <th>Patient</th>
-                                        <th>Service</th>
                                         <th>Médecin</th>
+                                        <th>Type d'examen</th>
+                                        <th>Résultat</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($consultations as $consultation)
-                                        <tr class="{{ $consultation->status == 'completed' ? 'table-success' : 'table-info' }}">
+                                    @foreach($results as $result)
+                                        <tr class="{{ $result->status == 'normal' ? 'table-success' : ($result->status == 'abnormal' ? 'table-warning' : 'table-info') }}">
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-calendar text-primary me-2"></i>
-                                                    {{ \Carbon\Carbon::parse($consultation->appointment_date)->format('d/m/Y') }}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-clock text-info me-2"></i>
-                                                    {{ \Carbon\Carbon::parse($consultation->appointment_time)->format('H:i') }}
+                                                    {{ \Carbon\Carbon::parse($result->created_at)->format('d/m/Y') }}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-user text-success me-2"></i>
                                                     <div>
-                                                        <div class="fw-bold">{{ $consultation->user->first_name }} {{ $consultation->user->last_name }}</div>
-                                                        <small class="text-muted">{{ $consultation->user->phone_number ?? 'Tél. non renseigné' }}</small>
+                                                        <div class="fw-bold">{{ $result->patient->first_name ?? 'N/A' }} {{ $result->patient->last_name ?? 'N/A' }}</div>
+                                                        <small class="text-muted">{{ $result->patient->phone_number ?? 'Tél. non renseigné' }}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <i class="fas fa-stethoscope text-warning me-2"></i>
-                                                    {{ $consultation->service->name ?? 'Service non spécifié' }}
+                                                    <i class="fas fa-user-md text-primary me-2"></i>
+                                                    {{ $result->doctor->first_name ?? 'N/A' }} {{ $result->doctor->last_name ?? 'N/A' }}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <i class="fas fa-user-md text-primary me-2"></i>
-                                                    {{ $consultation->doctor ? $consultation->doctor->first_name . ' ' . $consultation->doctor->last_name : 'Non assigné' }}
+                                                    <i class="fas fa-flask text-warning me-2"></i>
+                                                    {{ $result->exam_type ?? 'Type non spécifié' }}
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ $consultation->status == 'completed' ? 'success' : 'info' }}">
-                                                    {{ $consultation->status == 'completed' ? 'Terminée' : 'Confirmée' }}
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-clipboard-list text-info me-2"></i>
+                                                    {{ Str::limit($result->result ?? 'Résultat non disponible', 50) }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $result->status == 'normal' ? 'success' : ($result->status == 'abnormal' ? 'warning' : 'info') }}">
+                                                    {{ ucfirst($result->status ?? 'Non défini') }}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <a href="{{ route('doctor.appointments.show', $consultation) }}" 
+                                                    <a href="{{ route('doctor.medical-files.show', $result->patient) }}" 
                                                        class="btn btn-outline-primary" 
-                                                       title="Voir les détails">
+                                                       title="Voir le dossier">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{{ route('doctor.patients.show', $consultation->user) }}" 
+                                                    <a href="{{ route('doctor.patients.show', $result->patient) }}" 
                                                        class="btn btn-outline-success" 
                                                        title="Voir le patient">
                                                         <i class="fas fa-user"></i>
                                                     </a>
-                                                    @if($consultation->status == 'confirmed' && $consultation->service_id == $doctor->service_id)
-                                                        <button type="button" class="btn btn-outline-success btn-sm" 
-                                                                onclick="markAsCompleted({{ $consultation->id }})" 
-                                                                title="Marquer comme terminée">
-                                                            <i class="fas fa-check-double"></i>
+                                                    @if($result->status == 'abnormal')
+                                                        <button type="button" class="btn btn-outline-warning" 
+                                                                onclick="alert('Résultat anormal détecté - Consultation recommandée')" 
+                                                                title="Alerte">
+                                                            <i class="fas fa-exclamation-triangle"></i>
                                                         </button>
                                                     @endif
                                                 </div>
@@ -199,18 +199,13 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Pagination -->
-                        <div class="d-flex justify-content-center mt-4">
-                            {{ $consultations->links() }}
-                        </div>
                     @else
                         <div class="text-center py-5">
-                            <i class="fas fa-stethoscope fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">Aucune consultation</h5>
-                            <p class="text-muted">Vous n'avez pas encore de consultations enregistrées.</p>
-                            <a href="{{ route('doctor.appointments') }}" class="btn btn-primary">
-                                <i class="fas fa-calendar-plus me-2"></i>Voir tous les rendez-vous
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun résultat</h5>
+                            <p class="text-muted">Aucun résultat d'examen n'a été trouvé pour ce service.</p>
+                            <a href="{{ route('doctor.exams') }}" class="btn btn-primary">
+                                <i class="fas fa-flask me-2"></i>Voir les examens
                             </a>
                         </div>
                     @endif
@@ -225,7 +220,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>Résumé des consultations
+                        <i class="fas fa-chart-line me-2"></i>Résumé des résultats
                     </h5>
                 </div>
                 <div class="card-body">
@@ -233,19 +228,19 @@
                         <div class="col-md-6">
                             <h6 class="text-primary">📊 Statistiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-stethoscope text-primary me-2"></i><strong>Total consultations:</strong> {{ $totalConsultations }}</li>
-                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Consultations terminées:</strong> {{ $completedConsultations }}</li>
-                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Consultations confirmées:</strong> {{ $confirmedConsultations }}</li>
-                                <li><i class="fas fa-clock text-warning me-2"></i><strong>Cette semaine:</strong> {{ $recentConsultations }}</li>
+                                <li><i class="fas fa-clipboard-list text-primary me-2"></i><strong>Total résultats:</strong> {{ $results->count() }}</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Résultats normaux:</strong> {{ $results->where('status', 'normal')->count() }}</li>
+                                <li><i class="fas fa-exclamation-triangle text-warning me-2"></i><strong>Résultats anormaux:</strong> {{ $results->where('status', 'abnormal')->count() }}</li>
+                                <li><i class="fas fa-calendar-check text-info me-2"></i><strong>Cette semaine:</strong> {{ $results->where('created_at', '>=', now()->subDays(7))->count() }}</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-success">💡 Bonnes pratiques</h6>
                             <ul class="list-unstyled">
-                                <li><i class="fas fa-lightbulb text-warning me-2"></i>Marquez les consultations comme terminées après chaque RDV</li>
-                                <li><i class="fas fa-file-medical text-info me-2"></i>Consultez le dossier médical du patient avant la consultation</li>
-                                <li><i class="fas fa-clock text-primary me-2"></i>Respectez les horaires pour éviter les retards</li>
-                                <li><i class="fas fa-notes-medical text-success me-2"></i>Prenez des notes importantes pendant la consultation</li>
+                                <li><i class="fas fa-lightbulb text-warning me-2"></i>Analysez attentivement tous les résultats</li>
+                                <li><i class="fas fa-file-medical text-info me-2"></i>Comparez avec les résultats précédents</li>
+                                <li><i class="fas fa-clock text-primary me-2"></i>Communiquez rapidement les résultats anormaux</li>
+                                <li><i class="fas fa-notes-medical text-success me-2"></i>Expliquez clairement les résultats au patient</li>
                             </ul>
                         </div>
                     </div>
@@ -276,6 +271,10 @@
     background-color: rgba(40, 167, 69, 0.1);
 }
 
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
 .table-info {
     background-color: rgba(23, 162, 184, 0.1);
 }
@@ -293,44 +292,4 @@
     font-size: 0.875rem;
 }
 </style>
-@endpush
-
-@push('scripts')
-<script>
-// Fonctions pour les actions
-function markAsCompleted(appointmentId) {
-    if (confirm('Marquer cette consultation comme terminée ?')) {
-        updateAppointmentStatus(appointmentId, 'completed');
-    }
-}
-
-function updateAppointmentStatus(appointmentId, status) {
-    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    fetch(`/doctor/appointments/${appointmentId}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token,
-            'Accept': 'application/json',
-            'X-HTTP-Method-Override': 'PATCH'
-        },
-        body: JSON.stringify({
-            status: status
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Erreur lors de la mise à jour: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Erreur lors de la mise à jour');
-    });
-}
-</script>
 @endpush

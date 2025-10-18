@@ -172,56 +172,77 @@ public function getPrescriptionsByService()
     $doctor = auth()->user();
 
     // Vérifier que l'utilisateur est un médecin
-    if (!$doctor || !$doctor->service_id) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Utilisateur non autorisé ou service non trouvé',
-        ], 403);
+    if (!$doctor || !$doctor->hasRole('Doctor')) {
+        abort(403, 'Accès non autorisé');
     }
 
-    // Récupérer les prescriptions liées au service avec les informations de l'utilisateur
-    $medicalFilePrescriptions = MedicalFilePrescription::with([
+    // Récupérer les prescriptions de soins hospitaliers du service
+    $prescriptions = MedicalFilePrescription::with([
             'medicalFile.user',
             'prescription.service',
+            'doctor'
         ])
         ->whereHas('prescription', function ($query) use ($doctor) {
             $query->where('service_id', $doctor->service_id);
         })
         ->get();
 
-    // Vérifier si des prescriptions existent
-    if ($medicalFilePrescriptions->isEmpty()) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Aucune prescription trouvée pour ce service',
-        ], 404);
-    }
-
-    return response()->json([
-        'status' => true,
-        'data' => $medicalFilePrescriptions,
-    ]);
+    return view('doctor.prescriptions', compact('prescriptions', 'doctor'));
 }
 
 public function updatePrescriptionStatus(Request $request, $id)
 {
+    $doctor = Auth::user();
     $prescription = MedicalFilePrescription::find($id);
 
     if (!$prescription) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Prescription non trouvée',
-        ], 404);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Prescription non trouvée',
+            ], 404);
+        }
+        return redirect()->back()->withErrors(['error' => 'Prescription non trouvée.']);
     }
 
-    $prescription->is_done = $request->is_done;
-    $prescription->save();
+    // Vérifier que la prescription appartient au service du médecin
+    if ($prescription->prescription->service_id !== $doctor->service_id) {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas autorisé à modifier cette prescription.',
+            ], 403);
+        }
+        return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier cette prescription.']);
+    }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Statut de la prescription mis à jour avec succès',
-        'data' => $prescription,
-    ]);
+    try {
+        $request->validate([
+            'is_done' => 'required|boolean'
+        ]);
+        
+        $prescription->is_done = $request->is_done;
+        $prescription->save();
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->validator->errors()
+            ], 422);
+        }
+        return redirect()->back()->withErrors($e->validator->errors());
+    }
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Statut de la prescription mis à jour avec succès.',
+            'data' => $prescription,
+        ]);
+    }
+    
+    return redirect()->back()->with('success', 'Statut de la prescription mis à jour avec succès.');
 }
 
 

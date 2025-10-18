@@ -297,8 +297,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
 
         $today = now()->toDateString();
         
-        $appointments = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $doctor->service_id)
             ->whereDate('appointment_date', $today)
             ->orderBy('appointment_time')
             ->get();
@@ -312,7 +312,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
             'completedCount',
             'pendingCount',
             'confirmedCount',
-            'today'
+            'today',
+            'doctor'
         ));
     }
 
@@ -330,8 +331,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
         $startOfWeek = now()->startOfWeek();
         $endOfWeek = now()->endOfWeek();
         
-        $appointments = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $doctor->service_id)
             ->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
@@ -355,7 +356,8 @@ class AppointmentController extends \Illuminate\Routing\Controller
             'pendingCount',
             'confirmedCount',
             'startOfWeek',
-            'endOfWeek'
+            'endOfWeek',
+            'doctor'
         ));
     }
 
@@ -712,7 +714,7 @@ class AppointmentController extends \Illuminate\Routing\Controller
             return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à voir ce rendez-vous.']);
         }
 
-        if (request()->expectsJson()) {
+        if (request()->expectsJson() || request()->ajax() || request()->header('Accept') === 'application/json') {
             return response()->json([
                 'status' => true,
                 'data' => $appointment,
@@ -1487,29 +1489,29 @@ public function updateAppointmentStatus(Request $request, $id)
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les consultations (rendez-vous terminés ou en cours)
-        $consultations = Appointment::with(['user', 'service'])
-            ->where('doctor_id', $doctor->id)
+        // Récupérer les consultations (rendez-vous terminés ou en cours) du service
+        $consultations = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $doctor->service_id)
             ->whereIn('status', ['completed', 'confirmed'])
             ->orderBy('appointment_date', 'desc')
             ->orderBy('appointment_time', 'desc')
             ->paginate(20);
 
-        // Statistiques des consultations
-        $totalConsultations = Appointment::where('doctor_id', $doctor->id)
+        // Statistiques des consultations du service
+        $totalConsultations = Appointment::where('service_id', $doctor->service_id)
             ->whereIn('status', ['completed', 'confirmed'])
             ->count();
         
-        $completedConsultations = Appointment::where('doctor_id', $doctor->id)
+        $completedConsultations = Appointment::where('service_id', $doctor->service_id)
             ->where('status', 'completed')
             ->count();
         
-        $confirmedConsultations = Appointment::where('doctor_id', $doctor->id)
+        $confirmedConsultations = Appointment::where('service_id', $doctor->service_id)
             ->where('status', 'confirmed')
             ->count();
 
-        // Consultations récentes (dernières 7 jours)
-        $recentConsultations = Appointment::where('doctor_id', $doctor->id)
+        // Consultations récentes (dernières 7 jours) du service
+        $recentConsultations = Appointment::where('service_id', $doctor->service_id)
             ->whereIn('status', ['completed', 'confirmed'])
             ->where('appointment_date', '>=', now()->subDays(7))
             ->count();
@@ -1519,7 +1521,8 @@ public function updateAppointmentStatus(Request $request, $id)
             'totalConsultations',
             'completedConsultations',
             'confirmedConsultations',
-            'recentConsultations'
+            'recentConsultations',
+            'doctor'
         ));
     }
 
