@@ -189,6 +189,10 @@ Route::middleware('auth')->group(function () {
                 Route::post('/prescriptions/{prescriptionId}/mark-administered', [NurseController::class, 'markPrescriptionAsAdministered'])->name('nurse.prescriptions.mark-administered');
                 Route::post('/prescriptions/{prescriptionId}/mark-in-progress', [NurseController::class, 'markPrescriptionAsInProgress'])->name('nurse.prescriptions.mark-in-progress');
                 Route::post('/prescriptions/{prescriptionId}/administer', [NurseController::class, 'administerPrescription'])->name('nurse.prescriptions.administer');
+                
+                // Routes pour les signes vitaux
+                Route::get('/patients/{patientId}/vital-signs', [NurseController::class, 'getVitalSigns'])->name('nurse.patients.vital-signs');
+                Route::post('/patients/{patientId}/vital-signs', [NurseController::class, 'storeVitalSigns'])->name('nurse.patients.store-vital-signs');
             });
 
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)

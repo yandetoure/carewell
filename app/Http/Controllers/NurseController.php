@@ -617,25 +617,6 @@ class NurseController extends Controller
     }
 
     /**
-     * Get vital signs for modal
-     */
-    public function getVitalSigns($patientId)
-    {
-        $nurse = Auth::user();
-
-        if (!$nurse || !$nurse->hasRole('Nurse')) {
-            abort(403, 'Unauthorized access');
-        }
-
-        // Pour l'instant, retourner des données vides
-        // Vous pouvez implémenter la logique pour récupérer les vrais signes vitaux
-        return response()->json([
-            'success' => true,
-            'vitalSigns' => []
-        ]);
-    }
-
-    /**
      * Get available beds for assignment
      */
     public function getAvailableBeds()
@@ -930,6 +911,92 @@ class NurseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Prescription marquée comme en cours'
+        ]);
+    }
+
+    /**
+     * Get vital signs for a specific patient
+     */
+    public function getVitalSigns($patientId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $patient = User::findOrFail($patientId);
+        
+        if (!$patient->medicalFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le patient n\'a pas de dossier médical'
+            ], 400);
+        }
+
+        $vitalSigns = $patient->medicalFile->vitalSigns()
+            ->with('nurse')
+            ->orderBy('recorded_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'vitalSigns' => $vitalSigns,
+            'patient' => $patient
+        ]);
+    }
+
+    /**
+     * Store new vital signs for a patient
+     */
+    public function storeVitalSigns(Request $request, $patientId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $request->validate([
+            'blood_pressure_systolic' => 'nullable|numeric|min:50|max:300',
+            'blood_pressure_diastolic' => 'nullable|numeric|min:30|max:200',
+            'heart_rate' => 'nullable|integer|min:30|max:200',
+            'temperature' => 'nullable|numeric|min:30|max:45',
+            'oxygen_saturation' => 'nullable|integer|min:70|max:100',
+            'respiratory_rate' => 'nullable|integer|min:8|max:40',
+            'weight' => 'nullable|numeric|min:1|max:500',
+            'height' => 'nullable|numeric|min:30|max:250',
+            'notes' => 'nullable|string|max:1000'
+        ]);
+
+        $patient = User::findOrFail($patientId);
+        
+        if (!$patient->medicalFile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le patient n\'a pas de dossier médical'
+            ], 400);
+        }
+
+        $vitalSign = VitalSign::create([
+            'medical_file_id' => $patient->medicalFile->id,
+            'nurse_id' => $nurse->id,
+            'blood_pressure_systolic' => $request->blood_pressure_systolic,
+            'blood_pressure_diastolic' => $request->blood_pressure_diastolic,
+            'heart_rate' => $request->heart_rate,
+            'temperature' => $request->temperature,
+            'oxygen_saturation' => $request->oxygen_saturation,
+            'respiratory_rate' => $request->respiratory_rate,
+            'weight' => $request->weight,
+            'height' => $request->height,
+            'notes' => $request->notes,
+            'recorded_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signes vitaux enregistrés avec succès',
+            'vitalSign' => $vitalSign->load('nurse')
         ]);
     }
 }

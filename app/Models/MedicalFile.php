@@ -91,11 +91,19 @@ class MedicalFile extends Model
         }
 
         /**
-         * Get the current bed assigned to this medical file.
+         * Get all vital signs for this medical file.
          */
-        public function currentBed()
+        public function vitalSigns()
         {
-            return $this->hasOne(Bed::class, 'medical_file_id')->where('status', 'occupe');
+            return $this->hasMany(VitalSign::class);
+        }
+
+        /**
+         * Get the latest vital signs for this medical file.
+         */
+        public function latestVitalSigns()
+        {
+            return $this->hasOne(VitalSign::class)->latest('recorded_at');
         }
 
         /**

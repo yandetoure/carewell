@@ -301,6 +301,27 @@
         </div>
     </div>
 </div>
+
+<!-- Modal pour les signes vitaux -->
+<div class="modal fade" id="vitalSignsModal" tabindex="-1" aria-labelledby="vitalSignsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="vitalSignsModalLabel">Signes Vitaux</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="vitalSignsContent">
+                    <!-- Le contenu sera chargé dynamiquement -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-success" onclick="recordVitalSigns()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
@@ -472,7 +493,212 @@ function viewPrescriptionDetails(prescriptionId) {
 
 // Fonction pour voir les signes vitaux
 function viewVitalSigns(patientId) {
-    alert('Fonctionnalité de signes vitaux à implémenter');
+    currentPatientId = patientId;
+    
+    fetch(`/nurse/patients/${patientId}/vital-signs`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('vitalSignsContent').innerHTML = generateVitalSignsHTML(data.vitalSigns, data.patient);
+            const modal = new bootstrap.Modal(document.getElementById('vitalSignsModal'));
+            modal.show();
+        } else {
+            alert('Erreur lors du chargement des signes vitaux');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors du chargement des signes vitaux');
+    });
+}
+
+function generateVitalSignsHTML(vitalSigns, patient) {
+    let html = `
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6 class="mb-1"><i class="fas fa-user-md me-2"></i>Patient: ${patient.first_name} ${patient.last_name}</h6>
+                    <small>Enregistrer de nouveaux signes vitaux</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Nouveaux Signes Vitaux</h6>
+            </div>
+            <div class="card-body">
+                <form id="vitalSignsForm">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="bloodPressureSystolic" class="form-label">
+                                    <i class="fas fa-heartbeat text-danger me-1"></i>Pression Systolique (mmHg)
+                                </label>
+                                <input type="number" class="form-control" id="bloodPressureSystolic" min="50" max="300" step="1" placeholder="120">
+                            </div>
+                            <div class="mb-3">
+                                <label for="bloodPressureDiastolic" class="form-label">
+                                    <i class="fas fa-heartbeat text-danger me-1"></i>Pression Diastolique (mmHg)
+                                </label>
+                                <input type="number" class="form-control" id="bloodPressureDiastolic" min="30" max="200" step="1" placeholder="80">
+                            </div>
+                            <div class="mb-3">
+                                <label for="heartRate" class="form-label">
+                                    <i class="fas fa-heart text-danger me-1"></i>Fréquence Cardiaque (BPM)
+                                </label>
+                                <input type="number" class="form-control" id="heartRate" min="30" max="200" step="1" placeholder="72">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="temperature" class="form-label">
+                                    <i class="fas fa-thermometer-half text-warning me-1"></i>Température (°C)
+                                </label>
+                                <input type="number" class="form-control" id="temperature" min="30" max="45" step="0.1" placeholder="36.5">
+                            </div>
+                            <div class="mb-3">
+                                <label for="oxygenSaturation" class="form-label">
+                                    <i class="fas fa-lungs text-info me-1"></i>Saturation en Oxygène (%)
+                                </label>
+                                <input type="number" class="form-control" id="oxygenSaturation" min="70" max="100" step="1" placeholder="98">
+                            </div>
+                            <div class="mb-3">
+                                <label for="respiratoryRate" class="form-label">
+                                    <i class="fas fa-lungs text-info me-1"></i>Fréquence Respiratoire
+                                </label>
+                                <input type="number" class="form-control" id="respiratoryRate" min="8" max="40" step="1" placeholder="16">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="weight" class="form-label">
+                                    <i class="fas fa-weight text-secondary me-1"></i>Poids (kg)
+                                </label>
+                                <input type="number" class="form-control" id="weight" min="1" max="500" step="0.1" placeholder="70">
+                            </div>
+                            <div class="mb-3">
+                                <label for="height" class="form-label">
+                                    <i class="fas fa-ruler-vertical text-secondary me-1"></i>Taille (cm)
+                                </label>
+                                <input type="number" class="form-control" id="height" min="30" max="250" step="0.1" placeholder="175">
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">
+                                    <i class="fas fa-sticky-note text-dark me-1"></i>Notes
+                                </label>
+                                <textarea class="form-control" id="notes" rows="3" placeholder="Observations additionnelles..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    if (vitalSigns && vitalSigns.length > 0) {
+        html += `
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Historique des Signes Vitaux</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-calendar me-1"></i>Date/Heure</th>
+                                    <th><i class="fas fa-heartbeat me-1"></i>Tension</th>
+                                    <th><i class="fas fa-heart me-1"></i>FC</th>
+                                    <th><i class="fas fa-thermometer-half me-1"></i>Temp</th>
+                                    <th><i class="fas fa-lungs me-1"></i>O2</th>
+                                    <th><i class="fas fa-lungs me-1"></i>RR</th>
+                                    <th><i class="fas fa-weight me-1"></i>Poids</th>
+                                    <th><i class="fas fa-ruler-vertical me-1"></i>Taille</th>
+                                    <th><i class="fas fa-user-nurse me-1"></i>Infirmière</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        vitalSigns.forEach(vitalSign => {
+            html += `
+                <tr>
+                    <td><small>${new Date(vitalSign.recorded_at).toLocaleString('fr-FR')}</small></td>
+                    <td>
+                        ${vitalSign.blood_pressure_systolic && vitalSign.blood_pressure_diastolic 
+                            ? '<span class="badge bg-primary">' + vitalSign.blood_pressure_systolic + '/' + vitalSign.blood_pressure_diastolic + '</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.heart_rate 
+                            ? '<span class="badge bg-danger">' + vitalSign.heart_rate + ' BPM</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.temperature 
+                            ? '<span class="badge bg-warning">' + vitalSign.temperature + '°C</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.oxygen_saturation 
+                            ? '<span class="badge bg-info">' + vitalSign.oxygen_saturation + '%</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.respiratory_rate 
+                            ? '<span class="badge bg-secondary">' + vitalSign.respiratory_rate + '</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.weight 
+                            ? '<span class="badge bg-dark">' + vitalSign.weight + 'kg</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${vitalSign.height 
+                            ? '<span class="badge bg-dark">' + vitalSign.height + 'cm</span>' 
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td><small>${vitalSign.nurse ? vitalSign.nurse.first_name + ' ' + vitalSign.nurse.last_name : '-'}</small></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        
+        if (vitalSigns.length > 0) {
+            html += `
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Total: ${vitalSigns.length} enregistrement(s) trouvé(s)
+                    </small>
+                </div>
+            `;
+        }
+        
+        html += '</div></div>';
+    } else {
+        html += `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">Aucun enregistrement de signes vitaux</h6>
+                    <p class="text-muted mb-0">Les premiers signes vitaux apparaîtront ici après enregistrement.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    return html;
 }
 
 // Fonctions de génération HTML
@@ -530,6 +756,53 @@ function getActionButtons(status, prescriptionId) {
     buttons += '<button class="btn btn-sm btn-primary" onclick="viewPrescriptionDetails(' + prescriptionId + ')" title="Voir détails"><i class="fas fa-eye"></i></button>';
     
     return buttons;
+}
+
+function recordVitalSigns() {
+    const formData = {
+        blood_pressure_systolic: document.getElementById('bloodPressureSystolic').value,
+        blood_pressure_diastolic: document.getElementById('bloodPressureDiastolic').value,
+        heart_rate: document.getElementById('heartRate').value,
+        temperature: document.getElementById('temperature').value,
+        oxygen_saturation: document.getElementById('oxygenSaturation').value,
+        respiratory_rate: document.getElementById('respiratoryRate').value,
+        weight: document.getElementById('weight').value,
+        height: document.getElementById('height').value,
+        notes: document.getElementById('notes').value
+    };
+    
+    // Vérifier qu'au moins un champ est rempli
+    const hasData = Object.values(formData).some(value => value && value.trim() !== '');
+    
+    if (!hasData) {
+        alert('Veuillez remplir au moins un champ des signes vitaux');
+        return;
+    }
+    
+    fetch(`/nurse/patients/${currentPatientId}/vital-signs`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Signes vitaux enregistrés avec succès !');
+            // Recharger les signes vitaux
+            viewVitalSigns(currentPatientId);
+        } else {
+            alert('Erreur: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de l\'enregistrement des signes vitaux');
+    });
 }
 
 // Fonctions des boutons des modals
