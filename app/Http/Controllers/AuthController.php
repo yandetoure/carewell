@@ -388,12 +388,10 @@ public function store(Request $request)
 
     // Ajouter les champs requis
     $userData = [
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
         'phone_number' => $validated['phone_number'] ?? '',
-        'phone' => $validated['phone_number'] ?? '', // Dupliquer pour compatibilité
         'password' => Hash::make($validated['password']),
         'adress' => '', // Champ requis
         'day_of_birth' => '1990-01-01', // Valeur par défaut
@@ -525,17 +523,14 @@ public function storeDoctor(Request $request)
 
     // Créer l'utilisateur
     $user = User::create([
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
-        'phone' => $validated['phone'],
-        'phone_number' => $validated['phone'], // Dupliquer pour compatibilité
+        'phone_number' => $validated['phone'],
         'password' => Hash::make($autoPassword),
         'photo' => $validated['photo'] ?? null,
-        'specialty' => $validated['specialty'] ?? null,
         'status' => $validated['status'],
-        'description' => $validated['description'] ?? null,
+        'biographie' => $validated['description'] ?? null,
         'adress' => '', // Champ requis
         'day_of_birth' => '1990-01-01', // Valeur par défaut
         'email_verified_at' => now(),
@@ -579,20 +574,15 @@ public function updateDoctor(Request $request, User $doctor)
         $validated['photo'] = $request->file('photo')->store('doctors', 'public');
     }
 
-    // Créer le nom complet
-    $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
-
+    // Mettre à jour seulement les colonnes qui existent dans la table users
     $doctor->update([
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
-        'phone' => $validated['phone'],
         'phone_number' => $validated['phone'],
         'photo' => $validated['photo'] ?? $doctor->photo,
-        'specialty' => $validated['specialty'] ?? null,
         'status' => $validated['status'],
-        'description' => $validated['description'] ?? null,
+        'biographie' => $validated['description'] ?? null, // Utiliser biographie au lieu de description
     ]);
 
     return redirect()->route('admin.doctors')->with('success', 'Médecin mis à jour avec succès.');
@@ -719,11 +709,9 @@ public function updatePatient(Request $request, User $patient)
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
 
     $updateData = [
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
-        'phone' => $validated['phone'] ?? $patient->phone,
         'phone_number' => $validated['phone'] ?? $patient->phone_number,
         'adress' => $validated['adress'] ?? $patient->adress,
         'day_of_birth' => $validated['day_of_birth'] ?? $patient->day_of_birth,
@@ -818,11 +806,9 @@ public function updateSecretary(Request $request, User $secretary)
     
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
     $updateData = [
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
-        'phone' => $validated['phone'] ?? $secretary->phone,
         'phone_number' => $validated['phone'] ?? $secretary->phone_number,
         'adress' => $validated['adress'] ?? $secretary->adress,
         'day_of_birth' => $validated['day_of_birth'] ?? $secretary->day_of_birth,
@@ -864,11 +850,9 @@ public function storeSecretary(Request $request)
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
     
     $userData = [
-        'name' => $fullName,
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
-        'phone' => $validated['phone'] ?? null,
         'phone_number' => $validated['phone'] ?? null,
         'password' => Hash::make($validated['password']),
         'email_verified_at' => now(),
