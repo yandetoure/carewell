@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Mail\MedicalFileMail;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Traits\RedirectToRoleDashboard;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -928,7 +928,12 @@ public function storeRole(Request $request)
     ]);
 
     if (!empty($validated['permissions'])) {
-        $role->syncPermissions($validated['permissions']);
+        // Convertir les IDs de permissions en noms de permissions
+        $permissionNames = Permission::whereIn('id', $validated['permissions'])
+            ->pluck('name')
+            ->toArray();
+        
+        $role->syncPermissions($permissionNames);
     }
 
     return redirect()->route('admin.roles')->with('success', 'Rôle créé avec succès.');
@@ -966,7 +971,12 @@ public function updateRolePermissions(Request $request, Role $role)
     ]);
 
     if (isset($validated['permissions'])) {
-        $role->syncPermissions($validated['permissions']);
+        // Convertir les IDs de permissions en noms de permissions
+        $permissionNames = Permission::whereIn('id', $validated['permissions'])
+            ->pluck('name')
+            ->toArray();
+        
+        $role->syncPermissions($permissionNames);
     }
 
     return redirect()->route('admin.roles.show', $role)->with('success', 'Rôle mis à jour avec succès.');
@@ -1046,7 +1056,12 @@ public function assignPermissionsToRole(Request $request, Role $role)
         'permissions.*' => 'exists:permissions,id',
     ]);
 
-    $role->syncPermissions($validated['permissions']);
+    // Convertir les IDs de permissions en noms de permissions
+    $permissionNames = \Spatie\Permission\Models\Permission::whereIn('id', $validated['permissions'])
+        ->pluck('name')
+        ->toArray();
+    
+    $role->syncPermissions($permissionNames);
 
     return redirect()->route('admin.roles.show', $role)->with('success', 'Permissions assignées avec succès.');
 }
