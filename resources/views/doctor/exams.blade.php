@@ -539,12 +539,17 @@ function showExamDetails(examId, examName, examDescription, patientName, doctorN
         // Charger les résultats directement dans les détails
         loadExamResults(examId, addResultBtn, viewResultBtn);
     } else {
+        // Pour les examens en cours, afficher le bouton "Voir le résultat"
         addResultBtn.style.display = 'none';
-        viewResultBtn.style.display = 'none';
-        // Afficher un message pour les examens en cours
+        viewResultBtn.style.display = 'inline-block';
+        viewResultBtn.innerHTML = '<i class="fas fa-eye me-2"></i>Voir le résultat';
+        
+        // Afficher un bouton dans les détails pour les examens en cours
         document.getElementById('examResultsContent').innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-clock me-2"></i>Cet examen est encore en cours. Les résultats seront disponibles une fois terminé.
+            <div class="text-center py-3">
+                <button type="button" class="btn btn-primary" onclick="viewExamResult()">
+                    <i class="fas fa-eye me-2"></i>Voir le résultat
+                </button>
             </div>
         `;
     }
@@ -575,19 +580,23 @@ function loadExamResults(examId, addResultBtn, viewResultBtn) {
         const resultsContent = document.getElementById('examResultsContent');
         
         if (data.success && data.result) {
-            // Il y a un résultat, l'afficher directement
-            console.log('Result found, displaying in details');
-            resultsContent.innerHTML = displayResultInDetails(data.result);
-            addResultBtn.style.display = 'inline-block';
-            viewResultBtn.style.display = 'none';
+            // Il y a un résultat, afficher le bouton "Voir le résultat"
+            console.log('Result found, showing view button');
+            resultsContent.innerHTML = `
+                <div class="text-center py-3">
+                    <button type="button" class="btn btn-primary" onclick="viewExamResult()">
+                        <i class="fas fa-eye me-2"></i>Voir le résultat
+                    </button>
+                </div>
+            `;
+            addResultBtn.style.display = 'none';
+            viewResultBtn.style.display = 'inline-block';
+            viewResultBtn.innerHTML = '<i class="fas fa-eye me-2"></i>Voir le résultat';
         } else {
             // Pas de résultat, afficher le bouton "Ajouter le résultat"
             console.log('No result found, showing add button');
             resultsContent.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>Aucun résultat disponible pour cet examen.
-                </div>
-                <div class="text-center">
+                <div class="text-center py-3">
                     <button type="button" class="btn btn-primary" onclick="showAddResultForm()">
                         <i class="fas fa-plus me-2"></i>Ajouter le résultat
                     </button>
@@ -753,13 +762,40 @@ function viewExamResult() {
         if (data.success && data.result) {
             displayResult(data.result);
         } else {
-            alert('Aucun résultat trouvé pour cet examen');
+            // Afficher un modal avec un message informatif au lieu d'une alerte
+            displayNoResultModal();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Erreur lors du chargement du résultat');
+        displayNoResultModal();
     });
+}
+
+// Fonction pour afficher un modal quand il n'y a pas de résultat
+function displayNoResultModal() {
+    const content = `
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">Aucun résultat disponible</h5>
+            <p class="text-muted">Aucun résultat n'a encore été ajouté pour cet examen.</p>
+            <div class="mt-4">
+                <button type="button" class="btn btn-primary" onclick="showAddResultForm()">
+                    <i class="fas fa-plus me-2"></i>Ajouter le résultat
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('resultContent').innerHTML = content;
+    
+    // Fermer le modal des détails
+    const detailsModal = bootstrap.Modal.getInstance(document.getElementById('examDetailsModal'));
+    detailsModal.hide();
+    
+    // Afficher le modal des résultats
+    const resultModal = new bootstrap.Modal(document.getElementById('viewResultModal'));
+    resultModal.show();
 }
 
 // Fonction pour afficher le contenu du résultat
