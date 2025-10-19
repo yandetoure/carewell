@@ -207,6 +207,12 @@ Route::middleware('auth')->group(function () {
                 Route::post('/prescriptions/{prescriptionId}/mark-complete', [NurseController::class, 'markPrescriptionAsComplete'])->name('nurse.prescriptions.mark-complete');
                 Route::post('/prescriptions/{prescriptionId}/mark-progress', [NurseController::class, 'markPrescriptionAsInProgress'])->name('nurse.prescriptions.mark-progress');
                 Route::get('/prescriptions/{prescriptionId}/details', [NurseController::class, 'getPrescriptionDetails'])->name('nurse.prescriptions.details');
+                Route::get('/prescriptions/search', [NurseController::class, 'searchPrescriptions'])->name('nurse.prescriptions.search');
+                
+                // Routes pour la gestion des dossiers patients
+                Route::get('/patient-records/{recordId}/view', [NurseController::class, 'viewPatientRecord'])->name('nurse.patient-records.view');
+                Route::get('/patient-records/{recordId}/edit', [NurseController::class, 'editPatientRecord'])->name('nurse.patient-records.edit');
+                Route::post('/patient-records/{recordId}/add-note', [NurseController::class, 'addPatientNote'])->name('nurse.patient-records.add-note');
             });
 
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)

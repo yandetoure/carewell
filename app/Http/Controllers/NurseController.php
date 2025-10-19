@@ -209,7 +209,7 @@ class NurseController extends Controller
     /**
      * Display patient records
      */
-    public function patientRecords()
+    public function patientRecords(Request $request)
     {
         $nurse = Auth::user();
 
@@ -217,8 +217,62 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        // Get medical records with statistics
-        $medicalRecords = MedicalFile::with(['user', 'prescriptions', 'exams'])
+        // Get search parameters
+        $search = $request->get('search', '');
+        $status = $request->get('status', '');
+        $dateRange = $request->get('dateRange', '');
+
+        // Base query for medical records
+        $recordsQuery = MedicalFile::with(['user', 'prescriptions', 'exams'])
+            ->join('users', 'medical_files.user_id', '=', 'users.id');
+
+        // Apply search filter
+        if ($search) {
+            $recordsQuery->where(function($query) use ($search) {
+                $query->where('users.first_name', 'like', "%{$search}%")
+                      ->orWhere('users.last_name', 'like', "%{$search}%")
+                      ->orWhere('users.identification_number', 'like', "%{$search}%")
+                      ->orWhere('medical_files.identification_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply status filter
+        if ($status) {
+            if ($status === 'hospitalized') {
+                $recordsQuery->whereHas('beds', function($query) {
+                    $query->where('status', 'occupe');
+                });
+            } elseif ($status === 'active') {
+                $recordsQuery->whereDoesntHave('beds', function($query) {
+                    $query->where('status', 'occupe');
+                });
+            }
+        }
+
+        // Apply date range filter
+        if ($dateRange) {
+            switch ($dateRange) {
+                case 'today':
+                    $recordsQuery->whereDate('medical_files.updated_at', today());
+                    break;
+                case 'week':
+                    $recordsQuery->where('medical_files.updated_at', '>=', now()->subWeek());
+                    break;
+                case 'month':
+                    $recordsQuery->where('medical_files.updated_at', '>=', now()->subMonth());
+                    break;
+            }
+        }
+
+        // Order by hospitalized patients first, then by update date
+        $medicalRecords = $recordsQuery
+            ->leftJoin('beds', function($join) {
+                $join->on('medical_files.id', '=', 'beds.medical_file_id')
+                     ->where('beds.status', 'occupe');
+            })
+            ->orderByRaw('CASE WHEN beds.id IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('medical_files.updated_at', 'desc')
+            ->select('medical_files.*')
             ->paginate(20);
 
         $totalRecords = MedicalFile::count();
@@ -232,7 +286,10 @@ class NurseController extends Controller
             'todayRecords',
             'pendingUpdates',
             'recentRecords',
-            'nurse'
+            'nurse',
+            'search',
+            'status',
+            'dateRange'
         ));
     }
 
@@ -335,7 +392,7 @@ class NurseController extends Controller
     /**
      * Display prescriptions
      */
-    public function prescriptions()
+    public function prescriptions(Request $request)
     {
         $nurse = Auth::user();
 
@@ -343,22 +400,73 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        // Get prescriptions with statistics
-        $prescriptions = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])
-            ->orderBy('created_at', 'desc')
+        // Get search parameters
+        $search = $request->get('search', '');
+        $status = $request->get('status', '');
+        $patientId = $request->get('patient', '');
+        $date = $request->get('date', '');
+
+        // Base query for prescriptions
+        $prescriptionsQuery = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])
+            ->join('medical_files', 'medical_file_prescriptions.medical_files_id', '=', 'medical_files.id')
+            ->join('users', 'medical_files.user_id', '=', 'users.id')
+            ->leftJoin('beds', function($join) {
+                $join->on('medical_files.id', '=', 'beds.medical_file_id')
+                     ->where('beds.status', 'occupe');
+            });
+
+        // Apply filters
+        if ($search) {
+            $prescriptionsQuery->where(function($query) use ($search) {
+                $query->where('users.first_name', 'like', "%{$search}%")
+                      ->orWhere('users.last_name', 'like', "%{$search}%")
+                      ->orWhere('prescriptions.name', 'like', "%{$search}%")
+                      ->orWhere('medical_file_prescriptions.dosage', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status) {
+            if ($status === 'pending') {
+                $prescriptionsQuery->where('medical_file_prescriptions.is_done', '!=', true);
+            } elseif ($status === 'completed') {
+                $prescriptionsQuery->where('medical_file_prescriptions.is_done', true);
+            }
+        }
+
+        if ($patientId) {
+            $prescriptionsQuery->where('medical_files.user_id', $patientId);
+        }
+
+        if ($date) {
+            $prescriptionsQuery->whereDate('medical_file_prescriptions.created_at', $date);
+        }
+
+        // Order by hospitalized patients first, then by creation date
+        $prescriptions = $prescriptionsQuery
+            ->orderByRaw('CASE WHEN beds.id IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('medical_file_prescriptions.created_at', 'desc')
+            ->select('medical_file_prescriptions.*')
             ->paginate(20);
 
+        // Get pending prescriptions with hospitalized patients first
         $pendingPrescriptionsList = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])
-            ->where('is_done', false)
-            ->orderBy('created_at', 'desc')
+            ->join('medical_files', 'medical_file_prescriptions.medical_files_id', '=', 'medical_files.id')
+            ->leftJoin('beds', function($join) {
+                $join->on('medical_files.id', '=', 'beds.medical_file_id')
+                     ->where('beds.status', 'occupe');
+            })
+            ->where('medical_file_prescriptions.is_done', '!=', true)
+            ->orderByRaw('CASE WHEN beds.id IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('medical_file_prescriptions.created_at', 'desc')
+            ->select('medical_file_prescriptions.*')
             ->get();
 
         $totalPrescriptions = MedicalFilePrescription::count();
-        $completedPrescriptions = MedicalFilePrescription::where('is_done', true)->count();
-        $pendingPrescriptions = MedicalFilePrescription::where('is_done', false)->count();
+        $completedPrescriptions = MedicalFilePrescription::where('is_done', '!=', true)->count();
+        $pendingPrescriptions = MedicalFilePrescription::where('is_done', '!=', true)->count();
         $todayPrescriptions = MedicalFilePrescription::whereDate('created_at', today())->count();
 
-        $patients = User::whereHas('appointments')->get();
+        $patients = User::whereHas('medicalFile')->get();
 
         // Mock medication schedule data
         $morningMedications = 8;
@@ -378,7 +486,11 @@ class NurseController extends Controller
             'afternoonMedications',
             'eveningMedications',
             'nightMedications',
-            'nurse'
+            'nurse',
+            'search',
+            'status',
+            'patientId',
+            'date'
         ));
     }
 
@@ -916,6 +1028,138 @@ class NurseController extends Controller
         return response()->json([
             'success' => true,
             'prescription' => $prescription
+        ]);
+    }
+
+    /**
+     * Search prescriptions via AJAX
+     */
+    public function searchPrescriptions(Request $request)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $search = $request->get('q', '');
+        $status = $request->get('status', '');
+        $patientId = $request->get('patient', '');
+        $date = $request->get('date', '');
+
+        $prescriptionsQuery = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])
+            ->join('medical_files', 'medical_file_prescriptions.medical_files_id', '=', 'medical_files.id')
+            ->join('users', 'medical_files.user_id', '=', 'users.id')
+            ->leftJoin('beds', function($join) {
+                $join->on('medical_files.id', '=', 'beds.medical_file_id')
+                     ->where('beds.status', 'occupe');
+            });
+
+        if ($search) {
+            $prescriptionsQuery->where(function($query) use ($search) {
+                $query->where('users.first_name', 'like', "%{$search}%")
+                      ->orWhere('users.last_name', 'like', "%{$search}%")
+                      ->orWhere('prescriptions.name', 'like', "%{$search}%")
+                      ->orWhere('medical_file_prescriptions.dosage', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status) {
+            if ($status === 'pending') {
+                $prescriptionsQuery->where('medical_file_prescriptions.is_done', '!=', true);
+            } elseif ($status === 'completed') {
+                $prescriptionsQuery->where('medical_file_prescriptions.is_done', true);
+            }
+        }
+
+        if ($patientId) {
+            $prescriptionsQuery->where('medical_files.user_id', $patientId);
+        }
+
+        if ($date) {
+            $prescriptionsQuery->whereDate('medical_file_prescriptions.created_at', $date);
+        }
+
+        $prescriptions = $prescriptionsQuery
+            ->orderByRaw('CASE WHEN beds.id IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('medical_file_prescriptions.created_at', 'desc')
+            ->select('medical_file_prescriptions.*')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'prescriptions' => $prescriptions
+        ]);
+    }
+
+    /**
+     * View patient record details
+     */
+    public function viewPatientRecord($recordId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $record = MedicalFile::with(['user', 'prescriptions.prescription', 'exams.exam', 'notes', 'vitalSigns'])
+            ->findOrFail($recordId);
+
+        return response()->json([
+            'success' => true,
+            'record' => $record
+        ]);
+    }
+
+    /**
+     * Edit patient record
+     */
+    public function editPatientRecord($recordId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $record = MedicalFile::with(['user'])->findOrFail($recordId);
+
+        return response()->json([
+            'success' => true,
+            'record' => $record
+        ]);
+    }
+
+    /**
+     * Add note to patient record
+     */
+    public function addPatientNote(Request $request, $recordId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $request->validate([
+            'note' => 'required|string|max:1000'
+        ]);
+
+        $record = MedicalFile::findOrFail($recordId);
+
+        $note = Note::create([
+            'medical_files_id' => $record->id,
+            'nurse_id' => $nurse->id,
+            'note' => $request->note,
+            'created_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Note ajoutée avec succès',
+            'note' => $note
         ]);
     }
 

@@ -90,45 +90,55 @@
         </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Search and Filters -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="searchInput">Recherche Rapide</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Nom patient, médicament, dosage..." value="{{ $search ?? '' }}">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="statusFilter">Statut</label>
                                 <select class="form-control" id="statusFilter">
-                                    <option value="">Tous les Statuts</option>
-                                    <option value="pending">En Attente</option>
-                                    <option value="in_progress">En Cours</option>
-                                    <option value="completed">Terminé</option>
+                                    <option value="">Tous</option>
+                                    <option value="pending" {{ ($status ?? '') === 'pending' ? 'selected' : '' }}>En Attente</option>
+                                    <option value="completed" {{ ($status ?? '') === 'completed' ? 'selected' : '' }}>Terminé</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="patientFilter">Patient</label>
                                 <select class="form-control" id="patientFilter">
-                                    <option value="">Tous les Patients</option>
+                                    <option value="">Tous</option>
                                     @foreach($patients as $patient)
-                                        <option value="{{ $patient->id }}">{{ $patient->first_name }} {{ $patient->last_name }}</option>
+                                        <option value="{{ $patient->id }}" {{ ($patientId ?? '') == $patient->id ? 'selected' : '' }}>{{ $patient->first_name }} {{ $patient->last_name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label for="dateFilter">Date</label>
-                                <input type="date" class="form-control" id="dateFilter" value="{{ today()->format('Y-m-d') }}">
+                                <input type="date" class="form-control" id="dateFilter" value="{{ $date ?? today()->format('Y-m-d') }}">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>&nbsp;</label>
-                                <button type="button" class="btn btn-primary w-100" onclick="applyFilters()">
-                                    <i class="fas fa-filter me-1"></i>Filtrer
+                                <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Effacer
                                 </button>
                             </div>
                         </div>
@@ -152,11 +162,16 @@
                         <div class="row">
                             @foreach($pendingPrescriptionsList as $prescription)
                                 <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card border-warning">
+                                    <div class="card border-warning" data-prescription-id="{{ $prescription->id }}">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <h6 class="card-title mb-0">{{ $prescription->prescription->name ?? 'Prescription' }}</h6>
-                                                <span class="badge bg-warning">En Attente</span>
+                                                <div>
+                                                    @if($prescription->medicalFile->beds()->where('status', 'occupe')->exists())
+                                                        <span class="badge bg-danger me-1">Hospitalisé</span>
+                                                    @endif
+                                                    <span class="badge bg-warning">En Attente</span>
+                                                </div>
                                             </div>
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="fas fa-user text-primary me-2"></i>
@@ -223,7 +238,7 @@
                                 </thead>
                                 <tbody>
                                     @foreach($prescriptions as $prescription)
-                                        <tr>
+                                        <tr data-prescription-id="{{ $prescription->id }}">
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-pills text-primary me-2"></i>
@@ -257,11 +272,16 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                <div>
+                                                    @if($prescription->medicalFile->beds()->where('status', 'occupe')->exists())
+                                                        <span class="badge bg-danger me-1">Hospitalisé</span>
+                                                    @endif
                                                 @if($prescription->is_done)
-                                                    <span class="badge bg-success">Terminé</span>
+                                                        <span class="badge bg-success">Terminé</span>
                                                 @else
-                                                    <span class="badge bg-warning">En Attente</span>
+                                                        <span class="badge bg-warning">En Attente</span>
                                                 @endif
+                                                </div>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
@@ -453,16 +473,71 @@ let currentFilters = {
     patient: '',
     date: ''
 };
+let searchTimeout;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     initializeFilters();
+    setupAutoSearch();
 });
 
 // Initialize filters
 function initializeFilters() {
-    // Set today's date as default
+    // Set today's date as default if not already set
+    const dateFilter = document.getElementById('dateFilter');
+    if (!dateFilter.value) {
+        dateFilter.value = new Date().toISOString().split('T')[0];
+    }
+}
+
+// Setup auto-search functionality
+function setupAutoSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const patientFilter = document.getElementById('patientFilter');
+    const dateFilter = document.getElementById('dateFilter');
+
+    // Auto-search on input change (with debounce)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            performSearch();
+        }, 300);
+    });
+
+    // Auto-search on filter change
+    statusFilter.addEventListener('change', performSearch);
+    patientFilter.addEventListener('change', performSearch);
+    dateFilter.addEventListener('change', performSearch);
+}
+
+// Perform search
+function performSearch() {
+    const search = document.getElementById('searchInput').value;
+    const status = document.getElementById('statusFilter').value;
+    const patient = document.getElementById('patientFilter').value;
+    const date = document.getElementById('dateFilter').value;
+
+    // Update URL with search parameters
+    const url = new URL(window.location);
+    url.searchParams.set('search', search);
+    url.searchParams.set('status', status);
+    url.searchParams.set('patient', patient);
+    url.searchParams.set('date', date);
+
+    // Reload page with new parameters
+    window.location.href = url.toString();
+}
+
+// Clear all filters
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('patientFilter').value = '';
     document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
+    
+    // Reload page without parameters
+    window.location.href = window.location.pathname;
 }
 
 // View prescription details
@@ -489,6 +564,7 @@ function markPrescriptionComplete(prescriptionId) {
     }
 
     const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
@@ -497,34 +573,71 @@ function markPrescriptionComplete(prescriptionId) {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showAlert('success', 'Prescription marquée comme terminée !');
-            setTimeout(() => location.reload(), 1500);
+            // Update the UI immediately
+            updatePrescriptionStatus(prescriptionId, true);
+            setTimeout(() => location.reload(), 1000);
         } else {
             showAlert('danger', data.message || 'Erreur lors du marquage de la prescription');
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-check"></i>';
+            button.innerHTML = originalContent;
         }
     })
     .catch(error => {
         console.error('Error:', error);
         showAlert('danger', 'Erreur lors du marquage de la prescription');
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.innerHTML = originalContent;
+    });
+}
+
+// Update prescription status in UI
+function updatePrescriptionStatus(prescriptionId, isComplete) {
+    // Find all elements with this prescription ID and update their status
+    const statusElements = document.querySelectorAll(`[data-prescription-id="${prescriptionId}"] .badge`);
+    statusElements.forEach(element => {
+        if (isComplete) {
+            element.className = 'badge bg-success';
+            element.textContent = 'Terminé';
+        } else {
+            element.className = 'badge bg-warning';
+            element.textContent = 'En Attente';
+        }
+    });
+
+    // Update action buttons
+    const actionButtons = document.querySelectorAll(`[data-prescription-id="${prescriptionId}"] .btn-group`);
+    actionButtons.forEach(buttonGroup => {
+        const completeButton = buttonGroup.querySelector('[onclick*="markPrescriptionComplete"]');
+        if (completeButton) {
+            if (isComplete) {
+                completeButton.style.display = 'none';
+            } else {
+                completeButton.style.display = 'inline-block';
+            }
+        }
     });
 }
 
 // Mark prescription as in progress
 function markPrescriptionProgress(prescriptionId) {
-    if (!confirm('Mark this prescription as in progress?')) {
+    if (!confirm('Marquer cette prescription comme en cours ?')) {
         return;
     }
 
     const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
@@ -533,24 +646,30 @@ function markPrescriptionProgress(prescriptionId) {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            showAlert('success', 'Prescription marked as in progress!');
-            setTimeout(() => location.reload(), 1500);
+            showAlert('success', 'Prescription marquée comme en cours !');
+            setTimeout(() => location.reload(), 1000);
         } else {
-            showAlert('danger', data.message || 'Error updating prescription status');
+            showAlert('danger', data.message || 'Erreur lors de la mise à jour du statut');
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-play"></i>';
+            button.innerHTML = originalContent;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('danger', 'Error updating prescription status');
+        showAlert('danger', 'Erreur lors de la mise à jour du statut');
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-play"></i>';
+        button.innerHTML = originalContent;
     });
 }
 
@@ -560,27 +679,9 @@ function editPrescription(prescriptionId) {
     showAlert('info', 'Edit functionality will be implemented soon');
 }
 
-// Apply filters
+// Apply filters (deprecated - now handled by performSearch)
 function applyFilters() {
-    const status = document.getElementById('statusFilter').value;
-    const patient = document.getElementById('patientFilter').value;
-    const date = document.getElementById('dateFilter').value;
-
-    // Store current filters
-    currentFilters = { status, patient, date };
-
-    // Show loading state
-    document.body.classList.add('loading');
-
-    // In a real implementation, this would make an AJAX call to filter prescriptions
-    // For now, we'll just show a message and reload after a short delay
-    showAlert('info', 'Applying filters...');
-    
-    setTimeout(() => {
-        document.body.classList.remove('loading');
-        showAlert('success', 'Filters applied successfully!');
-        // In a real implementation, update the prescription list here
-    }, 1000);
+    performSearch();
 }
 
 // Create new prescription
@@ -708,3 +809,4 @@ setInterval(() => {
 }, 60000);
 </script>
 @endpush
+

@@ -60,10 +60,22 @@ class MedicalFile extends Model
         {
             return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
         }
+
+        // Alias pour prescriptions (utilisé dans le contrôleur)
+        public function prescriptions()
+        {
+            return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
+        }
         // Déclaration de la relation avec Examen
          public function medicalexam()
                 {
           return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
+        }
+
+        // Alias pour exams (utilisé dans le contrôleur)
+        public function exams()
+        {
+            return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
         }
 
         // Déclaration de la relation avec MedicalHistory
