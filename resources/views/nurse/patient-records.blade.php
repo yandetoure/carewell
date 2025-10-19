@@ -206,14 +206,11 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-primary" title="Voir Dossier" onclick="viewPatientRecord({{ $record->id }})">
+                                                    <button type="button" class="btn btn-outline-primary" title="Voir Détails du Dossier" onclick="viewPatientRecord({{ $record->id }})">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-info" title="Modifier Dossier" onclick="editPatientRecord({{ $record->id }})">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-outline-success" title="Ajouter Note" onclick="addPatientNote({{ $record->id }})">
-                                                        <i class="fas fa-plus"></i>
+                                                    <button type="button" class="btn btn-outline-success" title="Ajouter Signes Vitaux" onclick="addVitalSigns({{ $record->id }})">
+                                                        <i class="fas fa-heartbeat"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -399,66 +396,9 @@ function viewPatientRecord(recordId) {
         });
 }
 
-// Edit patient record
-function editPatientRecord(recordId) {
-    fetch(`/nurse/patient-records/${recordId}/edit`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showEditRecordModal(data.record);
-            } else {
-                showAlert('danger', 'Erreur lors du chargement du dossier');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('danger', 'Erreur lors du chargement du dossier');
-        });
-}
-
-// Add patient note
-function addPatientNote(recordId) {
-    const note = prompt('Entrez votre note:');
-    if (!note || note.trim() === '') {
-        return;
-    }
-
-    const button = event.target.closest('button');
-    const originalContent = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    fetch(`/nurse/patient-records/${recordId}/add-note`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ note: note.trim() })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            showAlert('success', 'Note ajoutée avec succès !');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showAlert('danger', data.message || 'Erreur lors de l\'ajout de la note');
-            button.disabled = false;
-            button.innerHTML = originalContent;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', 'Erreur lors de l\'ajout de la note');
-        button.disabled = false;
-        button.innerHTML = originalContent;
-    });
+// Add vital signs
+function addVitalSigns(recordId) {
+    showVitalSignsModal(recordId);
 }
 
 // Show patient record modal
@@ -472,39 +412,245 @@ function showPatientRecordModal(record) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="row">
+                        <!-- Informations Patient -->
+                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <h6>Informations Patient</h6>
-                                <p><strong>Nom:</strong> ${record.user.first_name} ${record.user.last_name}</p>
-                                <p><strong>ID Patient:</strong> ${record.user.identification_number || 'N/A'}</p>
-                                <p><strong>Email:</strong> ${record.user.email || 'N/A'}</p>
-                                <p><strong>Dossier créé:</strong> ${new Date(record.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Statistiques</h6>
-                                <p><strong>Prescriptions:</strong> ${record.prescriptions ? record.prescriptions.length : 0}</p>
-                                <p><strong>Examens:</strong> ${record.exams ? record.exams.length : 0}</p>
-                                <p><strong>Notes:</strong> ${record.notes ? record.notes.length : 0}</p>
-                                <p><strong>Signes vitaux:</strong> ${record.vital_signs ? record.vital_signs.length : 0}</p>
-                            </div>
-                        </div>
-                        ${record.notes && record.notes.length > 0 ? `
-                            <div class="mt-3">
-                                <h6>Notes Récentes</h6>
-                                <div class="list-group">
-                                    ${record.notes.slice(0, 5).map(note => `
-                                        <div class="list-group-item">
-                                            <small class="text-muted">${new Date(note.created_at).toLocaleString()}</small>
-                                            <p class="mb-0">${note.note}</p>
-                                        </div>
-                                    `).join('')}
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-user me-2"></i>Informations Patient</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Nom:</strong> ${record.user.first_name} ${record.user.last_name}</p>
+                                        <p><strong>ID Patient:</strong> ${record.user.identification_number || 'N/A'}</p>
+                                        <p><strong>Email:</strong> ${record.user.email || 'N/A'}</p>
+                                        <p><strong>Téléphone:</strong> ${record.user.phone || 'N/A'}</p>
+                                        <p><strong>Date de naissance:</strong> ${record.user.date_of_birth ? new Date(record.user.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                                        <p><strong>Dossier créé:</strong> ${new Date(record.created_at).toLocaleDateString()}</p>
+                                        ${record.stats.is_hospitalized ? `
+                                            <p><strong>Statut:</strong> <span class="badge bg-danger">Hospitalisé</span></p>
+                                            ${record.stats.current_bed ? `<p><strong>Lit actuel:</strong> ${record.stats.current_bed.bed_number}</p>` : ''}
+                                        ` : '<p><strong>Statut:</strong> <span class="badge bg-success">Actif</span></p>'}
+                                    </div>
                                 </div>
                             </div>
-                        ` : ''}
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <p><strong>Prescriptions:</strong> ${record.stats.total_prescriptions}</p>
+                                                <p><strong>En attente:</strong> ${record.stats.pending_prescriptions}</p>
+                                                <p><strong>Terminées:</strong> ${record.stats.completed_prescriptions}</p>
+                                            </div>
+                                            <div class="col-6">
+                                                <p><strong>Examens:</strong> ${record.stats.total_exams}</p>
+                                                <p><strong>Notes:</strong> ${record.stats.total_notes}</p>
+                                                <p><strong>Signes vitaux:</strong> ${record.stats.total_vital_signs}</p>
+                                            </div>
+                                        </div>
+                                        <p><strong>Maladies:</strong> ${record.stats.total_diseases}</p>
+                                        <p><strong>Antécédents:</strong> ${record.stats.total_histories}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Onglets pour les différentes sections -->
+                        <ul class="nav nav-tabs" id="recordTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="prescriptions-tab" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button" role="tab">
+                                    <i class="fas fa-pills me-1"></i>Prescriptions (${record.stats.total_prescriptions})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="diseases-tab" data-bs-toggle="tab" data-bs-target="#diseases" type="button" role="tab">
+                                    <i class="fas fa-disease me-1"></i>Maladies (${record.stats.total_diseases})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="histories-tab" data-bs-toggle="tab" data-bs-target="#histories" type="button" role="tab">
+                                    <i class="fas fa-history me-1"></i>Antécédents (${record.stats.total_histories})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="exams-tab" data-bs-toggle="tab" data-bs-target="#exams" type="button" role="tab">
+                                    <i class="fas fa-stethoscope me-1"></i>Examens (${record.stats.total_exams})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="vitals-tab" data-bs-toggle="tab" data-bs-target="#vitals" type="button" role="tab">
+                                    <i class="fas fa-heartbeat me-1"></i>Signes Vitaux (${record.stats.total_vital_signs})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+                                    <i class="fas fa-sticky-note me-1"></i>Notes (${record.stats.total_notes})
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="recordTabContent">
+                            <!-- Prescriptions -->
+                            <div class="tab-pane fade show active" id="prescriptions" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.prescriptions && record.prescriptions.length > 0 ? `
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Médicament</th>
+                                                        <th>Dosage</th>
+                                                        <th>Fréquence</th>
+                                                        <th>Durée</th>
+                                                        <th>Statut</th>
+                                                        <th>Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${record.prescriptions.map(prescription => `
+                                                        <tr>
+                                                            <td>${prescription.prescription ? prescription.prescription.name : 'N/A'}</td>
+                                                            <td>${prescription.dosage || 'N/A'}</td>
+                                                            <td>${prescription.frequency || 'N/A'}</td>
+                                                            <td>${prescription.duration || 'N/A'}</td>
+                                                            <td>
+                                                                ${prescription.is_done ? 
+                                                                    '<span class="badge bg-success">Terminé</span>' : 
+                                                                    '<span class="badge bg-warning">En Attente</span>'
+                                                                }
+                                                            </td>
+                                                            <td>${new Date(prescription.created_at).toLocaleDateString()}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ` : '<p class="text-muted">Aucune prescription trouvée.</p>'}
+                                </div>
+                            </div>
+
+                            <!-- Maladies -->
+                            <div class="tab-pane fade" id="diseases" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.medicaldisease && record.medicaldisease.length > 0 ? `
+                                        <div class="list-group">
+                                            ${record.medicaldisease.map(disease => `
+                                                <div class="list-group-item">
+                                                    <h6 class="mb-1">${disease.disease ? disease.disease.name : 'Maladie'}</h6>
+                                                    <p class="mb-1">${disease.disease ? disease.disease.description : 'Description non disponible'}</p>
+                                                    <small class="text-muted">Diagnostiqué le: ${new Date(disease.created_at).toLocaleDateString()}</small>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : '<p class="text-muted">Aucune maladie diagnostiquée.</p>'}
+                                </div>
+                            </div>
+
+                            <!-- Antécédents -->
+                            <div class="tab-pane fade" id="histories" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.medicalHistories && record.medicalHistories.length > 0 ? `
+                                        <div class="list-group">
+                                            ${record.medicalHistories.map(history => `
+                                                <div class="list-group-item">
+                                                    <h6 class="mb-1">${history.title || 'Antécédent'}</h6>
+                                                    <p class="mb-1">${history.description || 'Description non disponible'}</p>
+                                                    <small class="text-muted">Date: ${new Date(history.created_at).toLocaleDateString()}</small>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : '<p class="text-muted">Aucun antécédent médical.</p>'}
+                                </div>
+                            </div>
+
+                            <!-- Examens -->
+                            <div class="tab-pane fade" id="exams" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.exams && record.exams.length > 0 ? `
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Examen</th>
+                                                        <th>Résultat</th>
+                                                        <th>Date</th>
+                                                        <th>Médecin</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${record.exams.map(exam => `
+                                                        <tr>
+                                                            <td>${exam.exam ? exam.exam.name : 'Examen'}</td>
+                                                            <td>${exam.result || 'N/A'}</td>
+                                                            <td>${new Date(exam.created_at).toLocaleDateString()}</td>
+                                                            <td>${exam.doctor ? exam.doctor.first_name + ' ' + exam.doctor.last_name : 'N/A'}</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ` : '<p class="text-muted">Aucun examen trouvé.</p>'}
+                                </div>
+                            </div>
+
+                            <!-- Signes Vitaux -->
+                            <div class="tab-pane fade" id="vitals" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.vitalSigns && record.vitalSigns.length > 0 ? `
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Tension</th>
+                                                        <th>FC</th>
+                                                        <th>Temp</th>
+                                                        <th>O2</th>
+                                                        <th>FR</th>
+                                                        <th>Poids</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${record.vitalSigns.slice(0, 10).map(vital => `
+                                                        <tr>
+                                                            <td>${new Date(vital.recorded_at).toLocaleDateString()}</td>
+                                                            <td>${vital.blood_pressure_systolic}/${vital.blood_pressure_diastolic}</td>
+                                                            <td>${vital.heart_rate}</td>
+                                                            <td>${vital.temperature}°C</td>
+                                                            <td>${vital.oxygen_saturation}%</td>
+                                                            <td>${vital.respiratory_rate}</td>
+                                                            <td>${vital.weight || 'N/A'} kg</td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ` : '<p class="text-muted">Aucun signe vital enregistré.</p>'}
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="tab-pane fade" id="notes" role="tabpanel">
+                                <div class="mt-3">
+                                    ${record.note && record.note.length > 0 ? `
+                                        <div class="list-group">
+                                            ${record.note.slice(0, 10).map(note => `
+                                                <div class="list-group-item">
+                                                    <p class="mb-1">${note.note}</p>
+                                                    <small class="text-muted">${new Date(note.created_at).toLocaleString()}</small>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : '<p class="text-muted">Aucune note trouvée.</p>'}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                        <button type="button" class="btn btn-primary" onclick="editPatientRecord(${record.id})">Modifier</button>
                     </div>
                 </div>
             </div>
@@ -530,9 +676,158 @@ function showPatientRecordModal(record) {
     });
 }
 
-// Show edit record modal
-function showEditRecordModal(record) {
-    showAlert('info', 'Fonctionnalité de modification sera implémentée bientôt');
+// Show vital signs modal
+function showVitalSignsModal(recordId) {
+    const modalHtml = `
+        <div class="modal fade" id="vitalSignsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Ajouter Signes Vitaux</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="vitalSignsForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="blood_pressure_systolic" class="form-label">Tension Artérielle Systolique (mmHg)</label>
+                                        <input type="number" class="form-control" id="blood_pressure_systolic" name="blood_pressure_systolic" min="50" max="300" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="blood_pressure_diastolic" class="form-label">Tension Artérielle Diastolique (mmHg)</label>
+                                        <input type="number" class="form-control" id="blood_pressure_diastolic" name="blood_pressure_diastolic" min="30" max="200" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="heart_rate" class="form-label">Fréquence Cardiaque (bpm)</label>
+                                        <input type="number" class="form-control" id="heart_rate" name="heart_rate" min="30" max="200" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="temperature" class="form-label">Température (°C)</label>
+                                        <input type="number" class="form-control" id="temperature" name="temperature" min="30" max="45" step="0.1" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="oxygen_saturation" class="form-label">Saturation en Oxygène (%)</label>
+                                        <input type="number" class="form-control" id="oxygen_saturation" name="oxygen_saturation" min="50" max="100" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="respiratory_rate" class="form-label">Fréquence Respiratoire (resp/min)</label>
+                                        <input type="number" class="form-control" id="respiratory_rate" name="respiratory_rate" min="5" max="60" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="weight" class="form-label">Poids (kg)</label>
+                                        <input type="number" class="form-control" id="weight" name="weight" min="10" max="500" step="0.1">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="height" class="form-label">Taille (cm)</label>
+                                        <input type="number" class="form-control" id="height" name="height" min="50" max="250" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="500"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-success" onclick="submitVitalSigns(${recordId})">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('vitalSignsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('vitalSignsModal'));
+    modal.show();
+
+    // Remove modal from DOM when hidden
+    document.getElementById('vitalSignsModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Submit vital signs
+function submitVitalSigns(recordId) {
+    const form = document.getElementById('vitalSignsForm');
+    const formData = new FormData(form);
+    
+    // Convert FormData to JSON
+    const data = {};
+    for (let [key, value] of formData.entries()) {
+        data[key] = value;
+    }
+
+    const button = document.querySelector('#vitalSignsModal .btn-success');
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+
+    fetch(`/nurse/patient-records/${recordId}/add-vital-signs`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Signes vitaux enregistrés avec succès !');
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('vitalSignsModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('danger', data.message || 'Erreur lors de l\'enregistrement des signes vitaux');
+            button.disabled = false;
+            button.innerHTML = originalContent;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Erreur lors de l\'enregistrement des signes vitaux');
+        button.disabled = false;
+        button.innerHTML = originalContent;
+    });
 }
 
 // Show alert

@@ -12,6 +12,7 @@ use App\Models\Bed;
 use App\Models\MedicalFile;
 use App\Models\MedicalFilePrescription;
 use App\Models\VitalSign;
+use App\Models\Note;
 
 class NurseController extends Controller
 {
@@ -1104,13 +1105,42 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        $record = MedicalFile::with(['user', 'prescriptions.prescription', 'exams.exam', 'notes', 'vitalSigns'])
-            ->findOrFail($recordId);
+        try {
+            $record = MedicalFile::with([
+                'user', 
+                'prescriptions.prescription', 
+                'exams.exam', 
+                'note', 
+                'vitalSigns',
+                'medicalHistories',
+                'medicaldisease.disease',
+                'beds'
+            ])->findOrFail($recordId);
 
-        return response()->json([
-            'success' => true,
-            'record' => $record
-        ]);
+            // Ajouter des statistiques
+            $record->stats = [
+                'total_prescriptions' => $record->prescriptions->count(),
+                'pending_prescriptions' => $record->prescriptions->where('is_done', '!=', true)->count(),
+                'completed_prescriptions' => $record->prescriptions->where('is_done', true)->count(),
+                'total_exams' => $record->exams->count(),
+                'total_notes' => $record->note->count(),
+                'total_vital_signs' => $record->vitalSigns->count(),
+                'total_diseases' => $record->medicaldisease->count(),
+                'total_histories' => $record->medicalHistories->count(),
+                'is_hospitalized' => $record->beds->where('status', 'occupe')->count() > 0,
+                'current_bed' => $record->beds->where('status', 'occupe')->first()
+            ];
+
+            return response()->json([
+                'success' => true,
+                'record' => $record
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du chargement du dossier: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -1160,6 +1190,53 @@ class NurseController extends Controller
             'success' => true,
             'message' => 'Note ajoutée avec succès',
             'note' => $note
+        ]);
+    }
+
+    /**
+     * Add vital signs to patient record
+     */
+    public function addVitalSigns(Request $request, $recordId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $request->validate([
+            'blood_pressure_systolic' => 'required|numeric|min:50|max:300',
+            'blood_pressure_diastolic' => 'required|numeric|min:30|max:200',
+            'heart_rate' => 'required|numeric|min:30|max:200',
+            'temperature' => 'required|numeric|min:30|max:45',
+            'oxygen_saturation' => 'required|numeric|min:50|max:100',
+            'respiratory_rate' => 'required|numeric|min:5|max:60',
+            'weight' => 'nullable|numeric|min:10|max:500',
+            'height' => 'nullable|numeric|min:50|max:250',
+            'notes' => 'nullable|string|max:500'
+        ]);
+
+        $record = MedicalFile::findOrFail($recordId);
+
+        $vitalSign = VitalSign::create([
+            'medical_file_id' => $record->id,
+            'nurse_id' => $nurse->id,
+            'blood_pressure_systolic' => $request->blood_pressure_systolic,
+            'blood_pressure_diastolic' => $request->blood_pressure_diastolic,
+            'heart_rate' => $request->heart_rate,
+            'temperature' => $request->temperature,
+            'oxygen_saturation' => $request->oxygen_saturation,
+            'respiratory_rate' => $request->respiratory_rate,
+            'weight' => $request->weight,
+            'height' => $request->height,
+            'notes' => $request->notes,
+            'recorded_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signes vitaux enregistrés avec succès',
+            'vitalSign' => $vitalSign
         ]);
     }
 

@@ -213,6 +213,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('/patient-records/{recordId}/view', [NurseController::class, 'viewPatientRecord'])->name('nurse.patient-records.view');
                 Route::get('/patient-records/{recordId}/edit', [NurseController::class, 'editPatientRecord'])->name('nurse.patient-records.edit');
                 Route::post('/patient-records/{recordId}/add-note', [NurseController::class, 'addPatientNote'])->name('nurse.patient-records.add-note');
+                Route::post('/patient-records/{recordId}/add-vital-signs', [NurseController::class, 'addVitalSigns'])->name('nurse.patient-records.add-vital-signs');
             });
 
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)

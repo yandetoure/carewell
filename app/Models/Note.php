@@ -10,8 +10,9 @@ class Note extends Model
     use HasFactory;
 
     protected $fillable = [
-        'content', 
+        'note', 
         'medical_files_id',
+        'nurse_id',
         'doctor_id',
     ];
 
@@ -24,5 +25,10 @@ class Note extends Model
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
+    }
+
+    public function nurse()
+    {
+        return $this->belongsTo(User::class, 'nurse_id');
     }
 }
