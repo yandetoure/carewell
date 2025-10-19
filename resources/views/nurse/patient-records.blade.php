@@ -733,13 +733,13 @@ function showVitalSignsModal(recordId) {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="heart_rate" class="form-label">Fréquence Cardiaque (bpm)</label>
-                                        <input type="number" class="form-control" id="heart_rate" name="heart_rate" min="30" max="200" required>
+                                        <input type="number" class="form-control" id="heart_rate" name="heart_rate" min="20" max="250" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="temperature" class="form-label">Température (°C)</label>
-                                        <input type="number" class="form-control" id="temperature" name="temperature" min="30" max="45" step="0.1" required>
+                                        <input type="number" class="form-control" id="temperature" name="temperature" min="25" max="50" step="0.1" required>
                                     </div>
                                 </div>
                             </div>
@@ -753,7 +753,7 @@ function showVitalSignsModal(recordId) {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="respiratory_rate" class="form-label">Fréquence Respiratoire (resp/min)</label>
-                                        <input type="number" class="form-control" id="respiratory_rate" name="respiratory_rate" min="5" max="60" required>
+                                        <input type="number" class="form-control" id="respiratory_rate" name="respiratory_rate" min="5" max="80" required>
                                     </div>
                                 </div>
                             </div>
@@ -761,13 +761,13 @@ function showVitalSignsModal(recordId) {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="weight" class="form-label">Poids (kg)</label>
-                                        <input type="number" class="form-control" id="weight" name="weight" min="10" max="500" step="0.1">
+                                        <input type="number" class="form-control" id="weight" name="weight" min="5" max="500" step="0.1">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="height" class="form-label">Taille (cm)</label>
-                                        <input type="number" class="form-control" id="height" name="height" min="50" max="250" step="0.1">
+                                        <input type="number" class="form-control" id="height" name="height" min="30" max="300" step="0.1">
                                     </div>
                                 </div>
                             </div>
@@ -810,10 +810,37 @@ function submitVitalSigns(recordId) {
     const form = document.getElementById('vitalSignsForm');
     const formData = new FormData(form);
     
-    // Convert FormData to JSON
+    // Convert FormData to JSON with proper type conversion
     const data = {};
     for (let [key, value] of formData.entries()) {
-        data[key] = value;
+        // Convert numeric fields to numbers, but only if they have a value
+        if (['blood_pressure_systolic', 'blood_pressure_diastolic', 'heart_rate', 'temperature', 'oxygen_saturation', 'respiratory_rate', 'weight', 'height'].includes(key)) {
+            if (value && value.trim() !== '') {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    data[key] = numValue;
+                } else {
+                    data[key] = null;
+                }
+            } else {
+                // For optional fields, set to null, for required fields this will trigger validation error
+                data[key] = null;
+            }
+        } else {
+            data[key] = value || '';
+        }
+    }
+
+    // Debug: log the data being sent
+    console.log('Data being sent:', data);
+
+    // Validate required fields before sending
+    const requiredFields = ['blood_pressure_systolic', 'blood_pressure_diastolic', 'heart_rate', 'temperature', 'oxygen_saturation', 'respiratory_rate'];
+    const missingFields = requiredFields.filter(field => !data[field] || data[field] === null);
+    
+    if (missingFields.length > 0) {
+        showAlert('danger', 'Veuillez remplir tous les champs obligatoires: ' + missingFields.join(', '));
+        return;
     }
 
     const button = document.querySelector('#vitalSignsModal .btn-success');
@@ -832,7 +859,7 @@ function submitVitalSigns(recordId) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            return response.json().then(err => Promise.reject(err));
         }
         return response.json();
     })
@@ -851,7 +878,21 @@ function submitVitalSigns(recordId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('danger', 'Erreur lors de l\'enregistrement des signes vitaux');
+        let errorMessage = 'Erreur lors de l\'enregistrement des signes vitaux';
+        
+        if (error.errors) {
+            // Handle validation errors - show detailed field errors
+            console.log('Validation errors:', error.errors);
+            const errorMessages = [];
+            Object.keys(error.errors).forEach(field => {
+                errorMessages.push(`${field}: ${error.errors[field].join(', ')}`);
+            });
+            errorMessage = 'Erreurs de validation:\n' + errorMessages.join('\n');
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showAlert('danger', errorMessage);
         button.disabled = false;
         button.innerHTML = originalContent;
     });

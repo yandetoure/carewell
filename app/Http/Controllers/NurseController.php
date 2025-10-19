@@ -1204,40 +1204,57 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        $request->validate([
-            'blood_pressure_systolic' => 'required|numeric|min:50|max:300',
-            'blood_pressure_diastolic' => 'required|numeric|min:30|max:200',
-            'heart_rate' => 'required|numeric|min:30|max:200',
-            'temperature' => 'required|numeric|min:30|max:45',
-            'oxygen_saturation' => 'required|numeric|min:50|max:100',
-            'respiratory_rate' => 'required|numeric|min:5|max:60',
-            'weight' => 'nullable|numeric|min:10|max:500',
-            'height' => 'nullable|numeric|min:50|max:250',
-            'notes' => 'nullable|string|max:500'
-        ]);
+        try {
+            // Log the incoming request data for debugging
+            \Log::info('Vital signs request data:', $request->all());
+            
+            $request->validate([
+                'blood_pressure_systolic' => 'required|numeric|min:50|max:300',
+                'blood_pressure_diastolic' => 'required|numeric|min:30|max:200',
+                'heart_rate' => 'required|numeric|min:20|max:250',
+                'temperature' => 'required|numeric|min:25|max:50',
+                'oxygen_saturation' => 'required|numeric|min:50|max:100',
+                'respiratory_rate' => 'required|numeric|min:5|max:80',
+                'weight' => 'nullable|numeric|min:5|max:500',
+                'height' => 'nullable|numeric|min:30|max:300',
+                'notes' => 'nullable|string|max:500'
+            ]);
 
-        $record = MedicalFile::findOrFail($recordId);
+            $record = MedicalFile::findOrFail($recordId);
 
-        $vitalSign = VitalSign::create([
-            'medical_file_id' => $record->id,
-            'nurse_id' => $nurse->id,
-            'blood_pressure_systolic' => $request->blood_pressure_systolic,
-            'blood_pressure_diastolic' => $request->blood_pressure_diastolic,
-            'heart_rate' => $request->heart_rate,
-            'temperature' => $request->temperature,
-            'oxygen_saturation' => $request->oxygen_saturation,
-            'respiratory_rate' => $request->respiratory_rate,
-            'weight' => $request->weight,
-            'height' => $request->height,
-            'notes' => $request->notes,
-            'recorded_at' => now()
-        ]);
+            $vitalSign = VitalSign::create([
+                'medical_file_id' => $record->id,
+                'nurse_id' => $nurse->id,
+                'blood_pressure_systolic' => $request->blood_pressure_systolic,
+                'blood_pressure_diastolic' => $request->blood_pressure_diastolic,
+                'heart_rate' => $request->heart_rate,
+                'temperature' => $request->temperature,
+                'oxygen_saturation' => $request->oxygen_saturation,
+                'respiratory_rate' => $request->respiratory_rate,
+                'weight' => $request->weight,
+                'height' => $request->height,
+                'notes' => $request->notes,
+                'recorded_at' => now()
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Signes vitaux enregistrés avec succès',
-            'vitalSign' => $vitalSign
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Signes vitaux enregistrés avec succès',
+                'vitalSign' => $vitalSign
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error adding vital signs: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'enregistrement des signes vitaux: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
