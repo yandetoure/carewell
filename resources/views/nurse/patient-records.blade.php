@@ -317,10 +317,37 @@
     pointer-events: none;
 }
 
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Styles pour les onglets du dossier médical */
+    .nav-tabs .nav-link {
+        color: #6c757d !important;
+        background-color: transparent !important;
+        border-color: transparent !important;
+        border-bottom: 1px solid transparent !important;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #495057 !important;
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 #dee2e6 #dee2e6 !important;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #495057 !important;
+        background-color: #fff !important;
+        border-color: #dee2e6 #dee2e6 #fff !important;
+        border-bottom: 1px solid #fff !important;
+    }
+
+    .nav-tabs .nav-link.active:hover {
+        color: #495057 !important;
+        background-color: #fff !important;
+        border-color: #dee2e6 #dee2e6 #fff !important;
+    }
 </style>
 @endpush
 
@@ -459,34 +486,34 @@ function showPatientRecordModal(record) {
                         </div>
 
                         <!-- Onglets pour les différentes sections -->
-                        <ul class="nav nav-tabs" id="recordTabs" role="tablist">
+                        <ul class="nav nav-tabs" id="recordTabs" role="tablist" style="border-bottom: 1px solid #dee2e6;">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="prescriptions-tab" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button" role="tab">
+                                <button class="nav-link active" id="prescriptions-tab" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button" role="tab" style="color: #495057; background-color: #fff; border-color: #dee2e6 #dee2e6 #fff;">
                                     <i class="fas fa-pills me-1"></i>Prescriptions (${record.stats.total_prescriptions})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="diseases-tab" data-bs-toggle="tab" data-bs-target="#diseases" type="button" role="tab">
+                                <button class="nav-link" id="diseases-tab" data-bs-toggle="tab" data-bs-target="#diseases" type="button" role="tab" style="color: #6c757d; background-color: transparent; border-color: transparent;">
                                     <i class="fas fa-disease me-1"></i>Maladies (${record.stats.total_diseases})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="histories-tab" data-bs-toggle="tab" data-bs-target="#histories" type="button" role="tab">
+                                <button class="nav-link" id="histories-tab" data-bs-toggle="tab" data-bs-target="#histories" type="button" role="tab" style="color: #6c757d; background-color: transparent; border-color: transparent;">
                                     <i class="fas fa-history me-1"></i>Antécédents (${record.stats.total_histories})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="exams-tab" data-bs-toggle="tab" data-bs-target="#exams" type="button" role="tab">
+                                <button class="nav-link" id="exams-tab" data-bs-toggle="tab" data-bs-target="#exams" type="button" role="tab" style="color: #6c757d; background-color: transparent; border-color: transparent;">
                                     <i class="fas fa-stethoscope me-1"></i>Examens (${record.stats.total_exams})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="vitals-tab" data-bs-toggle="tab" data-bs-target="#vitals" type="button" role="tab">
+                                <button class="nav-link" id="vitals-tab" data-bs-toggle="tab" data-bs-target="#vitals" type="button" role="tab" style="color: #6c757d; background-color: transparent; border-color: transparent;">
                                     <i class="fas fa-heartbeat me-1"></i>Signes Vitaux (${record.stats.total_vital_signs})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+                                <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab" style="color: #6c757d; background-color: transparent; border-color: transparent;">
                                     <i class="fas fa-sticky-note me-1"></i>Notes (${record.stats.total_notes})
                                 </button>
                             </li>
