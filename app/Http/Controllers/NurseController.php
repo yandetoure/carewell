@@ -337,6 +337,36 @@ class NurseController extends Controller
             ]
         ]);
 
+        // Get real vital signs data with pagination
+        $recentReadings = VitalSign::with(['medicalFile.user', 'nurse'])
+            ->orderBy('recorded_at', 'desc')
+            ->paginate(10);
+
+        // Get statistics
+        $todayReadings = VitalSign::whereDate('recorded_at', today())->count();
+        $normalReadings = VitalSign::where('blood_pressure_systolic', '<=', 140)
+            ->where('blood_pressure_diastolic', '<=', 90)
+            ->where('heart_rate', '>=', 60)
+            ->where('heart_rate', '<=', 100)
+            ->where('temperature', '>=', 36.0)
+            ->where('temperature', '<=', 37.5)
+            ->where('oxygen_saturation', '>=', 95)
+            ->count();
+        
+        $abnormalReadings = VitalSign::where(function($query) {
+            $query->where('blood_pressure_systolic', '>', 140)
+                  ->orWhere('blood_pressure_diastolic', '>', 90)
+                  ->orWhere('heart_rate', '<', 60)
+                  ->orWhere('heart_rate', '>', 100)
+                  ->orWhere('temperature', '<', 36.0)
+                  ->orWhere('temperature', '>', 37.5)
+                  ->orWhere('oxygen_saturation', '<', 95);
+        })->count();
+
+        $pendingReadings = 0; // This would be calculated based on your business logic
+
+        $patients = User::whereHas('medicalFile')->get();
+
         return view('nurse.vital-signs', compact(
             'todayReadings',
             'normalReadings',

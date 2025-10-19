@@ -167,11 +167,11 @@
                                             </div>
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="fas fa-stethoscope text-info me-2"></i>
-                                                <span>{{ $appointment->service->name ?? 'N/A' }}</span>
+                                                <span>{{ $appointment->service->name ?? 'Non disponible' }}</span>
                                             </div>
                                             <div class="d-flex align-items-center mb-3">
                                                 <i class="fas fa-user-md text-success me-2"></i>
-                                                <span>{{ $appointment->doctor->first_name ?? 'N/A' }} {{ $appointment->doctor->last_name ?? 'N/A' }}</span>
+                                                <span>{{ $appointment->doctor->first_name ?? 'Non disponible' }} {{ $appointment->doctor->last_name ?? 'Non disponible' }}</span>
                                             </div>
                                             <div class="btn-group w-100">
                                                 <button type="button" class="btn btn-outline-primary btn-sm" title="Voir Détails">
@@ -243,20 +243,20 @@
                                                     </div>
                                                     <div>
                                                         <div class="fw-bold">{{ $appointment->user->first_name }} {{ $appointment->user->last_name }}</div>
-                                                        <small class="text-muted">{{ $appointment->user->phone_number ?? 'N/A' }}</small>
+                                                        <small class="text-muted">{{ $appointment->user->phone_number ?? 'Non disponible' }}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-stethoscope text-info me-2"></i>
-                                                    {{ $appointment->service->name ?? 'N/A' }}
+                                                    {{ $appointment->service->name ?? 'Non disponible' }}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-user-md text-success me-2"></i>
-                                                    {{ $appointment->doctor->first_name ?? 'N/A' }} {{ $appointment->doctor->last_name ?? 'N/A' }}
+                                                    {{ $appointment->doctor->first_name ?? 'Non disponible' }} {{ $appointment->doctor->last_name ?? 'Non disponible' }}
                                                 </div>
                                             </td>
                                             <td>

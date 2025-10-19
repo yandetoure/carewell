@@ -250,9 +250,11 @@
                         </div>
 
                         <!-- Pagination -->
+                        @if($recentReadings instanceof \Illuminate\Pagination\LengthAwarePaginator)
                         <div class="d-flex justify-content-center mt-4">
                             {{ $recentReadings->links() }}
                         </div>
+                        @endif
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-heartbeat fa-4x text-muted mb-3"></i>
