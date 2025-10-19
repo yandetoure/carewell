@@ -305,38 +305,6 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        // Mock data for vital signs (in real app, this would come from a vital_signs table)
-        $todayReadings = 25;
-        $normalReadings = 20;
-        $abnormalReadings = 3;
-        $pendingReadings = 2;
-
-        $patients = User::whereHas('appointments')->get();
-        
-        // Mock recent readings data
-        $recentReadings = collect([
-            (object)[
-                'patient_name' => 'John Doe',
-                'patient_id' => 'P001',
-                'blood_pressure' => '120/80',
-                'heart_rate' => 72,
-                'temperature' => 36.5,
-                'oxygen_saturation' => 98,
-                'status' => 'normal',
-                'created_at' => now()
-            ],
-            (object)[
-                'patient_name' => 'Jane Smith',
-                'patient_id' => 'P002',
-                'blood_pressure' => '140/90',
-                'heart_rate' => 85,
-                'temperature' => 37.2,
-                'oxygen_saturation' => 95,
-                'status' => 'abnormal',
-                'created_at' => now()->subMinutes(30)
-            ]
-        ]);
-
         // Get real vital signs data with pagination
         $recentReadings = VitalSign::with(['medicalFile.user', 'nurse'])
             ->orderBy('recorded_at', 'desc')

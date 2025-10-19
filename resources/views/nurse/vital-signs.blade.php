@@ -37,7 +37,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $todayReadings }}</h4>
-                            <p class="text-muted mb-0">Today's Readings</p>
+                            <p class="text-muted mb-0">Lectures d'Aujourd'hui</p>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $normalReadings }}</h4>
-                            <p class="text-muted mb-0">Normal Readings</p>
+                            <p class="text-muted mb-0">Lectures Normales</p>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $abnormalReadings }}</h4>
-                            <p class="text-muted mb-0">Abnormal Readings</p>
+                            <p class="text-muted mb-0">Lectures Anormales</p>
                         </div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $pendingReadings }}</h4>
-                            <p class="text-muted mb-0">Pending Readings</p>
+                            <p class="text-muted mb-0">Lectures en Attente</p>
                         </div>
                     </div>
                 </div>
@@ -96,7 +96,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-plus-circle me-2"></i>Quick Vital Signs Entry
+                        <i class="fas fa-plus-circle me-2"></i>Saisie Rapide des Signes Vitaux
                     </h5>
                 </div>
                 <div class="card-body">
@@ -104,9 +104,9 @@
                         <div class="row">
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="patientSelect">Select Patient</label>
+                                    <label for="patientSelect">Sélectionner Patient</label>
                                     <select class="form-control" id="patientSelect">
-                                        <option value="">Choose Patient...</option>
+                                        <option value="">Choisir Patient...</option>
                                         @foreach($patients as $patient)
                                             <option value="{{ $patient->id }}">{{ $patient->first_name }} {{ $patient->last_name }}</option>
                                         @endforeach
@@ -115,25 +115,25 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="bloodPressure">Blood Pressure</label>
+                                    <label for="bloodPressure">Tension Artérielle</label>
                                     <input type="text" class="form-control" id="bloodPressure" placeholder="120/80">
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="heartRate">Heart Rate (BPM)</label>
+                                    <label for="heartRate">Fréquence Cardiaque (BPM)</label>
                                     <input type="number" class="form-control" id="heartRate" placeholder="72">
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="temperature">Temperature (°C)</label>
+                                    <label for="temperature">Température (°C)</label>
                                     <input type="number" step="0.1" class="form-control" id="temperature" placeholder="36.5">
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="oxygenSaturation">O2 Saturation (%)</label>
+                                    <label for="oxygenSaturation">Saturation O2 (%)</label>
                                     <input type="number" class="form-control" id="oxygenSaturation" placeholder="98">
                                 </div>
                             </div>
@@ -141,7 +141,7 @@
                                 <div class="form-group">
                                     <label>&nbsp;</label>
                                     <button type="button" class="btn btn-primary w-100">
-                                        <i class="fas fa-save me-1"></i>Record
+                                        <i class="fas fa-save me-1"></i>Enregistrer
                                     </button>
                                 </div>
                             </div>
@@ -158,7 +158,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-history me-2"></i>Recent Vital Signs Readings
+                        <i class="fas fa-history me-2"></i>Signes Vitaux Récents
                     </h5>
                 </div>
                 <div class="card-body">
@@ -168,12 +168,12 @@
                                 <thead>
                                     <tr>
                                         <th>Patient</th>
-                                        <th>Blood Pressure</th>
-                                        <th>Heart Rate</th>
-                                        <th>Temperature</th>
-                                        <th>O2 Saturation</th>
-                                        <th>Time</th>
-                                        <th>Status</th>
+                                        <th>Tension Artérielle</th>
+                                        <th>Fréquence Cardiaque</th>
+                                        <th>Température</th>
+                                        <th>Saturation O2</th>
+                                        <th>Heure</th>
+                                        <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -186,33 +186,33 @@
                                                         <i class="fas fa-user-circle fa-2x text-primary"></i>
                                                     </div>
                                                     <div>
-                                                        <div class="fw-bold">{{ $reading->patient_name }}</div>
-                                                        <small class="text-muted">{{ $reading->patient_id }}</small>
+                                                        <div class="fw-bold">{{ $reading->medicalFile->user->first_name }} {{ $reading->medicalFile->user->last_name }}</div>
+                                                        <small class="text-muted">{{ $reading->medicalFile->user->identification_number ?? 'Non disponible' }}</small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-heartbeat text-danger me-2"></i>
-                                                    {{ $reading->blood_pressure ?? 'N/A' }}
+                                                    {{ $reading->blood_pressure_systolic }}/{{ $reading->blood_pressure_diastolic }} mmHg
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-heart text-primary me-2"></i>
-                                                    {{ $reading->heart_rate ?? 'N/A' }} BPM
+                                                    {{ $reading->heart_rate ?? 'Non disponible' }} BPM
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-thermometer-half text-warning me-2"></i>
-                                                    {{ $reading->temperature ?? 'N/A' }}°C
+                                                    {{ $reading->temperature ?? 'Non disponible' }}°C
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-lungs text-info me-2"></i>
-                                                    {{ $reading->oxygen_saturation ?? 'N/A' }}%
+                                                    {{ $reading->oxygen_saturation ?? 'Non disponible' }}%
                                                 </div>
                                             </td>
                                             <td>
@@ -222,23 +222,27 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                @if($reading->status == 'normal')
-                                                    <span class="badge bg-success">Normal</span>
-                                                @elseif($reading->status == 'abnormal')
-                                                    <span class="badge bg-danger">Abnormal</span>
+                                                @php
+                                                    $isAbnormal = ($reading->blood_pressure_systolic > 140 || $reading->blood_pressure_diastolic > 90) ||
+                                                                 ($reading->heart_rate < 60 || $reading->heart_rate > 100) ||
+                                                                 ($reading->temperature < 36.0 || $reading->temperature > 37.5) ||
+                                                                 ($reading->oxygen_saturation < 95);
+                                                @endphp
+                                                @if($isAbnormal)
+                                                    <span class="badge bg-danger">Anormal</span>
                                                 @else
-                                                    <span class="badge bg-warning">Pending Review</span>
+                                                    <span class="badge bg-success">Normal</span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-primary" title="View Details">
+                                                    <button type="button" class="btn btn-outline-primary" title="Voir Détails">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-info" title="Edit">
+                                                    <button type="button" class="btn btn-outline-info" title="Modifier">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-outline-success" title="Chart">
+                                                    <button type="button" class="btn btn-outline-success" title="Graphique">
                                                         <i class="fas fa-chart-line"></i>
                                                     </button>
                                                 </div>
@@ -258,8 +262,8 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-heartbeat fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Vital Signs Recorded</h5>
-                            <p class="text-muted">No vital signs readings have been recorded yet.</p>
+                            <h5 class="text-muted">Aucun Signe Vital Enregistré</h5>
+                            <p class="text-muted">Aucun signe vital n'a encore été enregistré.</p>
                         </div>
                     @endif
                 </div>
@@ -273,7 +277,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line me-2"></i>Blood Pressure Trends
+                        <i class="fas fa-chart-line me-2"></i>Tendances de Tension Artérielle
                     </h5>
                 </div>
                 <div class="card-body">
@@ -285,7 +289,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-area me-2"></i>Temperature Trends
+                        <i class="fas fa-chart-area me-2"></i>Tendances de Température
                     </h5>
                 </div>
                 <div class="card-body">
@@ -301,30 +305,30 @@
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Critical Vital Signs Alerts
+                        <i class="fas fa-exclamation-triangle me-2"></i>Alertes Critiques de Signes Vitaux
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
                             <div class="alert alert-danger">
-                                <h6><i class="fas fa-heartbeat me-2"></i>High Blood Pressure</h6>
-                                <p class="mb-0">Patient: John Doe - BP: 180/110</p>
-                                <small>Time: 14:30</small>
+                                <h6><i class="fas fa-heartbeat me-2"></i>Tension Artérielle Élevée</h6>
+                                <p class="mb-0">Patient: John Doe - TA: 180/110</p>
+                                <small>Heure: 14:30</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="alert alert-warning">
-                                <h6><i class="fas fa-thermometer-half me-2"></i>High Temperature</h6>
+                                <h6><i class="fas fa-thermometer-half me-2"></i>Température Élevée</h6>
                                 <p class="mb-0">Patient: Jane Smith - Temp: 39.2°C</p>
-                                <small>Time: 14:25</small>
+                                <small>Heure: 14:25</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="alert alert-info">
-                                <h6><i class="fas fa-lungs me-2"></i>Low Oxygen Saturation</h6>
+                                <h6><i class="fas fa-lungs me-2"></i>Saturation O2 Faible</h6>
                                 <p class="mb-0">Patient: Bob Johnson - O2: 85%</p>
-                                <small>Time: 14:20</small>
+                                <small>Heure: 14:20</small>
                             </div>
                         </div>
                     </div>
