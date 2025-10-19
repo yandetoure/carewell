@@ -175,7 +175,7 @@
                                                     </div>
                                                     <div>
                                                         <div class="fw-bold">{{ $record->user->first_name }} {{ $record->user->last_name }}</div>
-                                                        <small class="text-muted">{{ $record->user->identification_number ?? 'N/A' }}</small>
+                                                        <small class="text-muted">{{ $record->user->identification_number ?? 'Non disponible' }}</small>
                                                     </div>
                                                 </div>
                                             </td>
@@ -193,9 +193,9 @@
                                             </td>
                                             <td>
                                                 @if($record->user->medicalFile && $record->user->medicalFile->beds->where('status', 'occupe')->count() > 0)
-                                                    <span class="badge bg-warning">Hospitalized</span>
+                                                    <span class="badge bg-warning">Hospitalisé</span>
                                                 @else
-                                                    <span class="badge bg-success">Active</span>
+                                                    <span class="badge bg-success">Actif</span>
                                                 @endif
                                             </td>
                                             <td>
@@ -236,35 +236,35 @@
         </div>
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Actions Rapides -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                        <i class="fas fa-bolt me-2"></i>Actions Rapides
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-plus me-2"></i>Create New Record
+                                <i class="fas fa-plus me-2"></i>Créer Nouveau Dossier
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-success w-100">
-                                <i class="fas fa-file-export me-2"></i>Export Records
+                                <i class="fas fa-file-export me-2"></i>Exporter Dossiers
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-info w-100">
-                                <i class="fas fa-search me-2"></i>Advanced Search
+                                <i class="fas fa-search me-2"></i>Recherche Avancée
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-sync me-2"></i>Refresh Data
+                                <i class="fas fa-sync me-2"></i>Actualiser Données
                             </button>
                         </div>
                     </div>
@@ -448,10 +448,10 @@ function showPatientRecordModal(record) {
                                     </div>
                                     <div class="card-body">
                                         <p><strong>Nom:</strong> ${record.user.first_name} ${record.user.last_name}</p>
-                                        <p><strong>ID Patient:</strong> ${record.user.identification_number || 'N/A'}</p>
-                                        <p><strong>Email:</strong> ${record.user.email || 'N/A'}</p>
-                                        <p><strong>Téléphone:</strong> ${record.user.phone || 'N/A'}</p>
-                                        <p><strong>Date de naissance:</strong> ${record.user.date_of_birth ? new Date(record.user.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                                        <p><strong>ID Patient:</strong> ${record.user.identification_number || 'Non disponible'}</p>
+                                        <p><strong>Email:</strong> ${record.user.email || 'Non disponible'}</p>
+                                        <p><strong>Téléphone:</strong> ${record.user.phone || 'Non disponible'}</p>
+                                        <p><strong>Date de naissance:</strong> ${record.user.date_of_birth ? new Date(record.user.date_of_birth).toLocaleDateString() : 'Non disponible'}</p>
                                         <p><strong>Dossier créé:</strong> ${new Date(record.created_at).toLocaleDateString()}</p>
                                         ${record.stats.is_hospitalized ? `
                                             <p><strong>Statut:</strong> <span class="badge bg-danger">Hospitalisé</span></p>
@@ -539,10 +539,10 @@ function showPatientRecordModal(record) {
                                                 <tbody>
                                                     ${record.prescriptions.map(prescription => `
                                                         <tr>
-                                                            <td>${prescription.prescription ? prescription.prescription.name : 'N/A'}</td>
-                                                            <td>${prescription.dosage || 'N/A'}</td>
-                                                            <td>${prescription.frequency || 'N/A'}</td>
-                                                            <td>${prescription.duration || 'N/A'}</td>
+                                                            <td>${prescription.prescription ? prescription.prescription.name : 'Non disponible'}</td>
+                                                            <td>${prescription.dosage || 'Non disponible'}</td>
+                                                            <td>${prescription.frequency || 'Non disponible'}</td>
+                                                            <td>${prescription.duration || 'Non disponible'}</td>
                                                             <td>
                                                                 ${prescription.is_done ? 
                                                                     '<span class="badge bg-success">Terminé</span>' : 
@@ -611,9 +611,9 @@ function showPatientRecordModal(record) {
                                                     ${record.exams.map(exam => `
                                                         <tr>
                                                             <td>${exam.exam ? exam.exam.name : 'Examen'}</td>
-                                                            <td>${exam.result || 'N/A'}</td>
+                                                            <td>${exam.result || 'Non disponible'}</td>
                                                             <td>${new Date(exam.created_at).toLocaleDateString()}</td>
-                                                            <td>${exam.doctor ? exam.doctor.first_name + ' ' + exam.doctor.last_name : 'N/A'}</td>
+                                                            <td>${exam.doctor ? exam.doctor.first_name + ' ' + exam.doctor.last_name : 'Non disponible'}</td>
                                                         </tr>
                                                     `).join('')}
                                                 </tbody>
@@ -649,7 +649,7 @@ function showPatientRecordModal(record) {
                                                             <td>${vital.temperature}°C</td>
                                                             <td>${vital.oxygen_saturation}%</td>
                                                             <td>${vital.respiratory_rate}</td>
-                                                            <td>${vital.weight || 'N/A'} kg</td>
+                                                            <td>${vital.weight || 'Non disponible'} kg</td>
                                                         </tr>
                                                     `).join('')}
                                                 </tbody>

@@ -37,7 +37,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $todayAppointments }}</h4>
-                            <p class="text-muted mb-0">Today's Appointments</p>
+                            <p class="text-muted mb-0">Rendez-vous d'Aujourd'hui</p>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $confirmedAppointments }}</h4>
-                            <p class="text-muted mb-0">Confirmed</p>
+                            <p class="text-muted mb-0">Confirmés</p>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $pendingAppointments }}</h4>
-                            <p class="text-muted mb-0">Pending</p>
+                            <p class="text-muted mb-0">En Attente</p>
                         </div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $weekAppointments }}</h4>
-                            <p class="text-muted mb-0">This Week</p>
+                            <p class="text-muted mb-0">Cette Semaine</p>
                         </div>
                     </div>
                 </div>
@@ -104,13 +104,13 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="statusFilter">Status</label>
+                                <label for="statusFilter">Statut</label>
                                 <select class="form-control" id="statusFilter">
-                                    <option value="">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
+                                    <option value="">Tous les Statuts</option>
+                                    <option value="pending">En Attente</option>
+                                    <option value="confirmed">Confirmé</option>
+                                    <option value="completed">Terminé</option>
+                                    <option value="cancelled">Annulé</option>
                                 </select>
                             </div>
                         </div>
@@ -118,7 +118,7 @@
                             <div class="form-group">
                                 <label for="serviceFilter">Service</label>
                                 <select class="form-control" id="serviceFilter">
-                                    <option value="">All Services</option>
+                                    <option value="">Tous les Services</option>
                                     @foreach($services as $service)
                                         <option value="{{ $service->id }}">{{ $service->name }}</option>
                                     @endforeach
@@ -129,7 +129,7 @@
                             <div class="form-group">
                                 <label>&nbsp;</label>
                                 <button type="button" class="btn btn-primary w-100">
-                                    <i class="fas fa-filter me-1"></i>Filter
+                                    <i class="fas fa-filter me-1"></i>Filtrer
                                 </button>
                             </div>
                         </div>
@@ -145,7 +145,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-day me-2"></i>Today's Schedule
+                        <i class="fas fa-calendar-day me-2"></i>Planning d'Aujourd'hui
                     </h5>
                 </div>
                 <div class="card-body">
@@ -174,13 +174,13 @@
                                                 <span>{{ $appointment->doctor->first_name ?? 'N/A' }} {{ $appointment->doctor->last_name ?? 'N/A' }}</span>
                                             </div>
                                             <div class="btn-group w-100">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" title="View Details">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" title="Voir Détails">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-success btn-sm" title="Start Care">
+                                                <button type="button" class="btn btn-outline-success btn-sm" title="Commencer Soins">
                                                     <i class="fas fa-play"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-info btn-sm" title="Vital Signs">
+                                                <button type="button" class="btn btn-outline-info btn-sm" title="Signes Vitaux">
                                                     <i class="fas fa-heartbeat"></i>
                                                 </button>
                                             </div>
@@ -192,8 +192,8 @@
                     @else
                         <div class="text-center py-4">
                             <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Appointments Today</h5>
-                            <p class="text-muted">No appointments scheduled for today.</p>
+                            <h5 class="text-muted">Aucun Rendez-vous Aujourd'hui</h5>
+                            <p class="text-muted">Aucun rendez-vous programmé pour aujourd'hui.</p>
                         </div>
                     @endif
                 </div>
@@ -207,7 +207,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>All Appointments
+                        <i class="fas fa-calendar-alt me-2"></i>Tous les Rendez-vous
                     </h5>
                 </div>
                 <div class="card-body">
@@ -216,11 +216,11 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Date & Time</th>
+                                        <th>Date & Heure</th>
                                         <th>Patient</th>
                                         <th>Service</th>
-                                        <th>Doctor</th>
-                                        <th>Status</th>
+                                        <th>Médecin</th>
+                                        <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -261,28 +261,28 @@
                                             </td>
                                             <td>
                                                 @if($appointment->status == 'confirmed')
-                                                    <span class="badge bg-success">Confirmed</span>
+                                                    <span class="badge bg-success">Confirmé</span>
                                                 @elseif($appointment->status == 'pending')
-                                                    <span class="badge bg-warning">Pending</span>
+                                                    <span class="badge bg-warning">En Attente</span>
                                                 @elseif($appointment->status == 'completed')
-                                                    <span class="badge bg-info">Completed</span>
+                                                    <span class="badge bg-info">Terminé</span>
                                                 @elseif($appointment->status == 'cancelled')
-                                                    <span class="badge bg-danger">Cancelled</span>
+                                                    <span class="badge bg-danger">Annulé</span>
                                                 @else
                                                     <span class="badge bg-secondary">{{ ucfirst($appointment->status) }}</span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-primary" title="View Details">
+                                                    <button type="button" class="btn btn-outline-primary" title="Voir Détails">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     @if($appointment->status == 'confirmed')
-                                                        <button type="button" class="btn btn-outline-success" title="Start Care">
+                                                        <button type="button" class="btn btn-outline-success" title="Commencer Soins">
                                                             <i class="fas fa-play"></i>
                                                         </button>
                                                     @endif
-                                                    <button type="button" class="btn btn-outline-info" title="Vital Signs">
+                                                    <button type="button" class="btn btn-outline-info" title="Signes Vitaux">
                                                         <i class="fas fa-heartbeat"></i>
                                                     </button>
                                                 </div>
@@ -300,8 +300,8 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Appointments Found</h5>
-                            <p class="text-muted">No appointments have been scheduled yet.</p>
+                            <h5 class="text-muted">Aucun Rendez-vous Trouvé</h5>
+                            <p class="text-muted">Aucun rendez-vous n'a encore été programmé.</p>
                         </div>
                     @endif
                 </div>
@@ -315,29 +315,29 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                        <i class="fas fa-bolt me-2"></i>Actions Rapides
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-plus me-2"></i>Schedule Appointment
+                                <i class="fas fa-plus me-2"></i>Programmer Rendez-vous
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-success w-100">
-                                <i class="fas fa-calendar-week me-2"></i>Weekly View
+                                <i class="fas fa-calendar-week me-2"></i>Vue Hebdomadaire
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-info w-100">
-                                <i class="fas fa-download me-2"></i>Export Schedule
+                                <i class="fas fa-download me-2"></i>Exporter Planning
                             </button>
                         </div>
                         <div class="col-md-3">
                             <button type="button" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-sync me-2"></i>Refresh
+                                <i class="fas fa-sync me-2"></i>Actualiser
                             </button>
                         </div>
                     </div>
