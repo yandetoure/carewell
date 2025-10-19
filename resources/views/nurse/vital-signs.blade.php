@@ -1,9 +1,9 @@
 @extends('layouts.nurse')
 
-@section('title', 'Vital Signs - CareWell')
-@section('page-title', 'Vital Signs Monitoring')
-@section('page-subtitle', 'Monitor and Record Patient Vital Signs')
-@section('user-role', 'Nurse')
+@section('title', 'Signes Vitaux - CareWell')
+@section('page-title', 'Surveillance des Signes Vitaux')
+@section('page-subtitle', 'Surveiller et Enregistrer les Signes Vitaux des Patients')
+@section('user-role', 'Infirmière')
 
 @section('content')
 <div class="container-fluid py-4">

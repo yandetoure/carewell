@@ -3,7 +3,7 @@
 @section('title', 'Gestion des Médicaments - CareWell')
 @section('page-title', 'Gestion des Médicaments')
 @section('page-subtitle', 'Gérer les médicaments des patients hospitalisés')
-@section('user-role', 'Nurse')
+@section('user-role', 'Infirmière')
 
 @section('content')
 <div class="container-fluid py-4">

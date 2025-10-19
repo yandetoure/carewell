@@ -484,7 +484,7 @@ function viewPrescriptionDetails(prescriptionId) {
 
 // Mark prescription as complete
 function markPrescriptionComplete(prescriptionId) {
-    if (!confirm('Are you sure you want to mark this prescription as complete?')) {
+    if (!confirm('Êtes-vous sûr de vouloir marquer cette prescription comme terminée ?')) {
         return;
     }
 
@@ -502,17 +502,17 @@ function markPrescriptionComplete(prescriptionId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('success', 'Prescription marked as complete!');
+            showAlert('success', 'Prescription marquée comme terminée !');
             setTimeout(() => location.reload(), 1500);
         } else {
-            showAlert('danger', data.message || 'Error marking prescription as complete');
+            showAlert('danger', data.message || 'Erreur lors du marquage de la prescription');
             button.disabled = false;
             button.innerHTML = '<i class="fas fa-check"></i>';
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('danger', 'Error marking prescription as complete');
+        showAlert('danger', 'Erreur lors du marquage de la prescription');
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-check"></i>';
     });

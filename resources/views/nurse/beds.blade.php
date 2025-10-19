@@ -1,9 +1,9 @@
 @extends('layouts.nurse')
 
-@section('title', 'Bed Management - CareWell')
-@section('page-title', 'Bed Management')
-@section('page-subtitle', 'Manage Hospital Bed Allocation')
-@section('user-role', 'Nurse')
+@section('title', 'Gestion des Lits - CareWell')
+@section('page-title', 'Gestion des Lits')
+@section('page-subtitle', 'Gérer l\'Allocation des Lits d\'Hôpital')
+@section('user-role', 'Infirmière')
 
 @section('content')
 <div class="container-fluid py-4">
