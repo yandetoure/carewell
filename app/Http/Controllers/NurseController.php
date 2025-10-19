@@ -167,7 +167,43 @@ class NurseController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        return view('nurse.beds');
+        // Get all beds with their details
+        $beds = Bed::with(['medicalFile.user', 'service'])->get();
+        
+        // Get bed statistics
+        $bedStats = [
+            'total' => Bed::count(),
+            'occupied' => Bed::where('status', 'occupe')->count(),
+            'available' => Bed::where('status', 'libre')->count(),
+            'maintenance' => Bed::where('status', 'maintenance')->count(),
+            'admission_impossible' => Bed::where('status', 'admission_impossible')->count(),
+        ];
+        
+        // Get hospitalized patients
+        $hospitalizedPatients = User::whereHas('medicalFile.beds', function($query) {
+            $query->where('status', 'occupe');
+        })->with(['medicalFile.beds' => function($query) {
+            $query->where('status', 'occupe');
+        }])->get();
+
+        // Get available beds for assignment
+        $availableBeds = Bed::where('status', 'libre')->with('service')->get();
+
+        // Get recent bed activities (last 24 hours)
+        $recentActivities = Bed::where('updated_at', '>=', now()->subHours(24))
+            ->with(['medicalFile.user', 'service'])
+            ->orderBy('updated_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('nurse.beds', compact(
+            'beds',
+            'bedStats',
+            'hospitalizedPatients',
+            'availableBeds',
+            'recentActivities',
+            'nurse'
+        ));
     }
 
     /**
@@ -510,7 +546,10 @@ class NurseController extends Controller
      */
     private function getHospitalizedPatients()
     {
-        return Bed::where('status', 'occupe')->count();
+        // Compter les patients qui ont un lit occupé (pas juste les lits occupés)
+        return User::whereHas('medicalFile.beds', function($query) {
+            $query->where('status', 'occupe');
+        })->count();
     }
 
     /**
@@ -528,7 +567,7 @@ class NurseController extends Controller
      */
     private function getPendingPrescriptions()
     {
-        return MedicalFilePrescription::where('is_done', false)->count();
+        return MedicalFilePrescription::where('is_done', '!=', true)->count();
     }
 
     /**
@@ -779,6 +818,108 @@ class NurseController extends Controller
     }
 
     /**
+     * Discharge a patient from bed by bed ID
+     */
+    public function dischargePatientFromBed(Request $request, $bedId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $bed = Bed::findOrFail($bedId);
+        
+        if ($bed->status !== 'occupe') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce lit n\'est pas occupé'
+            ], 400);
+        }
+
+        // Libérer le lit
+        $bed->update([
+            'medical_file_id' => null,
+            'status' => 'libre',
+            'discharge_date' => now(),
+            'notes' => $bed->notes . ' - Sorti le ' . now()->format('d/m/Y H:i')
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Patient sorti avec succès'
+        ]);
+    }
+
+    /**
+     * Get patients without beds for assignment
+     */
+    public function getPatientsWithoutBeds()
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Get patients who have medical files but no occupied beds
+        $patients = User::whereHas('medicalFile')
+            ->whereDoesntHave('medicalFile.beds', function($query) {
+                $query->where('status', 'occupe');
+            })
+            ->select('id', 'first_name', 'last_name', 'email')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'patients' => $patients
+        ]);
+    }
+
+    /**
+     * Mark prescription as complete
+     */
+    public function markPrescriptionAsComplete(Request $request, $prescriptionId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $prescription = MedicalFilePrescription::findOrFail($prescriptionId);
+
+        $prescription->update([
+            'is_done' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prescription marked as complete'
+        ]);
+    }
+
+    /**
+     * Get prescription details
+     */
+    public function getPrescriptionDetails($prescriptionId)
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $prescription = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])
+            ->findOrFail($prescriptionId);
+
+        return response()->json([
+            'success' => true,
+            'prescription' => $prescription
+        ]);
+    }
+
+    /**
      * Get prescriptions for a specific patient
      */
     public function getPatientPrescriptions($patientId)
@@ -998,6 +1139,211 @@ class NurseController extends Controller
             'success' => true,
             'message' => 'Signes vitaux enregistrés avec succès',
             'vitalSign' => $vitalSign->load('nurse')
+        ]);
+    }
+
+    /**
+     * Get dashboard statistics for AJAX requests
+     */
+    public function getDashboardStats()
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $stats = [
+            'totalPatients' => $this->getTotalPatients(),
+            'hospitalizedPatients' => $this->getHospitalizedPatients(),
+            'todayAppointments' => $this->getTodayAppointments(),
+            'pendingPrescriptions' => $this->getPendingPrescriptions(),
+            'bedOccupancy' => $this->getBedOccupancy(),
+            'serviceStats' => $this->getServiceStatistics(),
+            'recentActivities' => $this->getRecentActivities(),
+            'vitalSignsAlerts' => $this->getVitalSignsAlerts(),
+            'urgentPrescriptions' => $this->getUrgentPrescriptions(),
+            'lastUpdated' => now()->format('H:i:s')
+        ];
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Get vital signs alerts for patients with abnormal values
+     */
+    private function getVitalSignsAlerts()
+    {
+        $alerts = [];
+        
+        // Get recent vital signs with abnormal values
+        $abnormalVitalSigns = VitalSign::with(['medicalFile.user', 'nurse'])
+            ->where('recorded_at', '>=', now()->subHours(24))
+            ->where(function($query) {
+                $query->where('heart_rate', '>', 100)
+                      ->orWhere('heart_rate', '<', 60)
+                      ->orWhere('temperature', '>', 38.5)
+                      ->orWhere('temperature', '<', 36.0)
+                      ->orWhere('oxygen_saturation', '<', 95)
+                      ->orWhere('blood_pressure_systolic', '>', 140)
+                      ->orWhere('blood_pressure_systolic', '<', 90);
+            })
+            ->orderBy('recorded_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($abnormalVitalSigns as $vitalSign) {
+            $alerts[] = [
+                'patient_name' => $vitalSign->medicalFile->user->first_name . ' ' . $vitalSign->medicalFile->user->last_name,
+                'type' => $this->getAlertType($vitalSign),
+                'value' => $this->getAlertValue($vitalSign),
+                'recorded_at' => $vitalSign->recorded_at->format('H:i'),
+                'nurse_name' => $vitalSign->nurse ? $vitalSign->nurse->first_name : 'Unknown'
+            ];
+        }
+
+        return $alerts;
+    }
+
+    /**
+     * Get urgent prescriptions that need immediate attention
+     */
+    private function getUrgentPrescriptions()
+    {
+        return MedicalFilePrescription::with(['medicalFile.user', 'prescription'])
+            ->where('is_done', '!=', true)
+            ->where('created_at', '<=', now()->subHours(2)) // Prescriptions older than 2 hours
+            ->orderBy('created_at', 'asc')
+            ->limit(5)
+            ->get()
+            ->map(function($prescription) {
+                return [
+                    'id' => $prescription->id,
+                    'patient_name' => $prescription->medicalFile->user->first_name . ' ' . $prescription->medicalFile->user->last_name,
+                    'medication' => $prescription->prescription->name ?? 'Unknown',
+                    'dosage' => $prescription->dosage ?? 'N/A',
+                    'created_at' => $prescription->created_at->format('H:i'),
+                    'urgency_level' => $this->calculatePrescriptionUrgency($prescription)
+                ];
+            });
+    }
+
+    /**
+     * Get alert type based on vital sign values
+     */
+    private function getAlertType($vitalSign)
+    {
+        if ($vitalSign->heart_rate > 100) return 'high_heart_rate';
+        if ($vitalSign->heart_rate < 60) return 'low_heart_rate';
+        if ($vitalSign->temperature > 38.5) return 'high_temperature';
+        if ($vitalSign->temperature < 36.0) return 'low_temperature';
+        if ($vitalSign->oxygen_saturation < 95) return 'low_oxygen';
+        if ($vitalSign->blood_pressure_systolic > 140) return 'high_blood_pressure';
+        if ($vitalSign->blood_pressure_systolic < 90) return 'low_blood_pressure';
+        
+        return 'general_alert';
+    }
+
+    /**
+     * Get alert value for display
+     */
+    private function getAlertValue($vitalSign)
+    {
+        if ($vitalSign->heart_rate > 100 || $vitalSign->heart_rate < 60) {
+            return $vitalSign->heart_rate . ' BPM';
+        }
+        if ($vitalSign->temperature > 38.5 || $vitalSign->temperature < 36.0) {
+            return $vitalSign->temperature . '°C';
+        }
+        if ($vitalSign->oxygen_saturation < 95) {
+            return $vitalSign->oxygen_saturation . '%';
+        }
+        if ($vitalSign->blood_pressure_systolic > 140 || $vitalSign->blood_pressure_systolic < 90) {
+            return $vitalSign->blood_pressure_systolic . '/' . $vitalSign->blood_pressure_diastolic . ' mmHg';
+        }
+        
+        return 'Abnormal reading';
+    }
+
+    /**
+     * Calculate prescription urgency based on time and medication type
+     */
+    private function calculatePrescriptionUrgency($prescription)
+    {
+        $hoursSinceCreated = now()->diffInHours($prescription->created_at);
+        
+        if ($hoursSinceCreated >= 4) return 'critical';
+        if ($hoursSinceCreated >= 2) return 'high';
+        return 'normal';
+    }
+
+    /**
+     * Get real-time notifications for the dashboard
+     */
+    public function getNotifications()
+    {
+        $nurse = Auth::user();
+
+        if (!$nurse || !$nurse->hasRole('Nurse')) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $notifications = [];
+
+        // Check for new appointments
+        $newAppointments = Appointment::where('created_at', '>=', now()->subMinutes(15))
+            ->whereDate('appointment_date', today())
+            ->count();
+
+        if ($newAppointments > 0) {
+            $notifications[] = [
+                'type' => 'new_appointment',
+                'message' => "{$newAppointments} nouveau(x) rendez-vous ajouté(s)",
+                'icon' => 'fas fa-calendar-plus',
+                'color' => 'info'
+            ];
+        }
+
+        // Check for urgent prescriptions
+        $urgentPrescriptions = $this->getUrgentPrescriptions()->where('urgency_level', 'critical')->count();
+        if ($urgentPrescriptions > 0) {
+            $notifications[] = [
+                'type' => 'urgent_prescription',
+                'message' => "{$urgentPrescriptions} prescription(s) urgente(s) en attente",
+                'icon' => 'fas fa-exclamation-triangle',
+                'color' => 'danger'
+            ];
+        }
+
+        // Check for vital signs alerts
+        $vitalAlerts = $this->getVitalSignsAlerts();
+        if (count($vitalAlerts) > 0) {
+            $notifications[] = [
+                'type' => 'vital_signs_alert',
+                'message' => count($vitalAlerts) . " alerte(s) de signes vitaux",
+                'icon' => 'fas fa-heartbeat',
+                'color' => 'warning'
+            ];
+        }
+
+        // Check for bed availability changes
+        $recentBedChanges = Bed::where('updated_at', '>=', now()->subMinutes(30))
+            ->whereIn('status', ['occupe', 'libre'])
+            ->count();
+
+        if ($recentBedChanges > 0) {
+            $notifications[] = [
+                'type' => 'bed_status_change',
+                'message' => "Changements de statut de lit détectés",
+                'icon' => 'fas fa-bed',
+                'color' => 'primary'
+            ];
+        }
+
+        return response()->json([
+            'notifications' => $notifications,
+            'total' => count($notifications),
+            'timestamp' => now()->format('H:i:s')
         ]);
     }
 }

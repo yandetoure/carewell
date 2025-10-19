@@ -193,6 +193,20 @@ Route::middleware('auth')->group(function () {
                 // Routes pour les signes vitaux
                 Route::get('/patients/{patientId}/vital-signs', [NurseController::class, 'getVitalSigns'])->name('nurse.patients.vital-signs');
                 Route::post('/patients/{patientId}/vital-signs', [NurseController::class, 'storeVitalSigns'])->name('nurse.patients.store-vital-signs');
+                
+                // Routes pour les fonctionnalités dynamiques du dashboard
+                Route::get('/dashboard/stats', [NurseController::class, 'getDashboardStats'])->name('nurse.dashboard.stats');
+                Route::get('/dashboard/notifications', [NurseController::class, 'getNotifications'])->name('nurse.dashboard.notifications');
+                
+                // Routes pour la gestion des lits
+                Route::post('/beds/{bedId}/assign', [NurseController::class, 'assignBedToPatient'])->name('nurse.beds.assign');
+                Route::post('/beds/{bedId}/discharge', [NurseController::class, 'dischargePatientFromBed'])->name('nurse.beds.discharge');
+                Route::get('/patients/without-beds', [NurseController::class, 'getPatientsWithoutBeds'])->name('nurse.patients.without-beds');
+                
+                // Routes pour la gestion des prescriptions
+                Route::post('/prescriptions/{prescriptionId}/mark-complete', [NurseController::class, 'markPrescriptionAsComplete'])->name('nurse.prescriptions.mark-complete');
+                Route::post('/prescriptions/{prescriptionId}/mark-progress', [NurseController::class, 'markPrescriptionAsInProgress'])->name('nurse.prescriptions.mark-progress');
+                Route::get('/prescriptions/{prescriptionId}/details', [NurseController::class, 'getPrescriptionDetails'])->name('nurse.prescriptions.details');
             });
 
     // Routes pour les médecins uniquement (sans middleware de rôle pour l'instant)

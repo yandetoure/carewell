@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             OrdonnanceSeeder::class,
             BedSeeder::class,
             AppointmentSeeder::class, // Crée des rendez-vous avec leurs tickets
+            VitalSignsSeeder::class, // Crée des signes vitaux de test
         ]);
         
     }

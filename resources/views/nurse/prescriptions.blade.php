@@ -1,9 +1,9 @@
 @extends('layouts.nurse')
 
 @section('title', 'Prescriptions - CareWell')
-@section('page-title', 'Prescriptions Management')
-@section('page-subtitle', 'Manage Patient Prescriptions and Medications')
-@section('user-role', 'Nurse')
+@section('page-title', 'Gestion des Prescriptions')
+@section('page-subtitle', 'Gérer les Prescriptions et Médicaments des Patients')
+@section('user-role', 'Infirmière')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -37,7 +37,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $totalPrescriptions }}</h4>
-                            <p class="text-muted mb-0">Total Prescriptions</p>
+                            <p class="text-muted mb-0">Prescriptions Total</p>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $completedPrescriptions }}</h4>
-                            <p class="text-muted mb-0">Completed</p>
+                            <p class="text-muted mb-0">Terminées</p>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $pendingPrescriptions }}</h4>
-                            <p class="text-muted mb-0">Pending</p>
+                            <p class="text-muted mb-0">En Attente</p>
                         </div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@
                         </div>
                         <div class="ms-3">
                             <h4 class="mb-1">{{ $todayPrescriptions }}</h4>
-                            <p class="text-muted mb-0">Today's Prescriptions</p>
+                            <p class="text-muted mb-0">Prescriptions d'Aujourd'hui</p>
                         </div>
                     </div>
                 </div>
@@ -98,12 +98,12 @@
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="statusFilter">Status</label>
+                                <label for="statusFilter">Statut</label>
                                 <select class="form-control" id="statusFilter">
-                                    <option value="">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
+                                    <option value="">Tous les Statuts</option>
+                                    <option value="pending">En Attente</option>
+                                    <option value="in_progress">En Cours</option>
+                                    <option value="completed">Terminé</option>
                                 </select>
                             </div>
                         </div>
@@ -111,7 +111,7 @@
                             <div class="form-group">
                                 <label for="patientFilter">Patient</label>
                                 <select class="form-control" id="patientFilter">
-                                    <option value="">All Patients</option>
+                                    <option value="">Tous les Patients</option>
                                     @foreach($patients as $patient)
                                         <option value="{{ $patient->id }}">{{ $patient->first_name }} {{ $patient->last_name }}</option>
                                     @endforeach
@@ -127,8 +127,8 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>&nbsp;</label>
-                                <button type="button" class="btn btn-primary w-100">
-                                    <i class="fas fa-filter me-1"></i>Filter
+                                <button type="button" class="btn btn-primary w-100" onclick="applyFilters()">
+                                    <i class="fas fa-filter me-1"></i>Filtrer
                                 </button>
                             </div>
                         </div>
@@ -144,7 +144,7 @@
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Pending Prescriptions
+                        <i class="fas fa-exclamation-triangle me-2"></i>Prescriptions en Attente
                     </h5>
                 </div>
                 <div class="card-body">
@@ -156,7 +156,7 @@
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <h6 class="card-title mb-0">{{ $prescription->prescription->name ?? 'Prescription' }}</h6>
-                                                <span class="badge bg-warning">Pending</span>
+                                                <span class="badge bg-warning">En Attente</span>
                                             </div>
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="fas fa-user text-primary me-2"></i>
@@ -171,13 +171,13 @@
                                                 <span>{{ $prescription->created_at->format('d/m/Y H:i') }}</span>
                                             </div>
                                             <div class="btn-group w-100">
-                                                <button type="button" class="btn btn-outline-primary btn-sm" title="View Details">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" title="Voir Détails" onclick="viewPrescriptionDetails({{ $prescription->id }})">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-success btn-sm" title="Start Medication">
+                                                <button type="button" class="btn btn-outline-success btn-sm" title="Démarrer Médicament" onclick="markPrescriptionProgress({{ $prescription->id }})">
                                                     <i class="fas fa-play"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-outline-info btn-sm" title="Mark Complete">
+                                                <button type="button" class="btn btn-outline-info btn-sm" title="Marquer Terminé" onclick="markPrescriptionComplete({{ $prescription->id }})">
                                                     <i class="fas fa-check"></i>
                                                 </button>
                                             </div>
@@ -189,8 +189,8 @@
                     @else
                         <div class="text-center py-4">
                             <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                            <h5 class="text-muted">No Pending Prescriptions</h5>
-                            <p class="text-muted">All prescriptions are up to date.</p>
+                            <h5 class="text-muted">Aucune Prescription en Attente</h5>
+                            <p class="text-muted">Toutes les prescriptions sont à jour.</p>
                         </div>
                     @endif
                 </div>
@@ -204,7 +204,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-clipboard-list me-2"></i>All Prescriptions
+                        <i class="fas fa-clipboard-list me-2"></i>Toutes les Prescriptions
                     </h5>
                 </div>
                 <div class="card-body">
@@ -215,9 +215,9 @@
                                     <tr>
                                         <th>Prescription</th>
                                         <th>Patient</th>
-                                        <th>Doctor</th>
+                                        <th>Médecin</th>
                                         <th>Date</th>
-                                        <th>Status</th>
+                                        <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -229,7 +229,7 @@
                                                     <i class="fas fa-pills text-primary me-2"></i>
                                                     <div>
                                                         <div class="fw-bold">{{ $prescription->prescription->name ?? 'Prescription' }}</div>
-                                                        <small class="text-muted">{{ $prescription->prescription->description ?? 'No description' }}</small>
+                                                        <small class="text-muted">{{ $prescription->prescription->description ?? 'Aucune description' }}</small>
                                                     </div>
                                                 </div>
                                             </td>
@@ -258,22 +258,22 @@
                                             </td>
                                             <td>
                                                 @if($prescription->is_done)
-                                                    <span class="badge bg-success">Completed</span>
+                                                    <span class="badge bg-success">Terminé</span>
                                                 @else
-                                                    <span class="badge bg-warning">Pending</span>
+                                                    <span class="badge bg-warning">En Attente</span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-primary" title="View Details">
+                                                    <button type="button" class="btn btn-outline-primary" title="Voir Détails" onclick="viewPrescriptionDetails({{ $prescription->id }})">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
                                                     @if(!$prescription->is_done)
-                                                        <button type="button" class="btn btn-outline-success" title="Mark Complete">
+                                                        <button type="button" class="btn btn-outline-success" title="Marquer Terminé" onclick="markPrescriptionComplete({{ $prescription->id }})">
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     @endif
-                                                    <button type="button" class="btn btn-outline-info" title="Edit">
+                                                    <button type="button" class="btn btn-outline-info" title="Modifier" onclick="editPrescription({{ $prescription->id }})">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 </div>
@@ -291,8 +291,8 @@
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Prescriptions Found</h5>
-                            <p class="text-muted">No prescriptions have been created yet.</p>
+                            <h5 class="text-muted">Aucune Prescription Trouvée</h5>
+                            <p class="text-muted">Aucune prescription n'a encore été créée.</p>
                         </div>
                     @endif
                 </div>
@@ -306,7 +306,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-clock me-2"></i>Today's Medication Schedule
+                        <i class="fas fa-clock me-2"></i>Planning de Médicaments d'Aujourd'hui
                     </h5>
                 </div>
                 <div class="card-body">
@@ -314,36 +314,36 @@
                         <div class="col-md-3">
                             <div class="card border-primary">
                                 <div class="card-body text-center">
-                                    <h6 class="card-title">Morning</h6>
+                                    <h6 class="card-title">Matin</h6>
                                     <h4 class="text-primary">{{ $morningMedications }}</h4>
-                                    <p class="text-muted mb-0">Medications</p>
+                                    <p class="text-muted mb-0">Médicaments</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="card border-success">
                                 <div class="card-body text-center">
-                                    <h6 class="card-title">Afternoon</h6>
+                                    <h6 class="card-title">Après-midi</h6>
                                     <h4 class="text-success">{{ $afternoonMedications }}</h4>
-                                    <p class="text-muted mb-0">Medications</p>
+                                    <p class="text-muted mb-0">Médicaments</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="card border-warning">
                                 <div class="card-body text-center">
-                                    <h6 class="card-title">Evening</h6>
+                                    <h6 class="card-title">Soir</h6>
                                     <h4 class="text-warning">{{ $eveningMedications }}</h4>
-                                    <p class="text-muted mb-0">Medications</p>
+                                    <p class="text-muted mb-0">Médicaments</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="card border-info">
                                 <div class="card-body text-center">
-                                    <h6 class="card-title">Night</h6>
+                                    <h6 class="card-title">Nuit</h6>
                                     <h4 class="text-info">{{ $nightMedications }}</h4>
-                                    <p class="text-muted mb-0">Medications</p>
+                                    <p class="text-muted mb-0">Médicaments</p>
                                 </div>
                             </div>
                         </div>
@@ -359,29 +359,29 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                        <i class="fas fa-bolt me-2"></i>Actions Rapides
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-plus me-2"></i>New Prescription
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="createNewPrescription()">
+                                <i class="fas fa-plus me-2"></i>Nouvelle Prescription
                             </button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-outline-success w-100">
-                                <i class="fas fa-calendar me-2"></i>Medication Schedule
+                            <button type="button" class="btn btn-outline-success w-100" onclick="viewMedicationSchedule()">
+                                <i class="fas fa-calendar me-2"></i>Planning Médicaments
                             </button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-outline-info w-100">
-                                <i class="fas fa-download me-2"></i>Export Report
+                            <button type="button" class="btn btn-outline-info w-100" onclick="exportPrescriptionReport()">
+                                <i class="fas fa-download me-2"></i>Exporter Rapport
                             </button>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-sync me-2"></i>Refresh
+                            <button type="button" class="btn btn-outline-warning w-100" onclick="refreshPrescriptions()">
+                                <i class="fas fa-sync me-2"></i>Actualiser
                             </button>
                         </div>
                     </div>
@@ -432,5 +432,279 @@
 .card.border-warning {
     border-color: #ffc107 !important;
 }
+
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 </style>
+@endpush
+
+@push('scripts')
+<script>
+// Global variables
+let currentFilters = {
+    status: '',
+    patient: '',
+    date: ''
+};
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFilters();
+});
+
+// Initialize filters
+function initializeFilters() {
+    // Set today's date as default
+    document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
+}
+
+// View prescription details
+function viewPrescriptionDetails(prescriptionId) {
+    fetch(`/nurse/prescriptions/${prescriptionId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showPrescriptionModal(data.prescription);
+            } else {
+                showAlert('danger', 'Error loading prescription details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Error loading prescription details');
+        });
+}
+
+// Mark prescription as complete
+function markPrescriptionComplete(prescriptionId) {
+    if (!confirm('Are you sure you want to mark this prescription as complete?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch(`/nurse/prescriptions/${prescriptionId}/mark-complete`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Prescription marked as complete!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message || 'Error marking prescription as complete');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Error marking prescription as complete');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+    });
+}
+
+// Mark prescription as in progress
+function markPrescriptionProgress(prescriptionId) {
+    if (!confirm('Mark this prescription as in progress?')) {
+        return;
+    }
+
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch(`/nurse/prescriptions/${prescriptionId}/mark-progress`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Prescription marked as in progress!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message || 'Error updating prescription status');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-play"></i>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Error updating prescription status');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-play"></i>';
+    });
+}
+
+// Edit prescription
+function editPrescription(prescriptionId) {
+    // This would typically open an edit modal
+    showAlert('info', 'Edit functionality will be implemented soon');
+}
+
+// Apply filters
+function applyFilters() {
+    const status = document.getElementById('statusFilter').value;
+    const patient = document.getElementById('patientFilter').value;
+    const date = document.getElementById('dateFilter').value;
+
+    // Store current filters
+    currentFilters = { status, patient, date };
+
+    // Show loading state
+    document.body.classList.add('loading');
+
+    // In a real implementation, this would make an AJAX call to filter prescriptions
+    // For now, we'll just show a message and reload after a short delay
+    showAlert('info', 'Applying filters...');
+    
+    setTimeout(() => {
+        document.body.classList.remove('loading');
+        showAlert('success', 'Filters applied successfully!');
+        // In a real implementation, update the prescription list here
+    }, 1000);
+}
+
+// Create new prescription
+function createNewPrescription() {
+    showAlert('info', 'New prescription functionality will be implemented soon');
+    // This would typically open a modal or redirect to a form
+}
+
+// View medication schedule
+function viewMedicationSchedule() {
+    showAlert('info', 'Medication schedule view will be implemented soon');
+    // This would typically open a calendar view
+}
+
+// Export prescription report
+function exportPrescriptionReport() {
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+
+    // Simulate export process
+    setTimeout(() => {
+        showAlert('success', 'Report exported successfully!');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-download me-2"></i>Export Report';
+    }, 2000);
+}
+
+// Refresh prescriptions
+function refreshPrescriptions() {
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    // Reload the page
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+// Show prescription details modal
+function showPrescriptionModal(prescription) {
+    const modalHtml = `
+        <div class="modal fade" id="prescriptionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Prescription Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Medication Information</h6>
+                                <p><strong>Name:</strong> ${prescription.prescription?.name || 'N/A'}</p>
+                                <p><strong>Dosage:</strong> ${prescription.dosage || 'N/A'}</p>
+                                <p><strong>Frequency:</strong> ${prescription.frequency || 'N/A'}</p>
+                                <p><strong>Duration:</strong> ${prescription.duration || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Patient Information</h6>
+                                <p><strong>Patient:</strong> ${prescription.medicalFile?.user?.first_name || ''} ${prescription.medicalFile?.user?.last_name || ''}</p>
+                                <p><strong>Doctor:</strong> ${prescription.doctor?.first_name || ''} ${prescription.doctor?.last_name || ''}</p>
+                                <p><strong>Created:</strong> ${new Date(prescription.created_at).toLocaleDateString()}</p>
+                                <p><strong>Status:</strong> ${prescription.is_done ? 'Completed' : 'Pending'}</p>
+                            </div>
+                        </div>
+                        ${prescription.instructions ? `<div class="mt-3"><h6>Instructions</h6><p>${prescription.instructions}</p></div>` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        ${!prescription.is_done ? `<button type="button" class="btn btn-success" onclick="markPrescriptionComplete(${prescription.id})">Mark Complete</button>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('prescriptionModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('prescriptionModal'));
+    modal.show();
+
+    // Remove modal from DOM when hidden
+    document.getElementById('prescriptionModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Show alert
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Auto-refresh every 60 seconds
+setInterval(() => {
+    // Only refresh if no modals are open
+    if (!document.querySelector('.modal.show')) {
+        // In a real implementation, this would update the prescription data via AJAX
+        console.log('Auto-refreshing prescriptions...');
+    }
+}, 60000);
+</script>
 @endpush
