@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\Bed;
 use App\Models\MedicalFile;
 use App\Models\MedicalFilePrescription;
+use App\Models\VitalSign;
 
 class NurseController extends Controller
 {
