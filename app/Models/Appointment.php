@@ -24,6 +24,12 @@ class Appointment extends Model
         'status',
     ];
 
+    protected $casts = [
+        'appointment_date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
         
     public function user()
     {

@@ -494,6 +494,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/reminders', [App\Http\Controllers\DashboardController::class, 'secretaryReminders'])->name('secretary.reminders');
         Route::get('/reports', [App\Http\Controllers\DashboardController::class, 'secretaryReports'])->name('secretary.reports');
         Route::get('/billing', [App\Http\Controllers\DashboardController::class, 'secretaryBilling'])->name('secretary.billing');
+        Route::get('/billing/ticket/{ticket}', [App\Http\Controllers\DashboardController::class, 'secretaryTicketDetails'])->name('secretary.billing.ticket');
+        Route::put('/billing/ticket/{ticket}/status', [App\Http\Controllers\DashboardController::class, 'updateTicketStatus'])->name('secretary.billing.ticket.status');
+        Route::put('/billing/tickets/status', [App\Http\Controllers\DashboardController::class, 'updateMultipleTicketStatus'])->name('secretary.billing.tickets.status');
         Route::get('/inventory', [App\Http\Controllers\DashboardController::class, 'secretaryInventory'])->name('secretary.inventory');
         Route::get('/profile', [ProfileController::class, 'secretaryProfile'])->name('secretary.profile');
         Route::get('/settings', [ProfileController::class, 'secretarySettings'])->name('secretary.settings');

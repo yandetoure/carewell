@@ -776,9 +776,193 @@ class DashboardController extends Controller
         return view('secretary.reports');
     }
 
-    public function secretaryBilling()
+    public function secretaryBilling(Request $request)
     {
-        return view('secretary.billing');
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les tickets du service du secrétaire
+        $query = \App\Models\Ticket::with([
+            'appointment.service', 
+            'appointment.user', 
+            'doctor', 
+            'prescription', 
+            'exam'
+        ])
+        ->whereHas('appointment', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        });
+
+        // Filtres
+        if ($request->filled('status')) {
+            if ($request->status === 'paid') {
+                $query->where('is_paid', true);
+            } elseif ($request->status === 'unpaid') {
+                $query->where('is_paid', false);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('appointment.user', function($query) use ($search) {
+                $query->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereHas('appointment', function($query) use ($request) {
+                $query->where('appointment_date', '>=', $request->date_from);
+            });
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereHas('appointment', function($query) use ($request) {
+                $query->where('appointment_date', '<=', $request->date_to);
+            });
+        }
+
+        $tickets = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        // Debug: Vérifier les tickets récupérés
+        \Log::info('Tickets récupérés pour secrétaire ' . $secretary->id . ': ' . $tickets->count());
+
+        // Statistiques
+        $totalTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })->count();
+
+        $paidTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })->where('is_paid', true)->count();
+
+        $unpaidTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })->where('is_paid', false)->count();
+
+        $totalRevenue = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })->where('is_paid', true)
+            ->whereHas('appointment.service')
+            ->get()
+            ->sum(function($ticket) {
+                return $ticket->appointment->service->price ?? 0;
+            });
+
+        return view('secretary.billing', compact(
+            'tickets', 
+            'totalTickets', 
+            'paidTickets', 
+            'unpaidTickets', 
+            'totalRevenue'
+        ));
+    }
+
+    /**
+     * Get ticket details for secretary.
+     */
+    public function secretaryTicketDetails($ticketId)
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer le ticket avec toutes ses relations
+        $ticket = \App\Models\Ticket::with([
+            'appointment.service', 
+            'appointment.user', 
+            'doctor', 
+            'prescription', 
+            'exam'
+        ])
+        ->whereHas('appointment', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })
+        ->findOrFail($ticketId);
+
+        return response()->json([
+            'success' => true,
+            'ticket' => $ticket
+        ]);
+    }
+
+    /**
+     * Update ticket payment status.
+     */
+    public function updateTicketStatus(Request $request, $ticketId)
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $request->validate([
+            'is_paid' => 'required|boolean'
+        ]);
+
+        // Vérifier que le ticket appartient au service du secrétaire
+        $ticket = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->findOrFail($ticketId);
+
+        $ticket->update([
+            'is_paid' => $request->is_paid
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->is_paid ? 'Ticket marqué comme payé' : 'Ticket marqué comme non payé',
+            'ticket' => $ticket->fresh()
+        ]);
+    }
+
+    /**
+     * Update multiple tickets payment status.
+     */
+    public function updateMultipleTicketStatus(Request $request)
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $request->validate([
+            'ticket_ids' => 'required|array',
+            'ticket_ids.*' => 'integer|exists:tickets,id',
+            'is_paid' => 'required|boolean'
+        ]);
+
+        // Vérifier que tous les tickets appartiennent au service du secrétaire
+        $tickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->whereIn('id', $request->ticket_ids)->get();
+
+        if ($tickets->count() !== count($request->ticket_ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Certains tickets ne sont pas accessibles'
+            ], 403);
+        }
+
+        // Mettre à jour tous les tickets
+        \App\Models\Ticket::whereIn('id', $request->ticket_ids)
+            ->update(['is_paid' => $request->is_paid]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->is_paid ? 
+                count($request->ticket_ids) . ' ticket(s) marqué(s) comme payé(s)' : 
+                count($request->ticket_ids) . ' ticket(s) marqué(s) comme non payé(s)',
+            'updated_count' => count($request->ticket_ids)
+        ]);
     }
 
     public function secretaryInventory()
