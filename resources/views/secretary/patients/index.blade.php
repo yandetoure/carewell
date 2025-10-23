@@ -94,6 +94,9 @@
                         Liste des Patients
                     </h5>
                     <div class="d-flex gap-2">
+                        <a href="{{ route('secretary.patients.hospitalized') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-bed me-2"></i>Patients Hospitalisés
+                        </a>
                         <a href="{{ route('secretary.patients.new') }}" class="btn btn-primary">
                             <i class="fas fa-user-plus me-2"></i>Nouveau Patient
                         </a>

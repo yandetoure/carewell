@@ -421,4 +421,60 @@ class AvailabilityController extends Controller
         return redirect()->route('doctor.availability')
             ->with('success', 'Disponibilité supprimée avec succès.');
     }
+
+    /**
+     * Display availabilities for secretary interface.
+     */
+    public function secretaryDoctorsAvailability(Request $request)
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les médecins du service du secrétaire
+        $doctors = \App\Models\User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->get();
+
+        // Récupérer les disponibilités des médecins du service
+        $query = Availability::with(['doctor', 'service'])
+            ->whereHas('doctor', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            });
+
+        // Appliquer les filtres
+        if ($request->filled('doctor_id')) {
+            $query->where('doctor_id', $request->doctor_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('available_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('available_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('status')) {
+            switch ($request->status) {
+                case 'available':
+                    $query->whereDoesntHave('appointments');
+                    break;
+                case 'booked':
+                    $query->whereHas('appointments');
+                    break;
+                case 'cancelled':
+                    $query->where('status', 'cancelled');
+                    break;
+            }
+        }
+
+        $availabilities = $query->orderBy('available_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('secretary.doctors.availability', compact('availabilities', 'doctors'));
+    }
 }

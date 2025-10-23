@@ -513,6 +513,61 @@ class DashboardController extends Controller
         return view('secretary.patients.index', compact('patients', 'patientsWithAppointments', 'patientsWithMedicalFiles'));
     }
 
+    /**
+     * Display hospitalized patients for secretary.
+     */
+    public function secretaryHospitalizedPatients()
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les patients hospitalisés du service du secrétaire
+        $hospitalizedPatients = \App\Models\BedAdmission::with([
+            'patient', 
+            'medicalFile', 
+            'bed', 
+            'admittedByUser', 
+            'dischargedByUser'
+        ])
+        ->whereHas('patient.appointments', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })
+        ->active() // Seulement les admissions actives (non sorties)
+        ->orderBy('admission_date', 'desc')
+        ->paginate(20);
+
+        // Statistiques
+        $totalHospitalized = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->active()
+            ->count();
+
+        $recentAdmissions = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->where('admission_date', '>=', now()->subDays(7))
+            ->active()
+            ->count();
+
+        $averageStay = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->active()
+            ->get()
+            ->avg('duration');
+
+        return view('secretary.patients.hospitalized', compact(
+            'hospitalizedPatients', 
+            'totalHospitalized', 
+            'recentAdmissions', 
+            'averageStay'
+        ));
+    }
+
     public function secretaryCreatePatient()
     {
         return view('secretary.patients.create');
