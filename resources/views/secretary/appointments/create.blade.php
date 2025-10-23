@@ -23,15 +23,15 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="service_id" class="form-label">Service médical *</label>
-                                    <select class="form-select @error('service_id') is-invalid @enderror" id="service_id" name="service_id" required>
-                                        <option value="">Sélectionnez un service</option>
-                                        @foreach($services ?? [] as $service)
-                                            <option value="{{ $service->id }}" data-price="{{ $service->price }}">
-                                                {{ $service->name }} - {{ number_format($service->price, 2) }} €
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <label class="form-label">Service médical</label>
+                                    <div class="form-control-plaintext bg-light p-2 rounded">
+                                        <i class="fas fa-stethoscope text-primary me-2"></i>
+                                        <strong>{{ $service->name ?? 'Service non assigné' }}</strong>
+                                        @if($service)
+                                            <span class="text-muted">- {{ number_format($service->price, 2) }} €</span>
+                                        @endif
+                                    </div>
+                                    <input type="hidden" name="service_id" value="{{ $service->id ?? '' }}">
                                     @error('service_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -41,7 +41,11 @@
                                     <label for="patient_id" class="form-label">Patient *</label>
                                     <select class="form-select @error('patient_id') is-invalid @enderror" id="patient_id" name="patient_id" required>
                                         <option value="">Sélectionnez un patient</option>
-                                        <!-- Les patients seront chargés via AJAX -->
+                                        @foreach($patients ?? [] as $patient)
+                                            <option value="{{ $patient->id }}">
+                                                {{ $patient->first_name }} {{ $patient->last_name }} - {{ $patient->email }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                     @error('patient_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -150,8 +154,8 @@
                             <div class="col-12">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Information :</strong> Le rendez-vous sera créé et le patient sera notifié par email. 
-                                    Si aucun médecin n'est spécifié, le système assignera automatiquement un médecin disponible.
+                                    <strong>Information :</strong> Le rendez-vous sera créé pour le service {{ $service->name ?? 'non assigné' }} et le patient sera notifié par email. 
+                                    Vous pouvez sélectionner un médecin de votre service ou laisser le système en choisir un automatiquement.
                                 </div>
                             </div>
                         </div>
@@ -177,9 +181,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('appointment_date');
     const today = new Date().toISOString().split('T')[0];
     dateInput.setAttribute('min', today);
-
-    // Charger les patients via AJAX
-    loadPatients();
 
     // Validation de l'heure selon la date
     dateInput.addEventListener('change', function() {
@@ -222,38 +223,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-function loadPatients() {
-    const patientSelect = document.getElementById('patient_id');
-    
-    // Charger les patients via AJAX
-    fetch('/api/patients', {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status && data.data) {
-            data.data.forEach(patient => {
-                const option = document.createElement('option');
-                option.value = patient.id;
-                option.textContent = `${patient.first_name} ${patient.last_name} - ${patient.email}`;
-                patientSelect.appendChild(option);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error loading patients:', error);
-        // En cas d'erreur, ajouter une option par défaut
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'Erreur lors du chargement des patients';
-        patientSelect.appendChild(option);
-    });
-}
 </script>
 @endsection

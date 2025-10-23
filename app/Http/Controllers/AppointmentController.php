@@ -1731,12 +1731,18 @@ public function updateAppointmentStatus(Request $request, $id)
             abort(403, 'Accès non autorisé');
         }
 
-        $services = Service::where('id', $secretary->service_id)->get();
-        $doctors = User::whereHas('appointments', function($query) use ($secretary) {
-            $query->where('service_id', $secretary->service_id);
-        })->get();
+        // Récupérer le service du secrétaire
+        $service = Service::find($secretary->service_id);
         
-        return view('secretary.appointments.create', compact('services', 'doctors'));
+        // Récupérer les médecins du même service
+        $doctors = User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->get();
+        
+        // Récupérer tous les patients
+        $patients = User::role('Patient')->get();
+        
+        return view('secretary.appointments.create', compact('service', 'doctors', 'patients'));
     }
 
     /**
