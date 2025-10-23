@@ -828,9 +828,6 @@ class DashboardController extends Controller
 
         $tickets = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        // Debug: Vérifier les tickets récupérés
-        \Log::info('Tickets récupérés pour secrétaire ' . $secretary->id . ': ' . $tickets->count());
-
         // Statistiques
         $totalTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);

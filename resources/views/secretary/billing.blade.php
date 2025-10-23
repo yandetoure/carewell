@@ -124,35 +124,18 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-receipt me-2"></i>
                         Tickets de Facturation
                     </h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-success" onclick="markSelectedAsPaid()">
-                            <i class="fas fa-check me-2"></i>Marquer comme payé
-                        </button>
-                        <button class="btn btn-warning" onclick="markSelectedAsUnpaid()">
-                            <i class="fas fa-clock me-2"></i>Marquer en attente
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body">
-                    <!-- Debug: Afficher le nombre de tickets -->
-                    <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Debug:</strong> {{ $tickets->count() }} ticket(s) trouvé(s) sur cette page
-                    </div>
-                    
                     @if($tickets->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>
-                                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                        </th>
                                         <th>Patient</th>
                                         <th>Service</th>
                                         <th>Médecin</th>
@@ -166,9 +149,6 @@
                                 <tbody>
                                     @foreach($tickets as $ticket)
                                         <tr>
-                                            <td>
-                                                <input type="checkbox" class="ticket-checkbox" value="{{ $ticket->id }}">
-                                            </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     @if($ticket->appointment && $ticket->appointment->user)
@@ -371,33 +351,7 @@
 
 @push('scripts')
 <script>
-let selectedTicketIds = [];
-
-// Sélectionner/désélectionner tous les tickets
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.ticket-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-    
-    updateSelectedTickets();
-}
-
-// Mettre à jour la liste des tickets sélectionnés
-function updateSelectedTickets() {
-    selectedTicketIds = Array.from(document.querySelectorAll('.ticket-checkbox:checked'))
-        .map(checkbox => checkbox.value);
-}
-
-// Ajouter un événement à chaque checkbox
-document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('.ticket-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedTickets);
-    });
-});
+// Variables globales pour les tickets
 
 // Voir les détails d'un ticket
 function viewTicket(ticketId) {
@@ -656,61 +610,6 @@ function updateTicketStatus(ticketId, isPaid) {
     });
 }
 
-// Marquer les tickets sélectionnés comme payés
-function markSelectedAsPaid() {
-    if (selectedTicketIds.length === 0) {
-        alert('Veuillez sélectionner au moins un ticket.');
-        return;
-    }
-    
-    if (confirm(`Êtes-vous sûr de vouloir marquer ${selectedTicketIds.length} ticket(s) comme payé(s) ?`)) {
-        updateMultipleTicketStatus(selectedTicketIds, true);
-    }
-}
-
-// Marquer les tickets sélectionnés comme non payés
-function markSelectedAsUnpaid() {
-    if (selectedTicketIds.length === 0) {
-        alert('Veuillez sélectionner au moins un ticket.');
-        return;
-    }
-    
-    if (confirm(`Êtes-vous sûr de vouloir marquer ${selectedTicketIds.length} ticket(s) comme non payé(s) ?`)) {
-        updateMultipleTicketStatus(selectedTicketIds, false);
-    }
-}
-
-// Fonction pour mettre à jour le statut de plusieurs tickets
-function updateMultipleTicketStatus(ticketIds, isPaid) {
-    fetch('/secretary/billing/tickets/status', {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-            ticket_ids: ticketIds,
-            is_paid: isPaid
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Afficher un message de succès
-            showAlert('success', data.message);
-            // Recharger la page pour mettre à jour l'affichage
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } else {
-            showAlert('error', data.message || 'Erreur lors de la mise à jour');
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        showAlert('error', 'Erreur de connexion. Veuillez réessayer.');
-    });
-}
 
 // Fonction pour afficher des alertes
 function showAlert(type, message) {
