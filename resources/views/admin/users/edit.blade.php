@@ -126,6 +126,35 @@
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <label for="service_id" class="form-label">
+                                        <i class="fas fa-stethoscope me-1"></i>
+                                        Service (pour médecins, secrétaires, infirmiers)
+                                    </label>
+                                    <select class="form-select @error('service_id') is-invalid @enderror" 
+                                            id="service_id" 
+                                            name="service_id">
+                                        <option value="">Aucun service</option>
+                                        @foreach($services ?? [] as $service)
+                                            <option value="{{ $service->id }}" 
+                                                    {{ old('service_id', $user->service_id) == $service->id ? 'selected' : '' }}>
+                                                {{ $service->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('service_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text">Sélectionnez un service si l'utilisateur est médecin, secrétaire ou infirmier</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Espace pour d'autres champs si nécessaire -->
+                            </div>
+                        </div>
+
                         <div class="mb-4">
                             <label for="photo" class="form-label">
                                 <i class="fas fa-image me-1"></i>

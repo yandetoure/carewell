@@ -281,9 +281,25 @@
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="photo" class="form-label">Photo de profil</label>
-                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="service_id" class="form-label">Service (pour médecins, secrétaires, infirmiers)</label>
+                                <select class="form-select" id="service_id" name="service_id">
+                                    <option value="">Aucun service</option>
+                                    @foreach($services as $service)
+                                        <option value="{{ $service->id }}">{{ $service->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Sélectionnez un service si l'utilisateur est médecin, secrétaire ou infirmier</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="photo" class="form-label">Photo de profil</label>
+                                <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

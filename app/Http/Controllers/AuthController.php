@@ -368,8 +368,9 @@ public function getUsers()
         ->paginate(20);
 
     $roles = \Spatie\Permission\Models\Role::all();
+    $services = \App\Models\Service::all();
 
-    return view('admin.users.index', compact('users', 'roles'));
+    return view('admin.users.index', compact('users', 'roles', 'services'));
 }
 
 
@@ -385,6 +386,7 @@ public function store(Request $request)
         'phone_number' => 'nullable|string|max:20',
         'password' => 'required|string|min:8',
         'role' => 'required|string|in:' . implode(',', $availableRoles),
+        'service_id' => 'nullable|exists:services,id',
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
@@ -400,6 +402,7 @@ public function store(Request $request)
         'password' => Hash::make($validated['password']),
         'adress' => '', // Champ requis
         'day_of_birth' => '1990-01-01', // Valeur par défaut
+        'service_id' => $validated['service_id'] ?? null,
         'email_verified_at' => now(),
     ];
 
@@ -425,7 +428,8 @@ public function show(User $user)
 
 public function edit(User $user)
 {
-    return view('admin.users.edit', compact('user'));
+    $services = \App\Models\Service::all();
+    return view('admin.users.edit', compact('user', 'services'));
 }
 
 public function update(Request $request, User $user)
@@ -435,6 +439,7 @@ public function update(Request $request, User $user)
         'last_name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
         'phone_number' => 'nullable|string|max:20',
+        'service_id' => 'nullable|exists:services,id',
         'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
@@ -444,6 +449,9 @@ public function update(Request $request, User $user)
         }
         $validated['photo'] = $request->file('photo')->store('users', 'public');
     }
+
+    // Inclure le service_id dans la mise à jour
+    $validated['service_id'] = $validated['service_id'] ?? null;
 
     $user->update($validated);
 

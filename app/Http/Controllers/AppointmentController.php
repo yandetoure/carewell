@@ -1591,4 +1591,204 @@ public function updateAppointmentStatus(Request $request, $id)
             ->with('success', 'Statistiques mises à jour avec succès.');
     }
 
+    /**
+     * Display a listing of appointments for secretaries.
+     */
+    public function secretaryAppointments(Request $request)
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer la date et l'heure actuelles
+        $currentDateTime = now();
+
+        // Définir la limite par page (par défaut 15)
+        $limit = $request->input('limit', 15);
+
+        // Récupérer les rendez-vous du service du secrétaire connecté avec pagination
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $secretary->service_id)
+            ->orderByRaw('CASE WHEN appointment_date >= ? AND is_urgent = 1 THEN 0 ELSE 1 END', [$currentDateTime])
+            ->orderBy('appointment_date', 'desc')
+            ->paginate($limit);
+
+        // Statistiques pour le service du secrétaire
+        $todayAppointments = Appointment::where('service_id', $secretary->service_id)
+            ->whereDate('appointment_date', now()->toDateString())
+            ->count();
+
+        $pendingAppointments = Appointment::where('service_id', $secretary->service_id)
+            ->where('status', 'pending')
+            ->count();
+
+        $confirmedAppointments = Appointment::where('service_id', $secretary->service_id)
+            ->where('status', 'confirmed')
+            ->count();
+
+        $urgentAppointments = Appointment::where('service_id', $secretary->service_id)
+            ->where('is_urgent', true)
+            ->where('status', '!=', 'cancelled')
+            ->count();
+
+        return view('secretary.appointments.index', compact(
+            'appointments',
+            'todayAppointments',
+            'pendingAppointments',
+            'confirmedAppointments',
+            'urgentAppointments',
+            'secretary'
+        ));
+    }
+
+    /**
+     * Display today's appointments for secretaries.
+     */
+    public function secretaryTodayAppointments()
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $today = now()->toDateString();
+        
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $secretary->service_id)
+            ->whereDate('appointment_date', $today)
+            ->orderBy('appointment_time')
+            ->get();
+
+        $completedCount = $appointments->where('status', 'completed')->count();
+        $pendingCount = $appointments->where('status', 'pending')->count();
+        $confirmedCount = $appointments->where('status', 'confirmed')->count();
+
+        return view('secretary.appointments.today', compact(
+            'appointments',
+            'completedCount',
+            'pendingCount',
+            'confirmedCount',
+            'today',
+            'secretary'
+        ));
+    }
+
+    /**
+     * Display week's appointments for secretaries.
+     */
+    public function secretaryWeekAppointments()
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+        
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $secretary->service_id)
+            ->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+
+        // Grouper par jour
+        $appointmentsByDay = $appointments->groupBy(function($appointment) {
+            return \Carbon\Carbon::parse($appointment->appointment_date)->format('Y-m-d');
+        });
+
+        $totalAppointments = $appointments->count();
+        $completedCount = $appointments->where('status', 'completed')->count();
+        $pendingCount = $appointments->where('status', 'pending')->count();
+        $confirmedCount = $appointments->where('status', 'confirmed')->count();
+
+        return view('secretary.appointments.week', compact(
+            'appointments',
+            'appointmentsByDay',
+            'totalAppointments',
+            'completedCount',
+            'pendingCount',
+            'confirmedCount',
+            'startOfWeek',
+            'endOfWeek',
+            'secretary'
+        ));
+    }
+
+    /**
+     * Show the form for creating a new appointment for secretaries.
+     */
+    public function secretaryCreateAppointment()
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $services = Service::where('id', $secretary->service_id)->get();
+        $doctors = User::whereHas('appointments', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->get();
+        
+        return view('secretary.appointments.create', compact('services', 'doctors'));
+    }
+
+    /**
+     * Display secretary schedule.
+     */
+    public function secretarySchedule()
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les rendez-vous du service pour les 30 prochains jours
+        $startDate = now();
+        $endDate = now()->addDays(30);
+        
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('service_id', $secretary->service_id)
+            ->whereBetween('appointment_date', [$startDate, $endDate])
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+
+        return view('secretary.schedule', compact('appointments', 'secretary'));
+    }
+
+    /**
+     * Display doctors schedule for secretaries.
+     */
+    public function secretaryDoctorsSchedule()
+    {
+        $secretary = Auth::user();
+
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les médecins du service
+        $doctors = User::whereHas('appointments', function($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->get();
+
+        // Récupérer les disponibilités des médecins
+        $availabilities = \App\Models\Availability::with('doctor')
+            ->where('service_id', $secretary->service_id)
+            ->where('available_date', '>=', now())
+            ->orderBy('available_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('secretary.doctors.schedule', compact('doctors', 'availabilities', 'secretary'));
+    }
+
 }
