@@ -484,7 +484,33 @@ class DashboardController extends Controller
 
     public function secretaryPatients()
     {
-        return view('secretary.patients');
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer tous les patients (pas seulement ceux avec des RDV)
+        $patients = User::role('Patient')
+            ->with(['appointments' => function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id)
+                      ->orderBy('appointment_date', 'desc');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        // Statistiques
+        $patientsWithAppointments = User::role('Patient')
+            ->whereHas('appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->count();
+
+        $patientsWithMedicalFiles = User::role('Patient')
+            ->whereHas('medicalFiles')
+            ->count();
+
+        return view('secretary.patients.index', compact('patients', 'patientsWithAppointments', 'patientsWithMedicalFiles'));
     }
 
     public function secretaryCreatePatient()
@@ -492,14 +518,129 @@ class DashboardController extends Controller
         return view('secretary.patients.create');
     }
 
-    public function secretarySearchPatients()
+    public function secretarySearchPatients(Request $request)
     {
-        return view('secretary.patients.search');
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer tous les patients qui ont des rendez-vous dans le service du secrétaire
+        $query = User::role('Patient')
+            ->whereHas('appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->with(['appointments' => function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id)
+                      ->orderBy('appointment_date', 'desc');
+            }]);
+
+        // Appliquer les filtres
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+
+        if ($request->filled('age_range')) {
+            $ageRange = $request->age_range;
+            switch ($ageRange) {
+                case '0-18':
+                    $query->where('day_of_birth', '>=', now()->subYears(18)->toDateString());
+                    break;
+                case '19-35':
+                    $query->whereBetween('day_of_birth', [
+                        now()->subYears(35)->toDateString(),
+                        now()->subYears(19)->toDateString()
+                    ]);
+                    break;
+                case '36-50':
+                    $query->whereBetween('day_of_birth', [
+                        now()->subYears(50)->toDateString(),
+                        now()->subYears(36)->toDateString()
+                    ]);
+                    break;
+                case '51-65':
+                    $query->whereBetween('day_of_birth', [
+                        now()->subYears(65)->toDateString(),
+                        now()->subYears(51)->toDateString()
+                    ]);
+                    break;
+                case '65+':
+                    $query->where('day_of_birth', '<=', now()->subYears(65)->toDateString());
+                    break;
+            }
+        }
+
+        if ($request->filled('has_appointments')) {
+            if ($request->has_appointments === 'yes') {
+                $query->whereHas('appointments', function($query) use ($secretary) {
+                    $query->where('service_id', $secretary->service_id);
+                });
+            } else {
+                // Pour 'no', on ne peut pas utiliser whereDoesntHave car on filtre déjà par whereHas
+                // Cette logique sera gérée différemment
+            }
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
+        }
+
+        $patients = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return view('secretary.patients.search', compact('patients'));
     }
 
     public function secretaryDoctors()
     {
-        return view('secretary.doctors');
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les médecins du service du secrétaire
+        $doctors = User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->with(['appointments' => function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Statistiques
+        $activeDoctors = $doctors->where('status', 'active')->count();
+        
+        $doctorsWithAppointments = User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->whereHas('appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id)
+                      ->whereDate('appointment_date', now()->toDateString());
+            })
+            ->count();
+
+        $doctorsWithAvailability = User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->whereHas('availabilities', function($query) {
+                $query->where('available_date', '>=', now()->toDateString());
+            })
+            ->count();
+
+        return view('secretary.doctors.index', compact('doctors', 'activeDoctors', 'doctorsWithAppointments', 'doctorsWithAvailability'));
     }
 
     public function secretaryReception()

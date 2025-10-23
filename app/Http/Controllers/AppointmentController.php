@@ -298,7 +298,7 @@ class AppointmentController extends \Illuminate\Routing\Controller
         $today = now()->toDateString();
         
         $appointments = Appointment::with(['user', 'service', 'doctor'])
-            ->where('service_id', $doctor->service_id)
+            ->where('doctor_id', $doctor->id)
             ->whereDate('appointment_date', $today)
             ->orderBy('appointment_time')
             ->get();
@@ -332,7 +332,7 @@ class AppointmentController extends \Illuminate\Routing\Controller
         $endOfWeek = now()->endOfWeek();
         
         $appointments = Appointment::with(['user', 'service', 'doctor'])
-            ->where('service_id', $doctor->service_id)
+            ->where('doctor_id', $doctor->id)
             ->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')

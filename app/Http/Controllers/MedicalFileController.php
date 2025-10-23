@@ -52,6 +52,43 @@ class MedicalFileController extends Controller
     }
 
     /**
+     * Display medical files for secretary interface.
+     */
+    public function secretaryMedicalFiles()
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer les dossiers médicaux des patients du service du secrétaire
+        $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
+            ->whereHas('user.appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        // Statistiques
+        $totalFiles = $medicalFiles->total();
+        $recentFiles = MedicalFile::whereHas('user.appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+        
+        $patientsWithFiles = \App\Models\User::role('Patient')
+            ->whereHas('appointments', function($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->whereHas('medicalFiles')
+            ->count();
+
+        return view('secretary.medical-files.index', compact('medicalFiles', 'totalFiles', 'recentFiles', 'patientsWithFiles'));
+    }
+
+    /**
      * Display medical file for a specific patient.
      */
     public function showPatientMedicalFile($patientId)
