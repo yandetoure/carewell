@@ -99,7 +99,7 @@
             <!-- Pagination -->
             @if($services->hasPages())
             <div class="d-flex justify-content-center mt-5">
-                {{ $services->links() }}
+                {{ $services->appends(request()->query())->links('pagination::bootstrap-4') }}
             </div>
             @endif
 
@@ -164,14 +164,41 @@
         padding: 0.5rem 1rem;
     }
 
+    /* Style personnalisé pour la pagination */
+    .pagination {
+        margin-bottom: 0;
+    }
+
     .pagination .page-link {
-        color: var(--primary-color);
-        border-color: var(--border-color);
+        color: #5a5c69;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        padding: 0.5rem 0.75rem;
+        margin: 0 2px;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+    }
+
+    .pagination .page-link:hover {
+        color: #fff;
+        background-color: #5a5c69;
+        border-color: #5a5c69;
     }
 
     .pagination .page-item.active .page-link {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
+        color: #fff;
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
+
+    .pagination .page-link:focus {
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
     }
 </style>
 @endsection

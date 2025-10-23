@@ -101,7 +101,7 @@
                                         <h6 class="card-title">{{ $relatedService->name }}</h6>
                                         <p class="card-text small">{{ Str::limit($relatedService->description, 60) }}</p>
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <span class="badge bg-primary">{{ number_format($relatedService->price, 2) }} €</span>
+                                            <span class="badge bg-primary">{{ number_format($relatedService->price, 0) }} FCFA</span>
                                             <a href="{{ route('services.show', $relatedService->id) }}" class="btn btn-outline-primary btn-sm">Voir</a>
                                         </div>
                                     </div>
@@ -129,7 +129,7 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Prix</label>
-                                <div class="form-control-plaintext fw-bold text-primary">{{ number_format($service->price, 2) }} €</div>
+                                <div class="form-control-plaintext fw-bold text-primary">{{ number_format($service->price, 0) }} FCFA</div>
                             </div>
 
                             <div class="d-grid gap-2">

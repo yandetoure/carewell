@@ -28,7 +28,7 @@
                                         <i class="fas fa-stethoscope text-primary me-2"></i>
                                         <strong>{{ $service->name ?? 'Service non assigné' }}</strong>
                                         @if($service)
-                                            <span class="text-muted">- {{ number_format($service->price, 2) }} €</span>
+                                            <span class="text-muted">- {{ number_format($service->price, 0) }} FCFA</span>
                                         @endif
                                     </div>
                                     <input type="hidden" name="service_id" value="{{ $service->id ?? '' }}">

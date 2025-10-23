@@ -262,4 +262,143 @@ class ServiceController extends Controller
 
         return view('admin.categories.index', compact('categories'));
     }
+
+    /**
+     * Display services for secretary.
+     */
+    public function secretaryServices(Request $request)
+    {
+        $secretary = \Illuminate\Support\Facades\Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer le service du secrétaire
+        $secretaryService = \App\Models\Service::find($secretary->service_id);
+        
+        // Récupérer tous les services pour référence
+        $query = Service::query();
+
+        // Filtre par recherche
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+        }
+
+        // Tri
+        switch ($request->get('sort')) {
+            case 'name':
+                $query->orderBy('name');
+                break;
+            case 'price_low':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_high':
+                $query->orderBy('price', 'desc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+        }
+
+        $services = $query->paginate(12);
+
+        // Statistiques
+        $totalServices = Service::count();
+        $servicesWithAppointments = Service::whereHas('appointments')->count();
+        $recentServices = Service::where('created_at', '>=', now()->subDays(30))->count();
+
+        return view('secretary.services.index', compact('services', 'secretaryService', 'totalServices', 'servicesWithAppointments', 'recentServices'));
+    }
+
+    /**
+     * Display service categories for secretary.
+     */
+    public function secretaryCategories()
+    {
+        $secretary = \Illuminate\Support\Facades\Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Récupérer le service du secrétaire
+        $secretaryService = \App\Models\Service::find($secretary->service_id);
+
+        // Catégories avec compteurs
+        $categories = [
+            'general' => [
+                'name' => 'Santé générale',
+                'description' => 'Services de santé générale et consultations de routine',
+                'icon' => 'fas fa-heartbeat',
+                'color' => 'primary',
+                'count' => Service::where('category', 'general')->count()
+            ],
+            'prevention' => [
+                'name' => 'Prévention',
+                'description' => 'Services de prévention et dépistage',
+                'icon' => 'fas fa-shield-alt',
+                'color' => 'success',
+                'count' => Service::where('category', 'prevention')->count()
+            ],
+            'nutrition' => [
+                'name' => 'Nutrition',
+                'description' => 'Conseils nutritionnels et diététique',
+                'icon' => 'fas fa-apple-alt',
+                'color' => 'warning',
+                'count' => Service::where('category', 'nutrition')->count()
+            ],
+            'fitness' => [
+                'name' => 'Fitness',
+                'description' => 'Services de remise en forme et sport',
+                'icon' => 'fas fa-dumbbell',
+                'color' => 'info',
+                'count' => Service::where('category', 'fitness')->count()
+            ],
+            'dermatology' => [
+                'name' => 'Dermatologie',
+                'description' => 'Soins de la peau et maladies cutanées',
+                'icon' => 'fas fa-hand-holding-medical',
+                'color' => 'secondary',
+                'count' => Service::where('category', 'dermatology')->count()
+            ],
+            'cardiology' => [
+                'name' => 'Cardiologie',
+                'description' => 'Soins du cœur et système cardiovasculaire',
+                'icon' => 'fas fa-heart',
+                'color' => 'danger',
+                'count' => Service::where('category', 'cardiology')->count()
+            ],
+            'neurology' => [
+                'name' => 'Neurologie',
+                'description' => 'Soins du système nerveux et du cerveau',
+                'icon' => 'fas fa-brain',
+                'color' => 'dark',
+                'count' => Service::where('category', 'neurology')->count()
+            ],
+            'pediatrics' => [
+                'name' => 'Pédiatrie',
+                'description' => 'Soins médicaux pour enfants',
+                'icon' => 'fas fa-child',
+                'color' => 'primary',
+                'count' => Service::where('category', 'pediatrics')->count()
+            ],
+            'gynecology' => [
+                'name' => 'Gynécologie',
+                'description' => 'Soins de santé féminine',
+                'icon' => 'fas fa-female',
+                'color' => 'pink',
+                'count' => Service::where('category', 'gynecology')->count()
+            ],
+            'orthopedics' => [
+                'name' => 'Orthopédie',
+                'description' => 'Soins des os, articulations et muscles',
+                'icon' => 'fas fa-bone',
+                'color' => 'warning',
+                'count' => Service::where('category', 'orthopedics')->count()
+            ],
+        ];
+
+        return view('secretary.services.categories', compact('categories', 'secretaryService'));
+    }
 }

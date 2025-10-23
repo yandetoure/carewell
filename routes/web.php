@@ -481,6 +481,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/patients/search', [App\Http\Controllers\DashboardController::class, 'secretarySearchPatients'])->name('secretary.patients.search');
         Route::get('/medical-files', [MedicalFileController::class, 'secretaryMedicalFiles'])->name('secretary.medical-files');
         Route::get('/doctors', [App\Http\Controllers\DashboardController::class, 'secretaryDoctors'])->name('secretary.doctors');
+        Route::get('/doctors/{doctor}', [App\Http\Controllers\DashboardController::class, 'secretaryDoctorDetails'])->name('secretary.doctors.details');
         Route::get('/doctors/availability', [AvailabilityController::class, 'secretaryDoctorsAvailability'])->name('secretary.doctors.availability');
         Route::get('/doctors/schedule', [AppointmentController::class, 'secretaryDoctorsSchedule'])->name('secretary.doctors.schedule');
         Route::get('/services', [ServiceController::class, 'secretaryServices'])->name('secretary.services');

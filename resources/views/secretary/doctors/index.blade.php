@@ -293,43 +293,103 @@ function viewDoctor(doctorId) {
     const modal = new bootstrap.Modal(document.getElementById('doctorModal'));
     modal.show();
     
-    // Simuler le chargement des détails (à remplacer par un appel AJAX réel)
-    setTimeout(() => {
-        document.getElementById('doctorDetails').innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <h6><i class="fas fa-user-md me-2"></i>Informations professionnelles</h6>
-                    <div class="mb-3">
-                        <strong>Nom complet:</strong><br>
-                        Dr. [Nom du médecin]
+    // Appel AJAX pour récupérer les vraies données
+    fetch(`/secretary/doctors/${doctorId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const doctor = data.doctor;
+                const stats = data.statistics;
+                
+                document.getElementById('doctorDetails').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user me-2"></i>Informations personnelles</h6>
+                            <div class="mb-3">
+                                <strong>Nom complet:</strong><br>
+                                ${doctor.first_name} ${doctor.last_name}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Email:</strong><br>
+                                ${doctor.email}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Téléphone:</strong><br>
+                                ${doctor.phone_number || 'Non renseigné'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Date de naissance:</strong><br>
+                                ${doctor.day_of_birth ? new Date(doctor.day_of_birth).toLocaleDateString('fr-FR') : 'Non renseigné'}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-stethoscope me-2"></i>Informations professionnelles</h6>
+                            <div class="mb-3">
+                                <strong>Service:</strong><br>
+                                ${doctor.service ? doctor.service.name : 'Non assigné'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Grade:</strong><br>
+                                ${doctor.grade ? doctor.grade.name : 'Non renseigné'}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Statut:</strong><br>
+                                <span class="badge ${doctor.status === 'active' ? 'bg-success' : 'bg-secondary'}">${doctor.status === 'active' ? 'Actif' : 'Inactif'}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Date d'embauche:</strong><br>
+                                ${doctor.created_at ? new Date(doctor.created_at).toLocaleDateString('fr-FR') : 'Non renseigné'}
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Spécialité:</strong><br>
-                        [Spécialité du médecin]
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-calendar me-2"></i>Statistiques des rendez-vous</h6>
+                            <div class="mb-3">
+                                <strong>RDV aujourd'hui:</strong><br>
+                                <span class="badge bg-primary">${stats.today_appointments}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>RDV cette semaine:</strong><br>
+                                <span class="badge bg-info">${stats.week_appointments}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Total RDV:</strong><br>
+                                <span class="badge bg-secondary">${stats.total_appointments}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock me-2"></i>Disponibilités et patients</h6>
+                            <div class="mb-3">
+                                <strong>Disponibilités actives:</strong><br>
+                                <span class="badge bg-success">${stats.active_availabilities}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Patients récents (30j):</strong><br>
+                                <span class="badge bg-warning">${stats.recent_patients}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Service:</strong><br>
-                        [Nom du service]
+                `;
+            } else {
+                document.getElementById('doctorDetails').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erreur lors du chargement des détails du médecin.
                     </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('doctorDetails').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erreur de connexion. Veuillez réessayer.
                 </div>
-                <div class="col-md-6">
-                    <h6><i class="fas fa-calendar me-2"></i>Statistiques</h6>
-                    <div class="mb-3">
-                        <strong>RDV aujourd'hui:</strong><br>
-                        [Nombre de RDV aujourd'hui]
-                    </div>
-                    <div class="mb-3">
-                        <strong>RDV cette semaine:</strong><br>
-                        [Nombre de RDV cette semaine]
-                    </div>
-                    <div class="mb-3">
-                        <strong>Total RDV:</strong><br>
-                        [Nombre total de RDV]
-                    </div>
-                </div>
-            </div>
-        `;
-    }, 1000);
+            `;
+        });
 }
 
 // Voir le planning d'un médecin

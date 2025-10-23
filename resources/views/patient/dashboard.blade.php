@@ -130,7 +130,7 @@
                                         <td>
                                             @if($appointment->service)
                                                 <span class="badge bg-primary">{{ $appointment->service->name }}</span>
-                                                <div class="small text-muted">{{ number_format($appointment->service->price, 2) }} €</div>
+                                                <div class="small text-muted">{{ number_format($appointment->service->price, 0) }} FCFA</div>
                                             @else
                                                 <span class="text-muted">Non spécifié</span>
                                             @endif

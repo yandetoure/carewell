@@ -23,7 +23,7 @@
                                         <option value="">Sélectionnez un service</option>
                                         @foreach($services ?? [] as $service)
                                             <option value="{{ $service->id }}" data-price="{{ $service->price }}">
-                                                {{ $service->name }} - {{ number_format($service->price, 2) }} €
+                                                {{ $service->name }} - {{ number_format($service->price, 0) }} FCFA
                                             </option>
                                         @endforeach
                                     </select>

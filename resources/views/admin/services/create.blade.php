@@ -58,8 +58,8 @@
                             <div class="col-md-4">
                                 <div class="mb-4">
                                     <label for="price" class="form-label">
-                                        <i class="fas fa-euro-sign me-1"></i>
-                                        Prix (€) *
+                                        <i class="fas fa-money-bill me-1"></i>
+                                        Prix (FCFA) *
                                     </label>
                                     <input type="number" 
                                            class="form-control @error('price') is-invalid @enderror" 

@@ -46,8 +46,8 @@
                             <i class="fas fa-check-circle text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $activeServices }}</h4>
-                            <p class="text-muted mb-0">Services actifs</p>
+                            <h4 class="mb-1">{{ $recentServices }}</h4>
+                            <p class="text-muted mb-0">Services récents</p>
                         </div>
                     </div>
                 </div>
@@ -61,8 +61,8 @@
                             <i class="fas fa-user-md text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $servicesWithDoctors }}</h4>
-                            <p class="text-muted mb-0">Avec médecins</p>
+                            <h4 class="mb-1">{{ $servicesWithAppointments }}</h4>
+                            <p class="text-muted mb-0">Avec rendez-vous</p>
                         </div>
                     </div>
                 </div>
@@ -76,8 +76,8 @@
                             <i class="fas fa-calendar-check text-white"></i>
                         </div>
                         <div class="ms-3">
-                            <h4 class="mb-1">{{ $servicesWithAppointments }}</h4>
-                            <p class="text-muted mb-0">Avec RDV aujourd'hui</p>
+                            <h4 class="mb-1">{{ $totalServices }}</h4>
+                            <p class="text-muted mb-0">Total services</p>
                         </div>
                     </div>
                 </div>
@@ -121,15 +121,15 @@
                                                 <div class="flex-grow-1">
                                                     <h6 class="mb-1">{{ $service->name }}</h6>
                                                     @if($service->category)
-                                                        <small class="text-muted">{{ $service->category->name }}</small>
+                                                        <small class="text-muted">{{ ucfirst($service->category) }}</small>
                                                     @endif
                                                 </div>
                                             </div>
                                             
                                             <div class="mb-3">
                                                 <div class="d-flex align-items-center mb-2">
-                                                    <i class="fas fa-euro-sign text-success me-2"></i>
-                                                    <strong>{{ number_format($service->price, 2) }} €</strong>
+                                                    <i class="fas fa-money-bill text-success me-2"></i>
+                                                    <strong>{{ number_format($service->price, 0) }} FCFA</strong>
                                                 </div>
                                                 @if($service->description)
                                                     <p class="text-muted small mb-0">{{ Str::limit($service->description, 100) }}</p>
@@ -198,6 +198,12 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if($services->hasPages())
+                            <div class="d-flex justify-content-center mt-4">
+                                {{ $services->appends(request()->query())->links('pagination::bootstrap-4') }}
+                            </div>
+                        @endif
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-stethoscope fa-4x text-muted mb-3"></i>
@@ -262,6 +268,43 @@
 .border-end {
     border-right: 1px solid #dee2e6 !important;
 }
+
+/* Style personnalisé pour la pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    color: #5a5c69;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+    margin: 0 2px;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.pagination .page-link:hover {
+    color: #fff;
+    background-color: #5a5c69;
+    border-color: #5a5c69;
+}
+
+.pagination .page-item.active .page-link {
+    color: #fff;
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+.pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
 </style>
 @endpush
 
@@ -295,7 +338,7 @@ function viewService(serviceId) {
                     </div>
                     <div class="mb-3">
                         <strong>Prix:</strong><br>
-                        [Prix du service] €
+                        [Prix du service] FCFA
                     </div>
                     <div class="mb-3">
                         <strong>Catégorie:</strong><br>

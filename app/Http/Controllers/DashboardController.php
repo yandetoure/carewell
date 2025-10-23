@@ -698,6 +698,59 @@ class DashboardController extends Controller
         return view('secretary.doctors.index', compact('doctors', 'activeDoctors', 'doctorsWithAppointments', 'doctorsWithAvailability'));
     }
 
+    /**
+     * Get doctor details for secretary.
+     */
+    public function secretaryDoctorDetails($doctorId)
+    {
+        $secretary = Auth::user();
+        
+        if (!$secretary || !$secretary->hasRole('Secretary')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Vérifier que le médecin appartient au service du secrétaire
+        $doctor = \App\Models\User::role('Doctor')
+            ->where('service_id', $secretary->service_id)
+            ->with(['service', 'grade'])
+            ->findOrFail($doctorId);
+
+        // Statistiques du médecin
+        $todayAppointments = \App\Models\Appointment::where('doctor_id', $doctor->id)
+            ->whereDate('appointment_date', now()->toDateString())
+            ->count();
+
+        $weekAppointments = \App\Models\Appointment::where('doctor_id', $doctor->id)
+            ->whereBetween('appointment_date', [now()->startOfWeek(), now()->endOfWeek()])
+            ->count();
+
+        $totalAppointments = \App\Models\Appointment::where('doctor_id', $doctor->id)->count();
+
+        $activeAvailabilities = \App\Models\Availability::where('doctor_id', $doctor->id)
+            ->where('available_date', '>=', now()->toDateString())
+            ->count();
+
+        $recentPatients = \App\Models\Appointment::where('doctor_id', $doctor->id)
+            ->where('appointment_date', '>=', now()->subDays(30))
+            ->with('user')
+            ->get()
+            ->pluck('user')
+            ->unique('id')
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'doctor' => $doctor,
+            'statistics' => [
+                'today_appointments' => $todayAppointments,
+                'week_appointments' => $weekAppointments,
+                'total_appointments' => $totalAppointments,
+                'active_availabilities' => $activeAvailabilities,
+                'recent_patients' => $recentPatients,
+            ]
+        ]);
+    }
+
     public function secretaryReception()
     {
         return view('secretary.reception');

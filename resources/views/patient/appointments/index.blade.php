@@ -134,7 +134,7 @@
                                         </td>
                                         <td>
                                             @if($appointment->service)
-                                                <div class="fw-bold">{{ number_format($appointment->service->price, 2) }} €</div>
+                                                <div class="fw-bold">{{ number_format($appointment->service->price, 0) }} FCFA</div>
                                             @else
                                                 <span class="text-muted">N/A</span>
                                             @endif
