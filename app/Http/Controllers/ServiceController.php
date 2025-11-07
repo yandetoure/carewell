@@ -401,4 +401,5 @@ class ServiceController extends Controller
 
         return view('secretary.services.categories', compact('categories', 'secretaryService'));
     }
+
 }
