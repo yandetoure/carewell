@@ -141,6 +141,12 @@
             </a>
         </div>
         <div class="nav-item">
+            <a href="{{ route('doctor.discussions') }}" class="nav-link {{ request()->routeIs('doctor.discussions*') ? 'active' : '' }}">
+                <i class="fas fa-user-md"></i>
+                <span>Discussions médecins</span>
+            </a>
+        </div>
+        <div class="nav-item">
             <a href="{{ route('doctor.notifications') }}" class="nav-link {{ request()->routeIs('doctor.notifications*') ? 'active' : '' }}">
                 <i class="fas fa-bell"></i>
                 <span>Notifications</span>

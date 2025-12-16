@@ -157,7 +157,7 @@
                                                         <br>
                                                         <small class="text-muted">{{ $appointment->user->phone }}</small>
                                                     </div>
-                                                </div>
+                                                </div> 
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">

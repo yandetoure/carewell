@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use App\Models\Disease;
 use App\Models\Service;
 use App\Models\MedicalFile;
+use App\Models\MedicalHistory;
 use App\Models\Prescription;
 use App\Models\Medicament;
 use Illuminate\Http\Request;
@@ -49,6 +50,52 @@ class MedicalFileController extends Controller
             ->count();
         
         return view('doctor.medical-files.index', compact('medicalFiles', 'totalFiles', 'recentFiles'));
+    }
+
+    /**
+     * Display medical history for doctor interface.
+     */
+    public function doctorMedicalHistory()
+    {
+        $doctor = Auth::user();
+        
+        // Récupérer les dossiers médicaux des patients du docteur avec leurs antécédents
+        $medicalFiles = MedicalFile::with([
+            'user', 
+            'medicalHistories.doctor',
+            'note.doctor'
+        ])
+            ->whereHas('user.appointments', function($query) use ($doctor) {
+                $query->where('doctor_id', $doctor->id);
+            })
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        
+        // Ajouter des accesseurs pour compatibilité avec la vue
+        $medicalFiles = $medicalFiles->map(function($file) use ($doctor) {
+            // Ajouter un accesseur patient (alias de user)
+            $file->patient = $file->user;
+            // Ajouter un accesseur doctor (le docteur connecté ou le dernier docteur qui a ajouté un antécédent/note)
+            $latestHistory = $file->medicalHistories->sortByDesc('created_at')->first();
+            $latestNote = $file->note->sortByDesc('created_at')->first();
+            
+            if ($latestHistory && $latestHistory->doctor) {
+                $file->doctor = $latestHistory->doctor;
+            } elseif ($latestNote && $latestNote->doctor) {
+                $file->doctor = $latestNote->doctor;
+            } else {
+                $file->doctor = $doctor;
+            }
+            
+            // Ajouter patient_id pour compatibilité
+            $file->patient_id = $file->user_id;
+            // Ajouter consultation_type (peut être null)
+            $file->consultation_type = null;
+            
+            return $file;
+        });
+        
+        return view('doctor.medical-history', compact('medicalFiles'));
     }
 
     /**

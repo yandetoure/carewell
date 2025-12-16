@@ -149,7 +149,7 @@ class User extends Authenticatable  implements JWTSubject
     public function medicalFiles(){
         return $this->hasMany(MedicalFile::class);
     }
-
+ 
     public function medicalFile(){
         return $this->hasOne(MedicalFile::class);
     }

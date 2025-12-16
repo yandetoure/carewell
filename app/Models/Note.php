@@ -19,7 +19,7 @@ class Note extends Model
             // Relation avec le modèle MedicalFile
     public function medicalFile()
     {
-        return $this->belongsTo(MedicalFile::class);
+        return $this->belongsTo(MedicalFile::class, 'medical_files_id');
     }
 
     public function doctor()

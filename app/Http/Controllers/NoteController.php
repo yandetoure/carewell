@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Note;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class NoteController extends Controller
@@ -16,6 +17,57 @@ class NoteController extends Controller
         $note = Note::all();
         return response()->json(['data' => $note]);
 
+    }
+
+    /**
+     * Display notes for doctor interface.
+     */
+    public function doctorNotes()
+    {
+        $doctor = Auth::user();
+        
+        // Récupérer les notes des patients du docteur
+        // Les notes peuvent être créées par le docteur ou associées à des dossiers médicaux de ses patients
+        $notes = Note::with([
+            'doctor',
+            'medicalFile.user'
+        ])
+            ->where(function($query) use ($doctor) {
+                // Notes créées par ce docteur
+                $query->where('doctor_id', $doctor->id)
+                    // Ou notes des dossiers médicaux de ses patients
+                    ->orWhereHas('medicalFile.user.appointments', function($q) use ($doctor) {
+                        $q->where('doctor_id', $doctor->id);
+                    });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Ajouter des accesseurs pour compatibilité avec la vue
+        $notes = $notes->map(function($note) {
+            // Ajouter un accesseur patient (via medicalFile->user)
+            if ($note->medicalFile && $note->medicalFile->user) {
+                $note->patient = $note->medicalFile->user;
+                $note->patient_id = $note->medicalFile->user_id;
+            } else {
+                // Si pas de medicalFile, créer un objet vide pour éviter les erreurs
+                $note->patient = (object)['first_name' => 'N/A', 'last_name' => 'N/A', 'phone_number' => null];
+                $note->patient_id = null;
+            }
+            
+            // Ajouter consultation_type (peut être null)
+            $note->consultation_type = null;
+            
+            // S'assurer que note->note existe (le contenu de la note)
+            // La colonne dans la DB est 'content' mais le modèle peut avoir 'note' dans fillable
+            if (!isset($note->note) || empty($note->note)) {
+                $note->note = $note->content ?? 'Note non disponible';
+            }
+            
+            return $note;
+        });
+        
+        return view('doctor.notes', compact('notes'));
     }
 
     /**

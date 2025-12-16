@@ -98,18 +98,18 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <h6 class="card-title mb-2">{{ $category['name'] }}</h6>
-                                            <p class="card-text text-muted small mb-3">{{ $category['description'] }}</p>
+                                            <p class="card-text text-muted small mb-3">{{ $category['description'] ?? 'Aucune description' }}</p>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="badge bg-{{ $category['color'] }}">
                                                     {{ $category['count'] }} service{{ $category['count'] > 1 ? 's' : '' }}
                                                 </span>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" title="voir les services">
+                                                    <a href="{{ route('admin.categories.show', $category['id']) }}" class="btn btn-outline-primary" title="voir les détails">
                                                         <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-secondary" title="modifier">
+                                                    </a>
+                                                    <a href="{{ route('admin.categories.edit', $category['id']) }}" class="btn btn-outline-secondary" title="modifier">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
+                                                    </a>
                                                     @if($category['count'] == 0)
                                                     <button class="btn btn-outline-danger" title="supprimer">
                                                         <i class="fas fa-trash"></i>

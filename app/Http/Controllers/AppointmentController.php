@@ -313,7 +313,7 @@ class AppointmentController extends \Illuminate\Routing\Controller
             'pendingCount',
             'confirmedCount',
             'today',
-            'doctor'
+            'doctor' 
         ));
     }
 

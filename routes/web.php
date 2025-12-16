@@ -269,6 +269,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/messages/create/{patient}', [MessageController::class, 'createMessage'])->name('doctor.messages.create.with-patient');
         Route::get('/messages/chat/{userId}', [MessageController::class, 'chatWithUser'])->name('doctor.messages.chat');
         Route::post('/messages/send', [MessageController::class, 'sendMessage'])->name('doctor.messages.send');
+        
+        // Discussions entre médecins
+        Route::get('/discussions', [MessageController::class, 'doctorDiscussions'])->name('doctor.discussions');
+        Route::get('/discussions/chat/{doctor}', [MessageController::class, 'chatWithDoctor'])->name('doctor.discussions.chat');
         Route::get('/notifications', [NotificationController::class, 'doctorNotifications'])->name('doctor.notifications');
         Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('doctor.notifications.mark-read');
         Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('doctor.notifications.mark-all-read');
@@ -444,6 +448,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/ordonnances/{ordonnance}', [App\Http\Controllers\DashboardController::class, 'destroyOrdonnance'])->name('admin.ordonnances.destroy');
         
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
+        Route::get('/categories/{category}', [App\Http\Controllers\CategoryController::class, 'show'])->name('admin.categories.show');
+        Route::get('/categories/{category}/edit', [App\Http\Controllers\CategoryController::class, 'edit'])->name('admin.categories.edit');
+        Route::put('/categories/{category}', [App\Http\Controllers\CategoryController::class, 'update'])->name('admin.categories.update');
         Route::get('/schedule', [AppointmentController::class, 'adminSchedule'])->name('admin.schedule');
         Route::get('/settings', [App\Http\Controllers\DashboardController::class, 'adminSettings'])->name('admin.settings');
         Route::get('/logs', [App\Http\Controllers\DashboardController::class, 'adminLogs'])->name('admin.logs');

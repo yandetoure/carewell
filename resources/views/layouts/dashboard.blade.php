@@ -77,14 +77,30 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
         }
 
-        .sidebar-brand i {
-            margin-right: 0.5rem;
+        .sidebar-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .sidebar-brand img {
+            height: 40px;
+            width: auto;
+            transition: all 0.3s ease;
         }
 
         .sidebar.collapsed .sidebar-brand span {
             display: none;
+        }
+
+        .sidebar.collapsed .sidebar-brand {
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .sidebar-brand img {
+            height: 35px;
         }
 
         .sidebar-nav {
@@ -395,7 +411,7 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <a href="{{ route('home') }}" class="sidebar-brand">
-                <i class="fas fa-heartbeat"></i>
+                <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo">
                 <span>CareWell</span>
             </a>
         </div>
