@@ -37,6 +37,7 @@ class User extends Authenticatable  implements JWTSubject
         'blood_type',
         'grade_id',
         'status',
+        'clinic_id',
     ];
 
     /**
@@ -97,6 +98,7 @@ class User extends Authenticatable  implements JWTSubject
     {
         return MedicalFile::create([
             'user_id' => $this->id,
+            'clinic_id' => $this->clinic_id,
         ]);
     }
 
@@ -173,7 +175,13 @@ class User extends Authenticatable  implements JWTSubject
     return $this->belongsTo(Grade::class);
 }
 
-    
+    /**
+     * Get the clinic that the user belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.

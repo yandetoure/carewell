@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Availability extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToClinic;
 
     protected $fillable = [
         'doctor_id',
@@ -18,6 +19,7 @@ class Availability extends Model
         'available_date',
         'appointment_duration',
         'recurrence_type',
+        'clinic_id',
     ];
 
     // Relation avec le médecin
@@ -30,5 +32,13 @@ class Availability extends Model
     public function service()
     {
         return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Get the clinic that the availability belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
     }
 }

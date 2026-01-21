@@ -7,6 +7,18 @@ use App\Models\Article;
 
 class ArticleController extends Controller
 {
+    /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user ? $user->clinic_id : null;
+    }
+
     public function index(Request $request)
     {
         $query = Article::query();
@@ -67,6 +79,8 @@ class ArticleController extends Controller
             $validated['photo'] = $request->file('photo')->store('articles', 'public');
         }
 
+        $clinicId = $this->getCurrentClinicId();
+        $validated['clinic_id'] = $clinicId;
         Article::create($validated);
 
         return redirect()->route('admin.articles')->with('success', 'Article créé avec succès.');
@@ -79,6 +93,12 @@ class ArticleController extends Controller
 
     public function update(Request $request, Article $article)
     {
+        // Vérifier que l'article peut être modifié (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $article->clinic_id && $article->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les articles de votre clinique ou les articles partagés.');
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string|max:10000',
@@ -109,6 +129,12 @@ class ArticleController extends Controller
 
     public function destroy(Article $article)
     {
+        // Vérifier que l'article peut être supprimé (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $article->clinic_id && $article->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez supprimer que les articles de votre clinique ou les articles partagés.');
+        }
+
         if ($article->photo) {
             \Illuminate\Support\Facades\Storage::delete('public/' . $article->photo);
         }
@@ -120,7 +146,15 @@ class ArticleController extends Controller
 
     public function adminIndex()
     {
-        $articles = Article::latest()->paginate(20);
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les articles partagés (clinic_id null) + les articles de la clinique
+        $articlesQuery = Article::query();
+        if ($clinicId) {
+            $articlesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $articles = $articlesQuery->latest()->paginate(20);
         return view('admin.articles.index', compact('articles'));
     }
 

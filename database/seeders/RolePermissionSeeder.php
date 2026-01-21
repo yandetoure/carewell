@@ -86,6 +86,12 @@ class RolePermissionSeeder extends Seeder
             'billing.edit' => ['display_name' => 'Modifier les factures', 'group' => 'Facturation', 'description' => 'Permet de modifier les factures existantes'],
             'billing.delete' => ['display_name' => 'Supprimer les factures', 'group' => 'Facturation', 'description' => 'Permet de supprimer des factures'],
             'billing.payments' => ['display_name' => 'Gérer les paiements', 'group' => 'Facturation', 'description' => 'Permet de gérer les paiements'],
+
+            // Permissions pour les cliniques
+            'clinics.view' => ['display_name' => 'Voir les cliniques', 'group' => 'Cliniques', 'description' => 'Permet de voir la liste des cliniques'],
+            'clinics.create' => ['display_name' => 'Créer des cliniques', 'group' => 'Cliniques', 'description' => 'Permet de créer de nouvelles cliniques'],
+            'clinics.edit' => ['display_name' => 'Modifier les cliniques', 'group' => 'Cliniques', 'description' => 'Permet de modifier les cliniques existantes'],
+            'clinics.delete' => ['display_name' => 'Supprimer les cliniques', 'group' => 'Cliniques', 'description' => 'Permet de supprimer des cliniques'],
         ];
 
         foreach ($permissions as $name => $data) {
@@ -96,11 +102,21 @@ class RolePermissionSeeder extends Seeder
         }
 
         // Créer les rôles
+        // Permissions communes pour Admin et Super Admin (toutes sauf les cliniques)
+        $adminPermissions = array_filter(array_keys($permissions), function($key) {
+            return !str_starts_with($key, 'clinics.');
+        });
+        
         $roles = [
+            'Super Admin' => [
+                'display_name' => 'Super Administrateur',
+                'description' => 'Accès complet au système, peut créer et gérer les cliniques',
+                'permissions' => array_keys($permissions) // Toutes les permissions (y compris cliniques)
+            ],
             'Admin' => [
                 'display_name' => 'Administrateur',
-                'description' => 'Accès complet à toutes les fonctionnalités du système',
-                'permissions' => array_keys($permissions) // Toutes les permissions
+                'description' => 'Accès complet à toutes les fonctionnalités de sa clinique',
+                'permissions' => $adminPermissions // Mêmes permissions que Super Admin sauf les cliniques
             ],
             'Doctor' => [
                 'display_name' => 'Médecin',
@@ -214,10 +230,10 @@ class RolePermissionSeeder extends Seeder
             $role->syncPermissions($permissionModels);
         }
 
-        // Assigner le rôle Admin au premier utilisateur s'il existe
+        // Assigner le rôle Super Admin au premier utilisateur s'il existe
         $firstUser = User::first();
-        if ($firstUser && !$firstUser->hasRole('Admin')) {
-            $firstUser->assignRole('Admin');
+        if ($firstUser && !$firstUser->hasRole('Super Admin')) {
+            $firstUser->assignRole('Super Admin');
         }
     }
 }

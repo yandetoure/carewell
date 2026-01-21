@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToClinic;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ class MedicalFile extends Model
 {
 
 
-    use HasFactory;
+    use HasFactory, BelongsToClinic;
     /**
      * The attributes that are mass assignable.
      *
@@ -18,7 +19,8 @@ class MedicalFile extends Model
      */
     protected $fillable = [
         'identification_number',
-        'user_id'
+        'user_id',
+        'clinic_id'
     ];
 
     /**
@@ -125,4 +127,12 @@ class MedicalFile extends Model
         {
             return $this->hasMany(BedAdmission::class, 'medical_file_id');
         }
+
+    /**
+     * Get the clinic that the medical file belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
 }

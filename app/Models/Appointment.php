@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Appointment extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToClinic;
 
 
     protected $fillable = [
@@ -22,6 +23,7 @@ class Appointment extends Model
         'is_urgent',
         'price',
         'status',
+        'clinic_id',
     ];
 
     protected $casts = [
@@ -49,6 +51,14 @@ class Appointment extends Model
     public function doctor()
     {
         return $this->belongsTo(User::class, 'doctor_id');
+    }
+
+    /**
+     * Get the clinic that the appointment belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
     }
 
 }

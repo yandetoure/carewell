@@ -15,7 +15,7 @@ trait RedirectToRoleDashboard
         $roles = $user->getRoleNames();
 
         // Vérifier les rôles par ordre de priorité
-        if ($roles->contains('Admin')) {
+        if ($roles->contains('Super Admin') || $roles->contains('Admin')) {
             return redirect()->route('admin.dashboard');
         } elseif ($roles->contains('Doctor')) {
             return redirect()->route('doctor.dashboard');

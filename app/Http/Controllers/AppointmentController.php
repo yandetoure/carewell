@@ -19,6 +19,47 @@ use Illuminate\Validation\ValidationException;
 class AppointmentController extends \Illuminate\Routing\Controller
 {
     /**
+     * Obtenir le clinic_id pour un ticket
+     */
+    protected function getTicketClinicId($appointmentId = null, $userId = null, $doctorId = null)
+    {
+        // Si on a un appointment, utiliser son clinic_id
+        if ($appointmentId) {
+            $appointment = Appointment::find($appointmentId);
+            if ($appointment && $appointment->clinic_id) {
+                return $appointment->clinic_id;
+            }
+        }
+        
+        // Si on a un user, utiliser son clinic_id
+        if ($userId) {
+            $user = User::find($userId);
+            if ($user && $user->clinic_id) {
+                return $user->clinic_id;
+            }
+        }
+        
+        // Si on a un doctor, utiliser son clinic_id
+        if ($doctorId) {
+            $doctor = User::find($doctorId);
+            if ($doctor && $doctor->clinic_id) {
+                return $doctor->clinic_id;
+            }
+        }
+        
+        // Sinon, utiliser le clinic_id de l'utilisateur connecté
+        $currentUser = Auth::user();
+        if ($currentUser) {
+            if ($currentUser->hasRole('Super Admin')) {
+                return session('selected_clinic_id');
+            }
+            return $currentUser->clinic_id;
+        }
+        
+        return null;
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -616,10 +657,12 @@ class AppointmentController extends \Illuminate\Routing\Controller
         ]);
 
         // Création du ticket associé
+        $clinicId = $this->getTicketClinicId($appointment->id, $patientId, $doctorId);
         $ticket = Ticket::create([
             'appointment_id' => $appointment->id,
             'doctor_id' => $doctorId, 
             'user_id' => $patientId,
+            'clinic_id' => $clinicId,
             'is_paid' => false, 
         ]);
         
@@ -1353,10 +1396,12 @@ public function storeUrgent(Request $request)
         ]);
 
         // Création du ticket associé
+        $clinicId = $this->getTicketClinicId($appointment->id, $user->id, $selectedDoctor->id);
         $ticket = Ticket::create([
             'appointment_id' => $appointment->id,
             'doctor_id' => $selectedDoctor->id,
             'user_id' => $user->id,
+            'clinic_id' => $clinicId,
             'is_paid' => false,
         ]);
                 // Création de la notification

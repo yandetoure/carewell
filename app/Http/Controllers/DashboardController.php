@@ -14,12 +14,30 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user->clinic_id;
+    }
+
     public function index()
     {
         $user = Auth::user();
 
         // Rediriger vers le dashboard approprié selon le rôle
-        if ($user->hasRole('Admin')) {
+        if ($user->hasRole('Super Admin')) {
+            // Si le Super Admin n'a pas sélectionné de clinique, rediriger vers la sélection
+            if (!session('selected_clinic_id')) {
+                return redirect()->route('admin.clinics.select');
+            }
+            return $this->adminDashboard();
+        } elseif ($user->hasRole('Admin')) {
             return $this->adminDashboard();
         } elseif ($user->hasRole('Doctor')) {
             return $this->doctorDashboard();
@@ -33,33 +51,58 @@ class DashboardController extends Controller
 
     public function adminDashboard()
     {
+        $user = Auth::user();
+        $isSuperAdmin = $user->hasRole('Super Admin');
+        
+        // Pour le Super Admin, utiliser la clinique sélectionnée en session
+        $selectedClinicId = $isSuperAdmin ? session('selected_clinic_id') : null;
+        $currentClinicId = $isSuperAdmin && $selectedClinicId ? $selectedClinicId : ($isSuperAdmin ? null : $user->clinic_id);
+        
+        // Construire les requêtes avec ou sans filtre de clinique
+        $usersQuery = $currentClinicId ? User::where('clinic_id', $currentClinicId) : User::query();
+        $appointmentsQuery = $currentClinicId ? Appointment::where('clinic_id', $currentClinicId) : Appointment::query();
+        $servicesQuery = $currentClinicId ? Service::where('clinic_id', $currentClinicId) : Service::query();
+        
         // Statistiques de base
-        $totalUsers = User::count();
-        $totalDoctors = User::role('Doctor')->count();
-        $totalPatients = User::role('Patient')->count();
-        $totalSecretaries = User::role('Secretary')->count();
-        $totalAppointments = Appointment::count();
-        $totalPrescriptions = Ordonnance::count();
+        $totalUsers = $usersQuery->count();
+        $totalDoctors = (clone $usersQuery)->role('Doctor')->count();
+        $totalPatients = (clone $usersQuery)->role('Patient')->count();
+        $totalSecretaries = (clone $usersQuery)->role('Secretary')->count();
+        $totalAppointments = $appointmentsQuery->count();
+        $totalPrescriptions = $isSuperAdmin 
+            ? Ordonnance::count() 
+            : Ordonnance::whereHas('medecin', function($q) use ($user) {
+                $q->where('clinic_id', $user->clinic_id);
+            })->count();
         
         // Revenus du mois
-        $totalRevenue = (float) (Appointment::whereMonth('appointments.created_at', now()->month)
+        $revenueQuery = Appointment::query()
+            ->whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
-            ->where('appointments.status', 'confirmed')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price') ?? 0);
+            ->where('appointments.status', 'confirmed');
         
-        // Gestion des lits (simulation)
-        $totalBeds = 50; // À remplacer par une vraie table
-        $occupiedBeds = Appointment::where('appointments.status', 'confirmed')
-            ->whereDate('appointments.appointment_date', now()->toDateString())
-            ->count();
+        // Ajouter le filtre de clinique si nécessaire
+        if ($currentClinicId) {
+            $revenueQuery->where('appointments.clinic_id', $currentClinicId);
+        }
+        
+        $revenueQuery->join('services', 'appointments.service_id', '=', 'services.id');
+        $totalRevenue = (float) ($revenueQuery->sum('services.price') ?? 0);
+        
+        // Gestion des lits
+        $bedsQuery = $currentClinicId 
+            ? \App\Models\Bed::where('clinic_id', $currentClinicId)
+            : \App\Models\Bed::query();
+        $totalBeds = $bedsQuery->count();
+        $occupiedBeds = (clone $bedsQuery)->where('status', 'occupe')->count();
         $availableBeds = $totalBeds - $occupiedBeds;
         
-        // Médicaments en rupture de stock
+        // Médicaments en rupture de stock (pas de filtre par clinique pour les médicaments)
         $lowStockMedicines = Medicament::where('disponible', false)->count();
         
         // Taux de croissance mensuel
-        $lastMonthUsers = User::whereMonth('users.created_at', now()->subMonth()->month)
+        $lastMonthUsers = (clone $usersQuery)
+            ->whereMonth('users.created_at', now()->subMonth()->month)
             ->whereYear('users.created_at', now()->subMonth()->year)
             ->count();
         $growthRate = $lastMonthUsers > 0 ? 
@@ -72,16 +115,21 @@ class DashboardController extends Controller
             'totalSecretaries' => $totalSecretaries,
             'totalAppointments' => $totalAppointments,
             'totalPrescriptions' => $totalPrescriptions,
-            'totalServices' => Service::count(),
-            'totalArticles' => Article::count(),
+            'totalServices' => $servicesQuery->count(),
+            'totalArticles' => Article::count(), // Articles partagés entre toutes les cliniques
             'totalRevenue' => number_format($totalRevenue, 0, ',', ' '),
             'totalBeds' => $totalBeds,
             'availableBeds' => $availableBeds,
             'lowStockMedicines' => $lowStockMedicines,
             'growthRate' => $growthRate,
-            'activeUsers' => User::where('email_verified_at', '!=', null)->count(),
-            'confirmedAppointments' => Appointment::where('status', 'confirmed')->count(),
-            'pendingAppointments' => Appointment::where('status', 'pending')->count(),
+            'activeUsers' => (clone $usersQuery)->where('email_verified_at', '!=', null)->count(),
+            'confirmedAppointments' => (clone $appointmentsQuery)->where('status', 'confirmed')->count(),
+            'isSuperAdmin' => $isSuperAdmin,
+            'selectedClinicId' => $selectedClinicId,
+            'selectedClinic' => $selectedClinicId ? \App\Models\Clinic::find($selectedClinicId) : null,
+            'pendingAppointments' => $currentClinicId 
+                ? Appointment::where('status', 'pending')->where('clinic_id', $currentClinicId)->count()
+                : Appointment::where('status', 'pending')->count(),
             'recentActivity' => $this->getRecentActivity(),
         ];
 
@@ -90,24 +138,41 @@ class DashboardController extends Controller
 
     public function accounting()
     {
+        $user = Auth::user();
+        $isSuperAdmin = $user->hasRole('Super Admin');
+        $selectedClinicId = $isSuperAdmin ? session('selected_clinic_id') : null;
+        $currentClinicId = $isSuperAdmin && $selectedClinicId ? $selectedClinicId : ($isSuperAdmin ? null : $user->clinic_id);
+        
         // Statistiques comptables
-        $monthlyRevenue = (float) (Appointment::whereMonth('appointments.created_at', now()->month)
+        $monthlyRevenueQuery = Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
-            ->where('appointments.status', 'confirmed')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->where('appointments.status', 'confirmed');
+        if ($currentClinicId) {
+            $monthlyRevenueQuery->where('appointments.clinic_id', $currentClinicId);
+        }
+        $monthlyRevenue = (float) ($monthlyRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
         
-        $totalRevenue = (float) (Appointment::where('appointments.status', 'confirmed')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
+        $totalRevenueQuery = Appointment::where('appointments.status', 'confirmed');
+        if ($currentClinicId) {
+            $totalRevenueQuery->where('appointments.clinic_id', $currentClinicId);
+        }
+        $totalRevenue = (float) ($totalRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
         
-        $pendingPayments = (float) (Appointment::where('appointments.status', 'pending')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
+        $pendingPaymentsQuery = Appointment::where('appointments.status', 'pending');
+        if ($currentClinicId) {
+            $pendingPaymentsQuery->where('appointments.clinic_id', $currentClinicId);
+        }
+        $pendingPayments = (float) ($pendingPaymentsQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
         
-        $monthlyAppointments = Appointment::whereMonth('appointments.created_at', now()->month)
-            ->whereYear('appointments.created_at', now()->year)
-            ->count();
+        $monthlyAppointmentsQuery = Appointment::whereMonth('appointments.created_at', now()->month)
+            ->whereYear('appointments.created_at', now()->year);
+        if ($currentClinicId) {
+            $monthlyAppointmentsQuery->where('appointments.clinic_id', $currentClinicId);
+        }
+        $monthlyAppointments = $monthlyAppointmentsQuery->count();
         
         return view('admin.accounting.index', compact('monthlyRevenue', 'totalRevenue', 'pendingPayments', 'monthlyAppointments'));
     }
@@ -134,41 +199,92 @@ class DashboardController extends Controller
 
     public function pharmacyStock()
     {
-        $medicaments = Medicament::orderBy('nom')->paginate(20);
-        $totalMedicaments = Medicament::count();
-        $availableMedicaments = Medicament::where('disponible', true)->count();
-        $lowStockMedicines = Medicament::where('disponible', false)->count();
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les médicaments partagés (clinic_id null) + les médicaments de la clinique
+        $medicamentsQuery = Medicament::query();
+        if ($clinicId) {
+            $medicamentsQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $medicaments = $medicamentsQuery->orderBy('nom')->paginate(20);
+        
+        $statsQuery = Medicament::query();
+        if ($clinicId) {
+            $statsQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $totalMedicaments = (clone $statsQuery)->count();
+        $availableMedicaments = (clone $statsQuery)->where('disponible', true)->count();
+        $lowStockMedicines = (clone $statsQuery)->where('disponible', false)->count();
         
         return view('admin.pharmacy.index', compact('medicaments', 'totalMedicaments', 'availableMedicaments', 'lowStockMedicines'));
     }
 
     public function prescriptionsManagement()
     {
-        $prescriptions = \App\Models\Prescription::with('service')
-            ->orderBy('name')
-            ->paginate(20);
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les prescriptions partagées (clinic_id null) + les prescriptions de la clinique
+        $prescriptionsQuery = \App\Models\Prescription::with('service');
+        if ($clinicId) {
+            $prescriptionsQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $prescriptions = $prescriptionsQuery->orderBy('name')->paginate(20);
         
-        $totalPrescriptions = \App\Models\Prescription::count();
-        $totalServices = \App\Models\Service::count();
+        $statsQuery = \App\Models\Prescription::query();
+        if ($clinicId) {
+            $statsQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $totalPrescriptions = $statsQuery->count();
+        
+        $servicesQuery = \App\Models\Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $totalServices = $servicesQuery->count();
         
         // Regrouper par service
-        $prescriptionsByService = \App\Models\Prescription::with('service')
-            ->get()
-            ->groupBy('service.name');
+        $prescriptionsByServiceQuery = \App\Models\Prescription::with('service');
+        if ($clinicId) {
+            $prescriptionsByServiceQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $prescriptionsByService = $prescriptionsByServiceQuery->get()->groupBy('service.name');
         
         return view('admin.prescriptions.index', compact('prescriptions', 'totalPrescriptions', 'totalServices', 'prescriptionsByService'));
     }
 
     public function ordonnancesManagement()
     {
-        $ordonnances = Ordonnance::with(['patient', 'medecin', 'medicaments'])
-            ->orderBy('date_prescription', 'desc')
-            ->paginate(20);
+        $clinicId = $this->getCurrentClinicId();
         
-        $totalOrdonnances = Ordonnance::count();
-        $activeOrdonnances = Ordonnance::where('statut', 'active')->count();
-        $expiredOrdonnances = Ordonnance::where('statut', 'expiree')->count();
-        $thisMonthOrdonnances = Ordonnance::whereMonth('date_prescription', now()->month)
+        $ordonnancesQuery = Ordonnance::with(['patient', 'medecin', 'medicaments']);
+        if ($clinicId) {
+            $ordonnancesQuery->whereHas('medecin', function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            });
+        }
+        $ordonnances = $ordonnancesQuery->orderBy('date_prescription', 'desc')->paginate(20);
+        
+        $statsQuery = Ordonnance::query();
+        if ($clinicId) {
+            $statsQuery->whereHas('medecin', function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            });
+        }
+        $totalOrdonnances = (clone $statsQuery)->count();
+        $activeOrdonnances = (clone $statsQuery)->where('statut', 'active')->count();
+        $expiredOrdonnances = (clone $statsQuery)->where('statut', 'expiree')->count();
+        $thisMonthOrdonnances = (clone $statsQuery)
+            ->whereMonth('date_prescription', now()->month)
             ->whereYear('date_prescription', now()->year)
             ->count();
         
@@ -988,12 +1104,22 @@ class DashboardController extends Controller
     public function editMedicament($id)
     {
         $medicament = \App\Models\Medicament::findOrFail($id);
+        // Vérifier que le médicament peut être modifié (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $medicament->clinic_id && $medicament->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les médicaments de votre clinique ou les médicaments partagés.');
+        }
         return view('admin.pharmacy.edit', compact('medicament'));
     }
 
     public function updateMedicament(Request $request, $id)
     {
         $medicament = \App\Models\Medicament::findOrFail($id);
+        // Vérifier que le médicament peut être modifié (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $medicament->clinic_id && $medicament->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les médicaments de votre clinique ou les médicaments partagés.');
+        }
         
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
@@ -1024,6 +1150,8 @@ class DashboardController extends Controller
         ]);
         
         $validated['disponible'] = $validated['quantite_stock'] > 0;
+        $clinicId = $this->getCurrentClinicId();
+        $validated['clinic_id'] = $clinicId;
         
         $medicament = \App\Models\Medicament::create($validated);
         
@@ -1033,6 +1161,11 @@ class DashboardController extends Controller
     public function destroyMedicament($id)
     {
         $medicament = \App\Models\Medicament::findOrFail($id);
+        // Vérifier que le médicament peut être supprimé (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $medicament->clinic_id && $medicament->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez supprimer que les médicaments de votre clinique ou les médicaments partagés.');
+        }
         $medicament->delete();
         
         return redirect()->route('admin.pharmacy')->with('success', 'Médicament supprimé avec succès.');
@@ -1097,13 +1230,30 @@ class DashboardController extends Controller
     public function editPrescription($id)
     {
         $prescription = \App\Models\Prescription::with('service')->findOrFail($id);
-        $services = \App\Models\Service::all();
+        // Vérifier que la prescription peut être modifiée (soit partagée, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $prescription->clinic_id && $prescription->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les prescriptions de votre clinique ou les prescriptions partagées.');
+        }
+        
+        $servicesQuery = \App\Models\Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $services = $servicesQuery->get();
         return view('admin.prescriptions.edit', compact('prescription', 'services'));
     }
 
     public function updatePrescription(Request $request, $id)
     {
         $prescription = \App\Models\Prescription::findOrFail($id);
+        // Vérifier que la prescription peut être modifiée (soit partagée, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $prescription->clinic_id && $prescription->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les prescriptions de votre clinique ou les prescriptions partagées.');
+        }
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -1126,6 +1276,9 @@ class DashboardController extends Controller
             'service_id' => 'required|exists:services,id',
         ]);
         
+        $clinicId = $this->getCurrentClinicId();
+        $validated['clinic_id'] = $clinicId;
+        
         \App\Models\Prescription::create($validated);
         
         return redirect()->route('admin.prescriptions')->with('success', 'Prescription créée avec succès.');
@@ -1134,6 +1287,11 @@ class DashboardController extends Controller
     public function destroyPrescription($id)
     {
         $prescription = \App\Models\Prescription::findOrFail($id);
+        // Vérifier que la prescription peut être supprimée (soit partagée, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $prescription->clinic_id && $prescription->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez supprimer que les prescriptions de votre clinique ou les prescriptions partagées.');
+        }
         $prescription->delete();
         
         return redirect()->route('admin.prescriptions')->with('success', 'Prescription supprimée avec succès.');

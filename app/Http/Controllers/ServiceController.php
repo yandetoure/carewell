@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\Storage;
 
 class ServiceController extends Controller
 {
+    /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user ? $user->clinic_id : null;
+    }
     public function index(Request $request)
     {
         $query = Service::query();
@@ -69,6 +80,8 @@ class ServiceController extends Controller
             $validated['photo'] = $request->file('photo')->store('services', 'public');
         }
 
+        $clinicId = $this->getCurrentClinicId();
+        $validated['clinic_id'] = $clinicId;
         Service::create($validated);
 
         return redirect()->route('admin.services')->with('success', 'Service créé avec succès.');
@@ -76,11 +89,22 @@ class ServiceController extends Controller
 
     public function edit(Service $service)
     {
+        // Vérifier que le service peut être modifié (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les services de votre clinique ou les services partagés.');
+        }
         return view('admin.services.edit', compact('service'));
     }
 
     public function update(Request $request, Service $service)
     {
+        // Vérifier que le service peut être modifié (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez modifier que les services de votre clinique ou les services partagés.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:1000',
@@ -124,6 +148,12 @@ class ServiceController extends Controller
 
     public function destroy(Service $service)
     {
+        // Vérifier que le service peut être supprimé (soit partagé, soit appartient à la clinique)
+        $clinicId = $this->getCurrentClinicId();
+        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
+            abort(403, 'Vous ne pouvez supprimer que les services de votre clinique ou les services partagés.');
+        }
+
         if ($service->photo) {
             Storage::delete('public/' . $service->photo);
         }
@@ -135,7 +165,15 @@ class ServiceController extends Controller
 
     public function adminIndex()
     {
-        $services = Service::paginate(20);
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les services partagés (clinic_id null) + les services de la clinique
+        $servicesQuery = Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $services = $servicesQuery->paginate(20);
         return view('admin.services.index', compact('services'));
     }
 

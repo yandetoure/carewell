@@ -55,9 +55,24 @@ class MedicalFilePrescriptionController extends Controller
                 'medical_files_id' => $request->medical_files_id,
             ]);
     
+            // Obtenir le clinic_id depuis le medical file
+            $medicalFile = \App\Models\MedicalFile::find($request->medical_files_id);
+            $clinicId = null;
+            if ($medicalFile && $medicalFile->user) {
+                $clinicId = $medicalFile->user->clinic_id;
+            } elseif (Auth::check()) {
+                $user = Auth::user();
+                if ($user->hasRole('Super Admin')) {
+                    $clinicId = session('selected_clinic_id');
+                } else {
+                    $clinicId = $user->clinic_id;
+                }
+            }
+            
             // Création du ticket associé à la prescription
             $ticket = Ticket::create([
                 'prescription_id' => $request->prescription_id,
+                'clinic_id' => $clinicId,
                 'is_paid' => false,
             ]);
     

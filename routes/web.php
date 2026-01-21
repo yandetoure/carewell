@@ -335,6 +335,18 @@ Route::middleware('auth')->group(function () {
     // Routes pour les administrateurs uniquement (sans middleware de rôle pour l'instant)
     Route::group(['prefix' => 'admin'], function () {
         Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
+        
+        // Gestion des cliniques (Super Admin uniquement)
+        Route::get('/clinics/select', [App\Http\Controllers\ClinicController::class, 'select'])->name('admin.clinics.select');
+        Route::post('/clinics/select', [App\Http\Controllers\ClinicController::class, 'setSelected'])->name('admin.clinics.set-selected');
+        Route::post('/clinics/clear', [App\Http\Controllers\ClinicController::class, 'clearSelected'])->name('admin.clinics.clear-selected');
+        Route::get('/clinics', [App\Http\Controllers\ClinicController::class, 'index'])->name('admin.clinics.index');
+        Route::get('/clinics/create', [App\Http\Controllers\ClinicController::class, 'create'])->name('admin.clinics.create');
+        Route::post('/clinics', [App\Http\Controllers\ClinicController::class, 'store'])->name('admin.clinics.store');
+        Route::get('/clinics/{clinic}', [App\Http\Controllers\ClinicController::class, 'show'])->name('admin.clinics.show');
+        Route::get('/clinics/{clinic}/edit', [App\Http\Controllers\ClinicController::class, 'edit'])->name('admin.clinics.edit');
+        Route::put('/clinics/{clinic}', [App\Http\Controllers\ClinicController::class, 'update'])->name('admin.clinics.update');
+        Route::delete('/clinics/{clinic}', [App\Http\Controllers\ClinicController::class, 'destroy'])->name('admin.clinics.destroy');
         // Gestion des utilisateurs
         Route::get('/users', [AuthController::class, 'getUsers'])->name('admin.users');
         Route::post('/users', [AuthController::class, 'store'])->name('admin.users.store');

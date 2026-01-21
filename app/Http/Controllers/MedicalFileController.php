@@ -18,6 +18,47 @@ use App\Models\medicalfilePrescription;
 class MedicalFileController extends Controller
 {
     /**
+     * Obtenir le clinic_id pour un ticket
+     */
+    protected function getTicketClinicId($appointmentId = null, $userId = null, $doctorId = null)
+    {
+        // Si on a un appointment, utiliser son clinic_id
+        if ($appointmentId) {
+            $appointment = \App\Models\Appointment::find($appointmentId);
+            if ($appointment && $appointment->clinic_id) {
+                return $appointment->clinic_id;
+            }
+        }
+        
+        // Si on a un user, utiliser son clinic_id
+        if ($userId) {
+            $user = \App\Models\User::find($userId);
+            if ($user && $user->clinic_id) {
+                return $user->clinic_id;
+            }
+        }
+        
+        // Si on a un doctor, utiliser son clinic_id
+        if ($doctorId) {
+            $doctor = \App\Models\User::find($doctorId);
+            if ($doctor && $doctor->clinic_id) {
+                return $doctor->clinic_id;
+            }
+        }
+        
+        // Sinon, utiliser le clinic_id de l'utilisateur connecté
+        $currentUser = Auth::user();
+        if ($currentUser) {
+            if ($currentUser->hasRole('Super Admin')) {
+                return session('selected_clinic_id');
+            }
+            return $currentUser->clinic_id;
+        }
+        
+        return null;
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -338,10 +379,12 @@ class MedicalFileController extends Controller
     ]);
 
     // Créer le ticket en ajoutant l'ID du patient
+    $clinicId = $this->getTicketClinicId(null, $userId, Auth::id());
     $ticket = Ticket::create([
         'prescription_id' => $prescription->id,
         'doctor_id' => Auth::id(),
-        'user_id' => $userId, // Ajouter l'ID du patient ici
+        'user_id' => $userId,
+        'clinic_id' => $clinicId,
         'is_paid' => false,
     ]);
     
@@ -383,10 +426,12 @@ class MedicalFileController extends Controller
         ]);    
 
 
+        $clinicId = $this->getTicketClinicId(null, $userId, Auth::id());
         $ticket = Ticket::create([
             'exam_id' => $exam->id,
             'doctor_id' => Auth::id(),       
-            'user_id' => $userId, // Ajouter l'ID du patient ici     
+            'user_id' => $userId,
+            'clinic_id' => $clinicId,
             'is_paid' => false, 
         ]);
         return response()->json(['message' => 'Examen ajouté avec succès']);

@@ -15,5 +15,11 @@ class Article extends Model
         'content',
         'symptoms',
         'advices',
+        'clinic_id',
     ];
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
 }

@@ -11,6 +11,17 @@ use Illuminate\Validation\ValidationException;
 class ExamController extends Controller
 {
     /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user->clinic_id;
+    }
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -28,11 +39,36 @@ class ExamController extends Controller
      */
     public function adminIndex()
     {
-        $exams = Exam::with('service')->orderBy('created_at', 'desc')->paginate(15);
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les examens liés aux services partagés (clinic_id null) + les services de la clinique
+        $examsQuery = Exam::with('service');
+        if ($clinicId) {
+            $examsQuery->whereHas('service', function($q) use ($clinicId) {
+                $q->where(function($sq) use ($clinicId) {
+                    $sq->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+                });
+            });
+        }
+        $exams = $examsQuery->orderBy('created_at', 'desc')->paginate(15);
         
         // Statistiques
-        $totalExams = Exam::count();
-        $services = \App\Models\Service::all();
+        $statsQuery = Exam::query();
+        if ($clinicId) {
+            $statsQuery->whereHas('service', function($q) use ($clinicId) {
+                $q->where(function($sq) use ($clinicId) {
+                    $sq->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+                });
+            });
+        }
+        $totalExams = $statsQuery->count();
+        
+        $servicesQuery = \App\Models\Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $services = $servicesQuery->get();
         
         return view('admin.exams.index', compact('exams', 'totalExams', 'services'));
     }
@@ -42,7 +78,15 @@ class ExamController extends Controller
      */
     public function adminCreate()
     {
-        $services = \App\Models\Service::all();
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les services partagés (clinic_id null) + les services de la clinique
+        $servicesQuery = \App\Models\Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $services = $servicesQuery->get();
         return view('admin.exams.create', compact('services'));
     }
 
@@ -60,7 +104,15 @@ class ExamController extends Controller
      */
     public function adminEdit(Exam $exam)
     {
-        $services = \App\Models\Service::all();
+        $clinicId = $this->getCurrentClinicId();
+        // Afficher les services partagés (clinic_id null) + les services de la clinique
+        $servicesQuery = \App\Models\Service::query();
+        if ($clinicId) {
+            $servicesQuery->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        $services = $servicesQuery->get();
         $exam->load('service', 'results', 'medicalFileExam');
         return view('admin.exams.edit', compact('exam', 'services'));
     }

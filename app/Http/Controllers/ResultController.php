@@ -11,6 +11,18 @@ use Illuminate\Validation\ValidationException;
 class ResultController extends Controller
 {
     /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user ? $user->clinic_id : null;
+    }
+
+    /**
      * Display a listing of the results.
      */
     public function index()
@@ -80,11 +92,32 @@ class ResultController extends Controller
      */
     public function adminIndex()
     {
-        $results = Result::with('exam')->orderBy('created_at', 'desc')->paginate(15);
+        $clinicId = $this->getCurrentClinicId();
+        
+        $resultsQuery = Result::with('exam');
+        if ($clinicId) {
+            $resultsQuery->whereHas('exam.service', function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            });
+        }
+        $results = $resultsQuery->orderBy('created_at', 'desc')->paginate(15);
         
         // Statistiques
-        $totalResults = Result::count();
-        $exams = \App\Models\Exam::all();
+        $statsQuery = Result::query();
+        if ($clinicId) {
+            $statsQuery->whereHas('exam.service', function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            });
+        }
+        $totalResults = $statsQuery->count();
+        
+        $examsQuery = \App\Models\Exam::query();
+        if ($clinicId) {
+            $examsQuery->whereHas('service', function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId);
+            });
+        }
+        $exams = $examsQuery->get();
         
         return view('admin.results.index', compact('results', 'totalResults', 'exams'));
     }

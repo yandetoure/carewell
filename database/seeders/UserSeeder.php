@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Clinic;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -14,18 +15,49 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Création de l'admin
-        $admin = User::create([
-            'first_name' => 'Biteye',
-            'last_name' => 'Sow',
-            'email' => 'ndeye@gmail.com',
-            'password' => Hash::make('password'), 
-            'adress' => 'Point E',
-            'phone_number' => '+221774344454',
-            'day_of_birth' => '1990-01-01',
-            'status' => true,
-        ]);
-        $admin->assignRole('Admin'); 
+        // Récupérer les cliniques
+        $clinics = Clinic::all();
+        
+        if ($clinics->isEmpty()) {
+            $this->command->warn('Aucune clinique trouvée. Veuillez exécuter ClinicSeeder d\'abord.');
+            return;
+        }
+
+        // Création du Super Admin (sans clinique)
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@carewell.sn'],
+            [
+                'first_name' => 'Super',
+                'last_name' => 'Admin',
+                'password' => Hash::make('password'),
+                'adress' => 'Siège Social',
+                'phone_number' => '+221338200000',
+                'day_of_birth' => '1980-01-01',
+                'status' => true,
+            ]
+        );
+        if (!$superAdmin->hasRole('Super Admin')) {
+            $superAdmin->assignRole('Super Admin');
+        }
+
+        // Création de l'admin pour la première clinique
+        $firstClinic = $clinics->first();
+        $admin = User::firstOrCreate(
+            ['email' => 'ndeye@gmail.com'],
+            [
+                'first_name' => 'Biteye',
+                'last_name' => 'Sow',
+                'password' => Hash::make('password'), 
+                'adress' => 'Point E',
+                'phone_number' => '+221774344454',
+                'day_of_birth' => '1990-01-01',
+                'status' => true,
+                'clinic_id' => $firstClinic->id,
+            ]
+        );
+        if (!$admin->hasRole('Admin')) {
+            $admin->assignRole('Admin');
+        } 
 
         // Création de médecins
         $doctors = [
@@ -71,20 +103,29 @@ class UserSeeder extends Seeder
             ],
         ];
 
+        // Répartir les médecins entre les cliniques
+        $clinicIndex = 0;
         foreach ($doctors as $doctorData) {
-            $doctor = User::create([
-                'first_name' => $doctorData['first_name'],
-                'last_name' => $doctorData['last_name'],
-                'email' => $doctorData['email'],
-                'password' => Hash::make('password'),
-                'adress' => $doctorData['adress'],
-                'phone_number' => $doctorData['phone_number'],
-                'day_of_birth' => $doctorData['day_of_birth'],
-                'specialite' => $doctorData['specialite'],
-                'numero_ordre' => $doctorData['numero_ordre'],
-                'status' => true,
-            ]);
-            $doctor->assignRole('Doctor');
+            $clinic = $clinics[$clinicIndex % $clinics->count()];
+            $doctor = User::firstOrCreate(
+                ['email' => $doctorData['email']],
+                [
+                    'first_name' => $doctorData['first_name'],
+                    'last_name' => $doctorData['last_name'],
+                    'password' => Hash::make('password'),
+                    'adress' => $doctorData['adress'],
+                    'phone_number' => $doctorData['phone_number'],
+                    'day_of_birth' => $doctorData['day_of_birth'],
+                    'specialite' => $doctorData['specialite'],
+                    'numero_ordre' => $doctorData['numero_ordre'],
+                    'status' => true,
+                    'clinic_id' => $clinic->id,
+                ]
+            );
+            if (!$doctor->hasRole('Doctor')) {
+                $doctor->assignRole('Doctor');
+            }
+            $clinicIndex++;
         }
 
         // Création de patients
@@ -155,18 +196,27 @@ class UserSeeder extends Seeder
             ],
         ];
 
+        // Répartir les patients entre les cliniques
+        $clinicIndex = 0;
         foreach ($patients as $patientData) {
-            $patient = User::create([
-                'first_name' => $patientData['first_name'],
-                'last_name' => $patientData['last_name'],
-                'email' => $patientData['email'],
-                'password' => Hash::make('password'),
-                'adress' => $patientData['adress'],
-                'phone_number' => $patientData['phone_number'],
-                'day_of_birth' => $patientData['day_of_birth'],
-                'status' => true,
-            ]);
-            $patient->assignRole('Patient');
+            $clinic = $clinics[$clinicIndex % $clinics->count()];
+            $patient = User::firstOrCreate(
+                ['email' => $patientData['email']],
+                [
+                    'first_name' => $patientData['first_name'],
+                    'last_name' => $patientData['last_name'],
+                    'password' => Hash::make('password'),
+                    'adress' => $patientData['adress'],
+                    'phone_number' => $patientData['phone_number'],
+                    'day_of_birth' => $patientData['day_of_birth'],
+                    'status' => true,
+                    'clinic_id' => $clinic->id,
+                ]
+            );
+            if (!$patient->hasRole('Patient')) {
+                $patient->assignRole('Patient');
+            }
+            $clinicIndex++;
         }
     }     
 }

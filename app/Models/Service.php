@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Service extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToClinic;
 
     protected $fillable = [
         'name',
@@ -18,6 +19,7 @@ class Service extends Model
         'category',
         'requirements',
         'user_id',
+        'clinic_id',
     ];
 
     public function appointments()
@@ -40,5 +42,13 @@ class Service extends Model
         {
             return $this->hasMany(MedicalFilePrescription::class);
         }
+
+    /**
+     * Get the clinic that the service belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
         
 }

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Bed extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToClinic;
 
     /**
      * The attributes that are mass assignable.
@@ -25,6 +26,7 @@ class Bed extends Model
         'expected_discharge_date',
         'discharge_date',
         'notes',
+        'clinic_id',
     ];
 
     /**
@@ -248,5 +250,13 @@ class Bed extends Model
             return now()->diffInDays($this->admission_date);
         }
         return 0;
+    }
+
+    /**
+     * Get the clinic that the bed belongs to
+     */
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
     }
 }

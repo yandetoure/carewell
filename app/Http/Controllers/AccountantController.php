@@ -13,6 +13,18 @@ use App\Models\MedicalFilePrescription;
 class AccountantController extends Controller
 {
     /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user->clinic_id;
+    }
+
+    /**
      * Display the accountant dashboard
      */
     public function dashboard()
@@ -83,9 +95,12 @@ class AccountantController extends Controller
      */
     private function calculateTotalRevenue()
     {
-        // This would typically query a payments table
-        // For now, we'll simulate with appointments
-        return Appointment::where('status', 'completed')->count() * 5000; // Assuming 5000 FCFA per appointment
+        $clinicId = $this->getCurrentClinicId();
+        $query = Appointment::where('status', 'completed');
+        if ($clinicId) {
+            $query->where('clinic_id', $clinicId);
+        }
+        return $query->count() * 5000; // Assuming 5000 FCFA per appointment
     }
 
     /**
@@ -93,10 +108,14 @@ class AccountantController extends Controller
      */
     private function calculateMonthlyRevenue()
     {
-        return Appointment::where('status', 'completed')
+        $clinicId = $this->getCurrentClinicId();
+        $query = Appointment::where('status', 'completed')
             ->whereMonth('appointment_date', now()->month)
-            ->whereYear('appointment_date', now()->year)
-            ->count() * 5000;
+            ->whereYear('appointment_date', now()->year);
+        if ($clinicId) {
+            $query->where('clinic_id', $clinicId);
+        }
+        return $query->count() * 5000;
     }
 
     /**
@@ -104,7 +123,12 @@ class AccountantController extends Controller
      */
     private function getPendingPayments()
     {
-        return Appointment::where('status', 'confirmed')->count();
+        $clinicId = $this->getCurrentClinicId();
+        $query = Appointment::where('status', 'confirmed');
+        if ($clinicId) {
+            $query->where('clinic_id', $clinicId);
+        }
+        return $query->count();
     }
 
     /**
@@ -112,7 +136,12 @@ class AccountantController extends Controller
      */
     private function getCompletedPayments()
     {
-        return Appointment::where('status', 'completed')->count();
+        $clinicId = $this->getCurrentClinicId();
+        $query = Appointment::where('status', 'completed');
+        if ($clinicId) {
+            $query->where('clinic_id', $clinicId);
+        }
+        return $query->count();
     }
 
     /**
@@ -120,9 +149,16 @@ class AccountantController extends Controller
      */
     private function getServiceStatistics()
     {
-        return Service::withCount(['appointments' => function($query) {
-            $query->where('status', 'completed');
-        }])->get();
+        $clinicId = $this->getCurrentClinicId();
+        $query = Service::withCount(['appointments' => function($q) {
+            $q->where('status', 'completed');
+        }]);
+        if ($clinicId) {
+            $query->where(function($q) use ($clinicId) {
+                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
+            });
+        }
+        return $query->get();
     }
 
     /**
@@ -130,9 +166,13 @@ class AccountantController extends Controller
      */
     private function getRecentTransactions()
     {
-        return Appointment::with(['user', 'service'])
-            ->where('status', 'completed')
-            ->orderBy('appointment_date', 'desc')
+        $clinicId = $this->getCurrentClinicId();
+        $query = Appointment::with(['user', 'service'])
+            ->where('status', 'completed');
+        if ($clinicId) {
+            $query->where('clinic_id', $clinicId);
+        }
+        return $query->orderBy('appointment_date', 'desc')
             ->limit(10)
             ->get();
     }

@@ -10,6 +10,51 @@ use Illuminate\Validation\ValidationException;
 class TicketController extends Controller
 {
     /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user && $user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user ? $user->clinic_id : null;
+    }
+
+    /**
+     * Obtenir le clinic_id pour un ticket
+     */
+    protected function getTicketClinicId($appointmentId = null, $userId = null, $doctorId = null)
+    {
+        // Si on a un appointment, utiliser son clinic_id
+        if ($appointmentId) {
+            $appointment = \App\Models\Appointment::find($appointmentId);
+            if ($appointment && $appointment->clinic_id) {
+                return $appointment->clinic_id;
+            }
+        }
+        
+        // Si on a un user, utiliser son clinic_id
+        if ($userId) {
+            $user = \App\Models\User::find($userId);
+            if ($user && $user->clinic_id) {
+                return $user->clinic_id;
+            }
+        }
+        
+        // Si on a un doctor, utiliser son clinic_id
+        if ($doctorId) {
+            $doctor = \App\Models\User::find($doctorId);
+            if ($doctor && $doctor->clinic_id) {
+                return $doctor->clinic_id;
+            }
+        }
+        
+        // Sinon, utiliser le clinic_id de l'utilisateur connecté
+        return $this->getCurrentClinicId();
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -23,18 +68,30 @@ class TicketController extends Controller
      */
     public function adminTickets()
     {
-        $tickets = Ticket::with(['appointment.service', 'prescription', 'exam', 'user', 'doctor'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $clinicId = $this->getCurrentClinicId();
+        
+        $ticketsQuery = Ticket::with(['appointment.service', 'prescription', 'exam', 'user', 'doctor']);
+        if ($clinicId) {
+            $ticketsQuery->where('clinic_id', $clinicId);
+        }
+        $tickets = $ticketsQuery->orderBy('created_at', 'desc')->paginate(15);
         
         // Statistiques
-        $totalTickets = Ticket::count();
-        $paidTickets = Ticket::where('is_paid', true)->count();
-        $unpaidTickets = Ticket::where('is_paid', false)->count();
-        $totalRevenue = Ticket::where('is_paid', true)
+        $statsQuery = Ticket::query();
+        if ($clinicId) {
+            $statsQuery->where('clinic_id', $clinicId);
+        }
+        $totalTickets = (clone $statsQuery)->count();
+        $paidTickets = (clone $statsQuery)->where('is_paid', true)->count();
+        $unpaidTickets = (clone $statsQuery)->where('is_paid', false)->count();
+        
+        $revenueQuery = Ticket::where('is_paid', true)
             ->join('appointments', 'tickets.appointment_id', '=', 'appointments.id')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->sum('services.price');
+            ->join('services', 'appointments.service_id', '=', 'services.id');
+        if ($clinicId) {
+            $revenueQuery->where('tickets.clinic_id', $clinicId);
+        }
+        $totalRevenue = $revenueQuery->sum('services.price');
         
         return view('admin.accounting.tickets', compact('tickets', 'totalTickets', 'paidTickets', 'unpaidTickets', 'totalRevenue'));
     }
@@ -74,10 +131,16 @@ class TicketController extends Controller
                 'prescription_id' => 'nullable|exists:prescriptions,id',
                 'exam_id' => 'nullable|exists:exams,id',
             ]);
+            $clinicId = $this->getTicketClinicId(
+                $request->appointment_id,
+                $request->user_id ?? null,
+                $request->doctor_id ?? null
+            );
             $ticket = Ticket::create([
                 'appointment_id' => $request->appointment_id,
                 'prescription_id' => $request->prescription_id,
                 'exam_id' => $request->exam_id,
+                'clinic_id' => $clinicId,
                 'is_paid' => false,
             ]);
 

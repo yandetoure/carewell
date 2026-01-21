@@ -24,6 +24,18 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     use RedirectToRoleDashboard;
+
+    /**
+     * Obtenir le clinic_id actuel pour le filtrage
+     */
+    protected function getCurrentClinicId()
+    {
+        $user = Auth::user();
+        if ($user->hasRole('Super Admin')) {
+            return session('selected_clinic_id');
+        }
+        return $user->clinic_id;
+    }
     /**
      * Enregistrer un nouvel utilisateur.
      */
@@ -363,12 +375,21 @@ public function updateProfile(Request $request)
 
 public function getUsers()
 {
-    $users = User::with('roles')
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+    $clinicId = $this->getCurrentClinicId();
+    
+    $usersQuery = User::with('roles');
+    if ($clinicId) {
+        $usersQuery->where('clinic_id', $clinicId);
+    }
+    $users = $usersQuery->orderBy('created_at', 'desc')->paginate(20);
 
     $roles = \Spatie\Permission\Models\Role::all();
-    $services = \App\Models\Service::all();
+    
+    $servicesQuery = \App\Models\Service::query();
+    if ($clinicId) {
+        $servicesQuery->where('clinic_id', $clinicId);
+    }
+    $services = $servicesQuery->get();
 
     return view('admin.users.index', compact('users', 'roles', 'services'));
 }
@@ -394,6 +415,7 @@ public function store(Request $request)
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
 
     // Ajouter les champs requis
+    $clinicId = $this->getCurrentClinicId();
     $userData = [
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
@@ -403,6 +425,7 @@ public function store(Request $request)
         'adress' => '', // Champ requis
         'day_of_birth' => '1990-01-01', // Valeur par défaut
         'service_id' => $validated['service_id'] ?? null,
+        'clinic_id' => $clinicId,
         'email_verified_at' => now(),
     ];
 
@@ -428,7 +451,12 @@ public function show(User $user)
 
 public function edit(User $user)
 {
-    $services = \App\Models\Service::all();
+    $clinicId = $this->getCurrentClinicId();
+    $servicesQuery = \App\Models\Service::query();
+    if ($clinicId) {
+        $servicesQuery->where('clinic_id', $clinicId);
+    }
+    $services = $servicesQuery->get();
     return view('admin.users.edit', compact('user', 'services'));
 }
 
@@ -494,23 +522,35 @@ public function destroy(User $user)
 
 public function getDoctors()
 {
-    $doctors = User::role('Doctor', 'web')
-        ->with(['service', 'appointments'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+    $clinicId = $this->getCurrentClinicId();
+    
+    $doctorsQuery = User::role('Doctor', 'web')->with(['service', 'appointments']);
+    if ($clinicId) {
+        $doctorsQuery->where('clinic_id', $clinicId);
+    }
+    $doctors = $doctorsQuery->orderBy('created_at', 'desc')->paginate(20);
     
     // Statistiques rapides
-    $totalDoctors = User::role('Doctor', 'web')->count();
-    $activeDoctors = User::role('Doctor', 'web')->where('status', 'active')->count();
-    $newThisMonth = User::role('Doctor', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
-    $withServices = User::role('Doctor', 'web')->whereNotNull('service_id')->count();
+    $statsQuery = User::role('Doctor', 'web');
+    if ($clinicId) {
+        $statsQuery->where('clinic_id', $clinicId);
+    }
+    $totalDoctors = (clone $statsQuery)->count();
+    $activeDoctors = (clone $statsQuery)->where('status', 'active')->count();
+    $newThisMonth = (clone $statsQuery)->where('created_at', '>=', now()->startOfMonth())->count();
+    $withServices = (clone $statsQuery)->whereNotNull('service_id')->count();
     
     return view('admin.doctors.index', compact('doctors', 'totalDoctors', 'activeDoctors', 'newThisMonth', 'withServices'));
 }
 
 public function createDoctor()
 {
-    $services = \App\Models\Service::all();
+    $clinicId = $this->getCurrentClinicId();
+    $servicesQuery = \App\Models\Service::query();
+    if ($clinicId) {
+        $servicesQuery->where('clinic_id', $clinicId);
+    }
+    $services = $servicesQuery->get();
     return view('admin.doctors.create', compact('services'));
 }
 
@@ -539,6 +579,7 @@ public function storeDoctor(Request $request)
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
 
     // Créer l'utilisateur
+    $clinicId = $this->getCurrentClinicId();
     $user = User::create([
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
@@ -551,6 +592,7 @@ public function storeDoctor(Request $request)
         'biographie' => $validated['description'] ?? null,
         'adress' => '', // Champ requis
         'day_of_birth' => '1990-01-01', // Valeur par défaut
+        'clinic_id' => $clinicId,
         'email_verified_at' => now(),
     ]);
 
@@ -568,7 +610,12 @@ public function showDoctor(User $doctor)
 
 public function editDoctor(User $doctor)
 {
-    $services = \App\Models\Service::all();
+    $clinicId = $this->getCurrentClinicId();
+    $servicesQuery = \App\Models\Service::query();
+    if ($clinicId) {
+        $servicesQuery->where('clinic_id', $clinicId);
+    }
+    $services = $servicesQuery->get();
     return view('admin.doctors.edit', compact('doctor', 'services'));
 }
 
@@ -625,17 +672,25 @@ public function destroyDoctor(User $doctor)
 
 public function getPatients()
 {
-    $patients = User::role('Patient', 'web')
+    $clinicId = $this->getCurrentClinicId();
+    
+    $patientsQuery = User::role('Patient', 'web')
         ->with(['appointments', 'medicalFiles'])
-        ->withCount(['appointments', 'medicalFiles'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+        ->withCount(['appointments', 'medicalFiles']);
+    if ($clinicId) {
+        $patientsQuery->where('clinic_id', $clinicId);
+    }
+    $patients = $patientsQuery->orderBy('created_at', 'desc')->paginate(20);
     
     // Statistiques rapides
-    $totalPatients = User::role('Patient', 'web')->count();
-    $activePatients = User::role('Patient', 'web')->where('status', 'active')->count();
-    $newThisMonth = User::role('Patient', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
-    $withAppointments = User::role('Patient', 'web')->whereHas('appointments')->count();
+    $statsQuery = User::role('Patient', 'web');
+    if ($clinicId) {
+        $statsQuery->where('clinic_id', $clinicId);
+    }
+    $totalPatients = (clone $statsQuery)->count();
+    $activePatients = (clone $statsQuery)->where('status', 'active')->count();
+    $newThisMonth = (clone $statsQuery)->where('created_at', '>=', now()->startOfMonth())->count();
+    $withAppointments = (clone $statsQuery)->whereHas('appointments')->count();
     
     return view('admin.patients.index', compact('patients', 'totalPatients', 'activePatients', 'newThisMonth', 'withAppointments'));
 }
@@ -645,6 +700,12 @@ public function showMedicalFile(User $patient)
     // Vérifier que l'utilisateur est bien un patient
     if (!$patient->hasRole('Patient')) {
         abort(404, 'Patient non trouvé');
+    }
+
+    // Vérifier que le patient appartient à la clinique sélectionnée
+    $clinicId = $this->getCurrentClinicId();
+    if ($clinicId && $patient->clinic_id !== $clinicId) {
+        abort(403, 'Accès non autorisé à ce dossier médical');
     }
 
     // Charger le dossier médical du patient
@@ -771,17 +832,25 @@ public function destroyPatient(User $patient)
 
 public function getSecretaries()
 {
-    $secretaries = User::role('Secretary', 'web')
+    $clinicId = $this->getCurrentClinicId();
+    
+    $secretariesQuery = User::role('Secretary', 'web')
         ->with(['appointments'])
-        ->withCount(['appointments'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
+        ->withCount(['appointments']);
+    if ($clinicId) {
+        $secretariesQuery->where('clinic_id', $clinicId);
+    }
+    $secretaries = $secretariesQuery->orderBy('created_at', 'desc')->paginate(20);
     
     // Statistiques rapides
-    $totalSecretaries = User::role('Secretary', 'web')->count();
-    $activeSecretaries = User::role('Secretary', 'web')->where('status', 'active')->count();
-    $newThisMonth = User::role('Secretary', 'web')->where('created_at', '>=', now()->startOfMonth())->count();
-    $withAppointments = User::role('Secretary', 'web')->whereHas('appointments')->count();
+    $statsQuery = User::role('Secretary', 'web');
+    if ($clinicId) {
+        $statsQuery->where('clinic_id', $clinicId);
+    }
+    $totalSecretaries = (clone $statsQuery)->count();
+    $activeSecretaries = (clone $statsQuery)->where('status', 'active')->count();
+    $newThisMonth = (clone $statsQuery)->where('created_at', '>=', now()->startOfMonth())->count();
+    $withAppointments = (clone $statsQuery)->whereHas('appointments')->count();
     
     return view('admin.secretaries.index', compact('secretaries', 'totalSecretaries', 'activeSecretaries', 'newThisMonth', 'withAppointments'));
 }
@@ -871,12 +940,14 @@ public function storeSecretary(Request $request)
     
     $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
     
+    $clinicId = $this->getCurrentClinicId();
     $userData = [
         'first_name' => $validated['first_name'],
         'last_name' => $validated['last_name'],
         'email' => $validated['email'],
         'phone_number' => $validated['phone'] ?? null,
         'password' => Hash::make($validated['password']),
+        'clinic_id' => $clinicId,
         'email_verified_at' => now(),
     ];
     

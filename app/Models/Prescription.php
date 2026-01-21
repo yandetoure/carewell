@@ -13,8 +13,14 @@ class Prescription extends Model
         'name',
         'quantity',
         'price',
-        'service_id'
+        'service_id',
+        'clinic_id',
     ];
+
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class);
+    }
     
     public function service(){
         return $this->belongsTo(Service::class);
