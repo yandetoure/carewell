@@ -53,59 +53,59 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $isSuperAdmin = $user->hasRole('Super Admin');
-        
+
         // Pour le Super Admin, utiliser la clinique sélectionnée en session
         $selectedClinicId = $isSuperAdmin ? session('selected_clinic_id') : null;
         $currentClinicId = $isSuperAdmin && $selectedClinicId ? $selectedClinicId : ($isSuperAdmin ? null : $user->clinic_id);
-        
+
         // Construire les requêtes avec ou sans filtre de clinique
         $usersQuery = $currentClinicId ? User::where('clinic_id', $currentClinicId) : User::query();
         $appointmentsQuery = $currentClinicId ? Appointment::where('clinic_id', $currentClinicId) : Appointment::query();
         $servicesQuery = $currentClinicId ? Service::where('clinic_id', $currentClinicId) : Service::query();
-        
+
         // Statistiques de base
         $totalUsers = $usersQuery->count();
         $totalDoctors = (clone $usersQuery)->role('Doctor')->count();
         $totalPatients = (clone $usersQuery)->role('Patient')->count();
         $totalSecretaries = (clone $usersQuery)->role('Secretary')->count();
         $totalAppointments = $appointmentsQuery->count();
-        $totalPrescriptions = $isSuperAdmin 
-            ? Ordonnance::count() 
-            : Ordonnance::whereHas('medecin', function($q) use ($user) {
+        $totalPrescriptions = $isSuperAdmin
+            ? Ordonnance::count()
+            : Ordonnance::whereHas('medecin', function ($q) use ($user) {
                 $q->where('clinic_id', $user->clinic_id);
             })->count();
-        
+
         // Revenus du mois
         $revenueQuery = Appointment::query()
             ->whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
             ->where('appointments.status', 'confirmed');
-        
+
         // Ajouter le filtre de clinique si nécessaire
         if ($currentClinicId) {
             $revenueQuery->where('appointments.clinic_id', $currentClinicId);
         }
-        
+
         $revenueQuery->join('services', 'appointments.service_id', '=', 'services.id');
         $totalRevenue = (float) ($revenueQuery->sum('services.price') ?? 0);
-        
+
         // Gestion des lits
-        $bedsQuery = $currentClinicId 
+        $bedsQuery = $currentClinicId
             ? \App\Models\Bed::where('clinic_id', $currentClinicId)
             : \App\Models\Bed::query();
         $totalBeds = $bedsQuery->count();
         $occupiedBeds = (clone $bedsQuery)->where('status', 'occupe')->count();
         $availableBeds = $totalBeds - $occupiedBeds;
-        
+
         // Médicaments en rupture de stock (pas de filtre par clinique pour les médicaments)
         $lowStockMedicines = Medicament::where('disponible', false)->count();
-        
+
         // Taux de croissance mensuel
         $lastMonthUsers = (clone $usersQuery)
             ->whereMonth('users.created_at', now()->subMonth()->month)
             ->whereYear('users.created_at', now()->subMonth()->year)
             ->count();
-        $growthRate = $lastMonthUsers > 0 ? 
+        $growthRate = $lastMonthUsers > 0 ?
             round((($totalUsers - $lastMonthUsers) / $lastMonthUsers) * 100, 1) : 0;
 
         $data = [
@@ -127,7 +127,7 @@ class DashboardController extends Controller
             'isSuperAdmin' => $isSuperAdmin,
             'selectedClinicId' => $selectedClinicId,
             'selectedClinic' => $selectedClinicId ? \App\Models\Clinic::find($selectedClinicId) : null,
-            'pendingAppointments' => $currentClinicId 
+            'pendingAppointments' => $currentClinicId
                 ? Appointment::where('status', 'pending')->where('clinic_id', $currentClinicId)->count()
                 : Appointment::where('status', 'pending')->count(),
             'recentActivity' => $this->getRecentActivity(),
@@ -142,7 +142,7 @@ class DashboardController extends Controller
         $isSuperAdmin = $user->hasRole('Super Admin');
         $selectedClinicId = $isSuperAdmin ? session('selected_clinic_id') : null;
         $currentClinicId = $isSuperAdmin && $selectedClinicId ? $selectedClinicId : ($isSuperAdmin ? null : $user->clinic_id);
-        
+
         // Statistiques comptables
         $monthlyRevenueQuery = Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year)
@@ -152,30 +152,136 @@ class DashboardController extends Controller
         }
         $monthlyRevenue = (float) ($monthlyRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
-        
+
         $totalRevenueQuery = Appointment::where('appointments.status', 'confirmed');
         if ($currentClinicId) {
             $totalRevenueQuery->where('appointments.clinic_id', $currentClinicId);
         }
         $totalRevenue = (float) ($totalRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
-        
+
         $pendingPaymentsQuery = Appointment::where('appointments.status', 'pending');
         if ($currentClinicId) {
             $pendingPaymentsQuery->where('appointments.clinic_id', $currentClinicId);
         }
         $pendingPayments = (float) ($pendingPaymentsQuery->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
-        
+
         $monthlyAppointmentsQuery = Appointment::whereMonth('appointments.created_at', now()->month)
             ->whereYear('appointments.created_at', now()->year);
         if ($currentClinicId) {
             $monthlyAppointmentsQuery->where('appointments.clinic_id', $currentClinicId);
         }
         $monthlyAppointments = $monthlyAppointmentsQuery->count();
-        
+
         return view('admin.accounting.index', compact('monthlyRevenue', 'totalRevenue', 'pendingPayments', 'monthlyAppointments'));
     }
+
+    public function generateInvoice(Request $request)
+    {
+        $user = Auth::user();
+        $clinicId = $this->getCurrentClinicId();
+
+        // Get data for invoice
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->where('status', 'confirmed')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year);
+
+        if ($clinicId) {
+            $appointments->where('clinic_id', $clinicId);
+        }
+
+        $appointments = $appointments->get();
+        $total = $appointments->sum(function ($apt) {
+            return $apt->service->price ?? 0; });
+
+        $pdf = \PDF::loadView('admin.accounting.invoice-pdf', [
+            'appointments' => $appointments,
+            'total' => $total,
+            'month' => now()->format('F Y'),
+            'clinic' => $clinicId ? \App\Models\Clinic::find($clinicId) : null
+        ]);
+
+        return $pdf->download('facture-' . now()->format('Y-m') . '.pdf');
+    }
+
+    public function exportFinancialData()
+    {
+        $clinicId = $this->getCurrentClinicId();
+
+        return \Excel::download(new \App\Exports\FinancialDataExport($clinicId), 'donnees-financieres-' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function generateFinancialReport()
+    {
+        $user = Auth::user();
+        $clinicId = $this->getCurrentClinicId();
+
+        // Get comprehensive financial data
+        $monthlyRevenueQuery = Appointment::whereMonth('appointments.created_at', now()->month)
+            ->whereYear('appointments.created_at', now()->year)
+            ->where('appointments.status', 'confirmed');
+        if ($clinicId) {
+            $monthlyRevenueQuery->where('appointments.clinic_id', $clinicId);
+        }
+        $monthlyRevenue = (float) ($monthlyRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price') ?? 0);
+
+        $totalRevenueQuery = Appointment::where('appointments.status', 'confirmed');
+        if ($clinicId) {
+            $totalRevenueQuery->where('appointments.clinic_id', $clinicId);
+        }
+        $totalRevenue = (float) ($totalRevenueQuery->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price') ?? 0);
+
+        $appointmentsQuery = Appointment::with(['service']);
+        if ($clinicId) {
+            $appointmentsQuery->where('clinic_id', $clinicId);
+        }
+        $appointments = $appointmentsQuery->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->get();
+
+        // Get additional data for comprehensive report
+        $months = collect(range(0, 11))->map(function($i) { return now()->subMonths($i); })->reverse();
+        $monthlyData = $months->map(function($date) use ($clinicId) {
+            $query = Appointment::whereMonth('appointments.created_at', $date->month)->whereYear('appointments.created_at', $date->year);
+            if ($clinicId) $query->where('appointments.clinic_id', $clinicId);
+            $appointments = $query->count();
+            
+            $revenueQuery = Appointment::whereMonth('appointments.created_at', $date->month)->whereYear('appointments.created_at', $date->year)->where('appointments.status', 'confirmed')->join('services', 'appointments.service_id', '=', 'services.id');
+            if ($clinicId) $revenueQuery->where('appointments.clinic_id', $clinicId);
+            $revenue = (float) ($revenueQuery->sum('services.price') ?? 0);
+            
+            return ['month' => $date->format('M Y'), 'appointments' => $appointments, 'revenue' => $revenue];
+        });
+        
+        $servicesQuery = Appointment::join('services', 'appointments.service_id', '=', 'services.id')->select('services.name', DB::raw('count(*) as count'))->groupBy('services.name')->orderByDesc('count');
+        if ($clinicId) $servicesQuery->where('appointments.clinic_id', $clinicId);
+        $topServices = $servicesQuery->limit(10)->get();
+        
+        $statusQuery = Appointment::select('status', DB::raw('count(*) as count'))->groupBy('status');
+        if ($clinicId) $statusQuery->where('clinic_id', $clinicId);
+        $statusDistribution = $statusQuery->get();
+        
+        $patientsQuery = User::role('Patient');
+        if ($clinicId) $patientsQuery->where('clinic_id', $clinicId);
+        $totalPatients = $patientsQuery->count();
+        
+        $doctorsQuery = User::role('Doctor');
+        if ($clinicId) $doctorsQuery->where('clinic_id', $clinicId);
+        $totalDoctors = $doctorsQuery->count();
+        
+        $recentAppointmentsQuery = Appointment::with(['user', 'service', 'doctor'])->orderBy('created_at', 'desc');
+        if ($clinicId) $recentAppointmentsQuery->where('clinic_id', $clinicId);
+        $recentAppointments = $recentAppointmentsQuery->limit(10)->get();
+        
+        $clinic = $clinicId ? \App\Models\Clinic::find($clinicId) : null;
+        
+        return view('admin.accounting.financial-report', compact('clinic', 'monthlyRevenue', 'totalRevenue', 'monthlyData', 'topServices', 'statusDistribution', 'totalPatients', 'totalDoctors', 'recentAppointments'));
+    }
+
 
     public function bedsManagement()
     {
@@ -185,7 +291,7 @@ class DashboardController extends Controller
             ->whereDate('appointments.appointment_date', now()->toDateString())
             ->count();
         $availableBeds = $totalBeds - $occupiedBeds;
-        
+
         $beds = collect(range(1, $totalBeds))->map(function ($bedNumber) use ($occupiedBeds) {
             return [
                 'number' => $bedNumber,
@@ -193,7 +299,7 @@ class DashboardController extends Controller
                 'patient' => $bedNumber <= $occupiedBeds ? 'Patient ' . $bedNumber : null,
             ];
         });
-        
+
         return view('admin.beds.index', compact('beds', 'totalBeds', 'occupiedBeds', 'availableBeds'));
     }
 
@@ -203,22 +309,22 @@ class DashboardController extends Controller
         // Afficher les médicaments partagés (clinic_id null) + les médicaments de la clinique
         $medicamentsQuery = Medicament::query();
         if ($clinicId) {
-            $medicamentsQuery->where(function($q) use ($clinicId) {
+            $medicamentsQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $medicaments = $medicamentsQuery->orderBy('nom')->paginate(20);
-        
+
         $statsQuery = Medicament::query();
         if ($clinicId) {
-            $statsQuery->where(function($q) use ($clinicId) {
+            $statsQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $totalMedicaments = (clone $statsQuery)->count();
         $availableMedicaments = (clone $statsQuery)->where('disponible', true)->count();
         $lowStockMedicines = (clone $statsQuery)->where('disponible', false)->count();
-        
+
         return view('admin.pharmacy.index', compact('medicaments', 'totalMedicaments', 'availableMedicaments', 'lowStockMedicines'));
     }
 
@@ -228,55 +334,55 @@ class DashboardController extends Controller
         // Afficher les prescriptions partagées (clinic_id null) + les prescriptions de la clinique
         $prescriptionsQuery = \App\Models\Prescription::with('service');
         if ($clinicId) {
-            $prescriptionsQuery->where(function($q) use ($clinicId) {
+            $prescriptionsQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $prescriptions = $prescriptionsQuery->orderBy('name')->paginate(20);
-        
+
         $statsQuery = \App\Models\Prescription::query();
         if ($clinicId) {
-            $statsQuery->where(function($q) use ($clinicId) {
+            $statsQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $totalPrescriptions = $statsQuery->count();
-        
+
         $servicesQuery = \App\Models\Service::query();
         if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
+            $servicesQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $totalServices = $servicesQuery->count();
-        
+
         // Regrouper par service
         $prescriptionsByServiceQuery = \App\Models\Prescription::with('service');
         if ($clinicId) {
-            $prescriptionsByServiceQuery->where(function($q) use ($clinicId) {
+            $prescriptionsByServiceQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
         $prescriptionsByService = $prescriptionsByServiceQuery->get()->groupBy('service.name');
-        
+
         return view('admin.prescriptions.index', compact('prescriptions', 'totalPrescriptions', 'totalServices', 'prescriptionsByService'));
     }
 
     public function ordonnancesManagement()
     {
         $clinicId = $this->getCurrentClinicId();
-        
+
         $ordonnancesQuery = Ordonnance::with(['patient', 'medecin', 'medicaments']);
         if ($clinicId) {
-            $ordonnancesQuery->whereHas('medecin', function($q) use ($clinicId) {
+            $ordonnancesQuery->whereHas('medecin', function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId);
             });
         }
         $ordonnances = $ordonnancesQuery->orderBy('date_prescription', 'desc')->paginate(20);
-        
+
         $statsQuery = Ordonnance::query();
         if ($clinicId) {
-            $statsQuery->whereHas('medecin', function($q) use ($clinicId) {
+            $statsQuery->whereHas('medecin', function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId);
             });
         }
@@ -287,7 +393,7 @@ class DashboardController extends Controller
             ->whereMonth('date_prescription', now()->month)
             ->whereYear('date_prescription', now()->year)
             ->count();
-        
+
         return view('admin.ordonnances.index', compact('ordonnances', 'totalOrdonnances', 'activeOrdonnances', 'expiredOrdonnances', 'thisMonthOrdonnances'));
     }
 
@@ -297,35 +403,35 @@ class DashboardController extends Controller
 
         // Statistiques de base
         $todayAppointments = Appointment::where('doctor_id', $doctor->id)
-                ->whereDate('appointment_date', today())
+            ->whereDate('appointment_date', today())
             ->count();
-        
+
         $totalPatients = Appointment::where('doctor_id', $doctor->id)
-                ->distinct('user_id')
+            ->distinct('user_id')
             ->count();
-        
+
         $pendingAppointments = Appointment::where('doctor_id', $doctor->id)
-                ->where('status', 'pending')
+            ->where('status', 'pending')
             ->count();
-        
+
         $confirmedAppointments = Appointment::where('doctor_id', $doctor->id)
             ->where('status', 'confirmed')
-                ->whereDate('appointment_date', today())
+            ->whereDate('appointment_date', today())
             ->count();
-        
+
         // Statistiques hebdomadaires
         $weekStart = now()->startOfWeek();
         $weekEnd = now()->endOfWeek();
         $weekAppointments = Appointment::where('doctor_id', $doctor->id)
             ->whereBetween('appointment_date', [$weekStart, $weekEnd])
             ->count();
-        
+
         // Statistiques mensuelles
         $monthAppointments = Appointment::where('doctor_id', $doctor->id)
             ->whereMonth('appointment_date', now()->month)
             ->whereYear('appointment_date', now()->year)
             ->count();
-        
+
         // Revenus du mois pour le docteur
         $monthlyRevenue = (float) (Appointment::where('doctor_id', $doctor->id)
             ->whereMonth('appointment_date', now()->month)
@@ -333,26 +439,26 @@ class DashboardController extends Controller
             ->where('status', 'confirmed')
             ->join('services', 'appointments.service_id', '=', 'services.id')
             ->sum('services.price') ?? 0);
-        
+
         // Prescriptions et examens
         $totalPrescriptions = \App\Models\Ordonnance::where('medecin_id', $doctor->id)->count();
         $totalExams = \App\Models\Exam::count(); // Tous les examens disponibles
-        
+
         // Patients avec consultations récentes
-        $recentPatients = User::whereHas('appointments', function($query) use ($doctor) {
-                $query->where('doctor_id', $doctor->id);
-            })
+        $recentPatients = User::whereHas('appointments', function ($query) use ($doctor) {
+            $query->where('doctor_id', $doctor->id);
+        })
             ->latest()
             ->take(5)
             ->get();
-        
+
         // Rendez-vous d'aujourd'hui avec plus de détails
         $todayAppointmentsList = Appointment::where('doctor_id', $doctor->id)
             ->whereDate('appointment_date', today())
             ->with(['user', 'service'])
             ->orderBy('appointment_time')
             ->get();
-        
+
         // Prochains rendez-vous (pas seulement aujourd'hui)
         $upcomingAppointments = Appointment::where('doctor_id', $doctor->id)
             ->whereDate('appointment_date', '>=', today())
@@ -362,7 +468,7 @@ class DashboardController extends Controller
             ->orderBy('appointment_time')
             ->take(5)
             ->get();
-        
+
         // Graphiques - données pour les 7 derniers jours
         $chartData = [];
         for ($i = 6; $i >= 0; $i--) {
@@ -376,7 +482,7 @@ class DashboardController extends Controller
                 'count' => $count
             ];
         }
-        
+
         // Répartition par service
         $servicesDistribution = Appointment::where('doctor_id', $doctor->id)
             ->whereMonth('appointment_date', now()->month)
@@ -385,13 +491,13 @@ class DashboardController extends Controller
             ->select('services.name', DB::raw('count(*) as count'))
             ->groupBy('services.name')
             ->get();
-        
+
         // Notifications et alertes
         $urgentAppointments = Appointment::where('doctor_id', $doctor->id)
             ->where('status', 'pending')
             ->whereDate('appointment_date', '<=', now()->addDays(1))
             ->count();
-        
+
         $overdueAppointments = Appointment::where('doctor_id', $doctor->id)
             ->where('status', 'pending')
             ->whereDate('appointment_date', '<', today())
@@ -510,7 +616,115 @@ class DashboardController extends Controller
     // Méthodes pour les dashboards spécifiques
     public function adminStatistics()
     {
-        return view('admin.statistics');
+        $clinicId = $this->getCurrentClinicId();
+
+        // 1. Evolution de l'activité (Rendez-vous et Revenus sur les 12 derniers mois)
+        $months = collect(range(0, 11))->map(function ($i) {
+            return now()->subMonths($i);
+        })->reverse();
+
+        $activityLabels = $months->map(fn($date) => $date->format('M Y'))->values();
+
+        $appointmentsData = $months->map(function ($date) use ($clinicId) {
+            $query = Appointment::whereMonth('created_at', $date->month)
+                ->whereYear('created_at', $date->year);
+            if ($clinicId) {
+                $query->where('clinic_id', $clinicId);
+            }
+            return $query->count();
+        })->values();
+
+        $revenueData = $months->map(function ($date) use ($clinicId) {
+            $query = Appointment::where('status', 'confirmed')
+                ->whereMonth('appointments.created_at', $date->month)
+                ->whereYear('appointments.created_at', $date->year)
+                ->join('services', 'appointments.service_id', '=', 'services.id');
+            if ($clinicId) {
+                $query->where('appointments.clinic_id', $clinicId);
+            }
+            return $query->sum('services.price');
+        })->values();
+
+        // 2. Répartition des statuts de rendez-vous
+        $statusQuery = Appointment::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status');
+        if ($clinicId) {
+            $statusQuery->where('clinic_id', $clinicId);
+        }
+        $statusStats = $statusQuery->pluck('count', 'status');
+        $statusLabels = $statusStats->keys()->map(fn($s) => ucfirst($s));
+        $statusData = $statusStats->values();
+
+        // 3. Démographie des patients (Tranches d'âge)
+        $usersQuery = User::role('Patient');
+        if ($clinicId) {
+            $usersQuery->where('clinic_id', $clinicId);
+        }
+        $patients = $usersQuery->get();
+
+        $ageGroups = [
+            '0-18' => 0,
+            '19-30' => 0,
+            '31-50' => 0,
+            '51-70' => 0,
+            '70+' => 0
+        ];
+
+        foreach ($patients as $patient) {
+            $age = $patient->day_of_birth ? \Carbon\Carbon::parse($patient->day_of_birth)->age : null;
+            if ($age !== null) {
+                if ($age <= 18)
+                    $ageGroups['0-18']++;
+                elseif ($age <= 30)
+                    $ageGroups['19-30']++;
+                elseif ($age <= 50)
+                    $ageGroups['31-50']++;
+                elseif ($age <= 70)
+                    $ageGroups['51-70']++;
+                else
+                    $ageGroups['70+']++;
+            }
+        }
+
+        $demographicsLabels = array_keys($ageGroups);
+        $demographicsData = array_values($ageGroups);
+
+        // 4. Top 5 des services les plus demandés
+        $servicesQuery = Appointment::join('services', 'appointments.service_id', '=', 'services.id')
+            ->select('services.name', DB::raw('count(*) as count'))
+            ->groupBy('services.name')
+            ->orderByDesc('count')
+            ->limit(5);
+        if ($clinicId) {
+            $servicesQuery->where('appointments.clinic_id', $clinicId);
+        }
+        $topServices = $servicesQuery->get();
+        $servicesLabels = $topServices->pluck('name');
+        $servicesData = $topServices->pluck('count');
+
+        // Statistiques globales pour les cartes
+        $totalAppointments = $clinicId ? Appointment::where('clinic_id', $clinicId)->count() : Appointment::count();
+        $totalRevenue = $clinicId
+            ? Appointment::where('appointments.clinic_id', $clinicId)->where('status', 'confirmed')->join('services', 'appointments.service_id', '=', 'services.id')->sum('services.price')
+            : Appointment::where('status', 'confirmed')->join('services', 'appointments.service_id', '=', 'services.id')->sum('services.price');
+        $totalPatients = $clinicId ? User::role('Patient')->where('clinic_id', $clinicId)->count() : User::role('Patient')->count();
+        $totalDoctors = $clinicId ? User::role('Doctor')->where('clinic_id', $clinicId)->count() : User::role('Doctor')->count();
+
+        return view('admin.statistics', compact(
+            'activityLabels',
+            'appointmentsData',
+            'revenueData',
+            'statusLabels',
+            'statusData',
+            'demographicsLabels',
+            'demographicsData',
+            'servicesLabels',
+            'servicesData',
+            'totalAppointments',
+            'totalRevenue',
+            'totalPatients',
+            'totalDoctors'
+        ));
     }
 
     public function adminSettings()
@@ -601,23 +815,25 @@ class DashboardController extends Controller
     public function secretaryPatients()
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
         // Récupérer tous les patients (pas seulement ceux avec des RDV)
         $patients = User::role('Patient')
-            ->with(['appointments' => function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id)
-                      ->orderBy('appointment_date', 'desc');
-            }])
+            ->with([
+                'appointments' => function ($query) use ($secretary) {
+                    $query->where('service_id', $secretary->service_id)
+                        ->orderBy('appointment_date', 'desc');
+                }
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
         // Statistiques
         $patientsWithAppointments = User::role('Patient')
-            ->whereHas('appointments', function($query) use ($secretary) {
+            ->whereHas('appointments', function ($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);
             })
             ->count();
@@ -635,51 +851,51 @@ class DashboardController extends Controller
     public function secretaryHospitalizedPatients()
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
         // Récupérer les patients hospitalisés du service du secrétaire
         $hospitalizedPatients = \App\Models\BedAdmission::with([
-            'patient', 
-            'medicalFile', 
-            'bed', 
-            'admittedByUser', 
+            'patient',
+            'medicalFile',
+            'bed',
+            'admittedByUser',
             'dischargedByUser'
         ])
-        ->whereHas('patient.appointments', function($query) use ($secretary) {
-            $query->where('service_id', $secretary->service_id);
-        })
-        ->active() // Seulement les admissions actives (non sorties)
-        ->orderBy('admission_date', 'desc')
-        ->paginate(20);
-
-        // Statistiques
-        $totalHospitalized = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
+            ->whereHas('patient.appointments', function ($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);
             })
+            ->active() // Seulement les admissions actives (non sorties)
+            ->orderBy('admission_date', 'desc')
+            ->paginate(20);
+
+        // Statistiques
+        $totalHospitalized = \App\Models\BedAdmission::whereHas('patient.appointments', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })
             ->active()
             ->count();
 
-        $recentAdmissions = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })
+        $recentAdmissions = \App\Models\BedAdmission::whereHas('patient.appointments', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })
             ->where('admission_date', '>=', now()->subDays(7))
             ->active()
             ->count();
 
-        $averageStay = \App\Models\BedAdmission::whereHas('patient.appointments', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })
+        $averageStay = \App\Models\BedAdmission::whereHas('patient.appointments', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })
             ->active()
             ->get()
             ->avg('duration');
 
         return view('secretary.patients.hospitalized', compact(
-            'hospitalizedPatients', 
-            'totalHospitalized', 
-            'recentAdmissions', 
+            'hospitalizedPatients',
+            'totalHospitalized',
+            'recentAdmissions',
             'averageStay'
         ));
     }
@@ -692,29 +908,31 @@ class DashboardController extends Controller
     public function secretarySearchPatients(Request $request)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
         // Récupérer tous les patients qui ont des rendez-vous dans le service du secrétaire
         $query = User::role('Patient')
-            ->whereHas('appointments', function($query) use ($secretary) {
+            ->whereHas('appointments', function ($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);
             })
-            ->with(['appointments' => function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id)
-                      ->orderBy('appointment_date', 'desc');
-            }]);
+            ->with([
+                'appointments' => function ($query) use ($secretary) {
+                    $query->where('service_id', $secretary->service_id)
+                        ->orderBy('appointment_date', 'desc');
+                }
+            ]);
 
         // Appliquer les filtres
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone_number', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone_number', 'like', "%{$search}%");
             });
         }
 
@@ -754,7 +972,7 @@ class DashboardController extends Controller
 
         if ($request->filled('has_appointments')) {
             if ($request->has_appointments === 'yes') {
-                $query->whereHas('appointments', function($query) use ($secretary) {
+                $query->whereHas('appointments', function ($query) use ($secretary) {
                     $query->where('service_id', $secretary->service_id);
                 });
             } else {
@@ -779,7 +997,7 @@ class DashboardController extends Controller
     public function secretaryDoctors()
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
@@ -787,26 +1005,28 @@ class DashboardController extends Controller
         // Récupérer les médecins du service du secrétaire
         $doctors = User::role('Doctor')
             ->where('service_id', $secretary->service_id)
-            ->with(['appointments' => function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            }])
+            ->with([
+                'appointments' => function ($query) use ($secretary) {
+                    $query->where('service_id', $secretary->service_id);
+                }
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Statistiques
         $activeDoctors = $doctors->where('status', 'active')->count();
-        
+
         $doctorsWithAppointments = User::role('Doctor')
             ->where('service_id', $secretary->service_id)
-            ->whereHas('appointments', function($query) use ($secretary) {
+            ->whereHas('appointments', function ($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id)
-                      ->whereDate('appointment_date', now()->toDateString());
+                    ->whereDate('appointment_date', now()->toDateString());
             })
             ->count();
 
         $doctorsWithAvailability = User::role('Doctor')
             ->where('service_id', $secretary->service_id)
-            ->whereHas('availabilities', function($query) {
+            ->whereHas('availabilities', function ($query) {
                 $query->where('available_date', '>=', now()->toDateString());
             })
             ->count();
@@ -820,7 +1040,7 @@ class DashboardController extends Controller
     public function secretaryDoctorDetails($doctorId)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
@@ -895,22 +1115,22 @@ class DashboardController extends Controller
     public function secretaryBilling(Request $request)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
         // Récupérer les tickets du service du secrétaire
         $query = \App\Models\Ticket::with([
-            'appointment.service', 
-            'appointment.user', 
-            'doctor', 
-            'prescription', 
+            'appointment.service',
+            'appointment.user',
+            'doctor',
+            'prescription',
             'exam'
         ])
-        ->whereHas('appointment', function($query) use ($secretary) {
-            $query->where('service_id', $secretary->service_id);
-        });
+            ->whereHas('appointment', function ($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            });
 
         // Filtres
         if ($request->filled('status')) {
@@ -923,21 +1143,21 @@ class DashboardController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('appointment.user', function($query) use ($search) {
+            $query->whereHas('appointment.user', function ($query) use ($search) {
                 $query->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('date_from')) {
-            $query->whereHas('appointment', function($query) use ($request) {
+            $query->whereHas('appointment', function ($query) use ($request) {
                 $query->where('appointment_date', '>=', $request->date_from);
             });
         }
 
         if ($request->filled('date_to')) {
-            $query->whereHas('appointment', function($query) use ($request) {
+            $query->whereHas('appointment', function ($query) use ($request) {
                 $query->where('appointment_date', '<=', $request->date_to);
             });
         }
@@ -945,32 +1165,32 @@ class DashboardController extends Controller
         $tickets = $query->orderBy('created_at', 'desc')->paginate(20);
 
         // Statistiques
-        $totalTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })->count();
+        $totalTickets = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->count();
 
-        $paidTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })->where('is_paid', true)->count();
+        $paidTickets = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->where('is_paid', true)->count();
 
-        $unpaidTickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })->where('is_paid', false)->count();
+        $unpaidTickets = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->where('is_paid', false)->count();
 
-        $totalRevenue = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
-                $query->where('service_id', $secretary->service_id);
-            })->where('is_paid', true)
+        $totalRevenue = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
+            $query->where('service_id', $secretary->service_id);
+        })->where('is_paid', true)
             ->whereHas('appointment.service')
             ->get()
-            ->sum(function($ticket) {
+            ->sum(function ($ticket) {
                 return $ticket->appointment->service->price ?? 0;
             });
 
         return view('secretary.billing', compact(
-            'tickets', 
-            'totalTickets', 
-            'paidTickets', 
-            'unpaidTickets', 
+            'tickets',
+            'totalTickets',
+            'paidTickets',
+            'unpaidTickets',
             'totalRevenue'
         ));
     }
@@ -981,23 +1201,23 @@ class DashboardController extends Controller
     public function secretaryTicketDetails($ticketId)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
         // Récupérer le ticket avec toutes ses relations
         $ticket = \App\Models\Ticket::with([
-            'appointment.service', 
-            'appointment.user', 
-            'doctor', 
-            'prescription', 
+            'appointment.service',
+            'appointment.user',
+            'doctor',
+            'prescription',
             'exam'
         ])
-        ->whereHas('appointment', function($query) use ($secretary) {
-            $query->where('service_id', $secretary->service_id);
-        })
-        ->findOrFail($ticketId);
+            ->whereHas('appointment', function ($query) use ($secretary) {
+                $query->where('service_id', $secretary->service_id);
+            })
+            ->findOrFail($ticketId);
 
         return response()->json([
             'success' => true,
@@ -1011,7 +1231,7 @@ class DashboardController extends Controller
     public function updateTicketStatus(Request $request, $ticketId)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
@@ -1021,7 +1241,7 @@ class DashboardController extends Controller
         ]);
 
         // Vérifier que le ticket appartient au service du secrétaire
-        $ticket = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+        $ticket = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
             $query->where('service_id', $secretary->service_id);
         })->findOrFail($ticketId);
 
@@ -1042,7 +1262,7 @@ class DashboardController extends Controller
     public function updateMultipleTicketStatus(Request $request)
     {
         $secretary = Auth::user();
-        
+
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
@@ -1054,7 +1274,7 @@ class DashboardController extends Controller
         ]);
 
         // Vérifier que tous les tickets appartiennent au service du secrétaire
-        $tickets = \App\Models\Ticket::whereHas('appointment', function($query) use ($secretary) {
+        $tickets = \App\Models\Ticket::whereHas('appointment', function ($query) use ($secretary) {
             $query->where('service_id', $secretary->service_id);
         })->whereIn('id', $request->ticket_ids)->get();
 
@@ -1071,8 +1291,8 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $request->is_paid ? 
-                count($request->ticket_ids) . ' ticket(s) marqué(s) comme payé(s)' : 
+            'message' => $request->is_paid ?
+                count($request->ticket_ids) . ' ticket(s) marqué(s) comme payé(s)' :
                 count($request->ticket_ids) . ' ticket(s) marqué(s) comme non payé(s)',
             'updated_count' => count($request->ticket_ids)
         ]);
@@ -1120,7 +1340,7 @@ class DashboardController extends Controller
         if ($clinicId && $medicament->clinic_id && $medicament->clinic_id !== $clinicId) {
             abort(403, 'Vous ne pouvez modifier que les médicaments de votre clinique ou les médicaments partagés.');
         }
-        
+
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'categorie' => 'required|string|max:100',
@@ -1131,9 +1351,9 @@ class DashboardController extends Controller
             'date_expiration' => 'nullable|date',
             'disponible' => 'required|boolean',
         ]);
-        
+
         $medicament->update($validated);
-        
+
         return redirect()->route('admin.pharmacy.show', $medicament)->with('success', 'Médicament mis à jour avec succès.');
     }
 
@@ -1148,13 +1368,13 @@ class DashboardController extends Controller
             'prix_unitaire' => 'required|numeric|min:0',
             'date_expiration' => 'nullable|date',
         ]);
-        
+
         $validated['disponible'] = $validated['quantite_stock'] > 0;
         $clinicId = $this->getCurrentClinicId();
         $validated['clinic_id'] = $clinicId;
-        
+
         $medicament = \App\Models\Medicament::create($validated);
-        
+
         return redirect()->route('admin.pharmacy')->with('success', 'Médicament créé avec succès.');
     }
 
@@ -1167,7 +1387,7 @@ class DashboardController extends Controller
             abort(403, 'Vous ne pouvez supprimer que les médicaments de votre clinique ou les médicaments partagés.');
         }
         $medicament->delete();
-        
+
         return redirect()->route('admin.pharmacy')->with('success', 'Médicament supprimé avec succès.');
     }
 
@@ -1183,7 +1403,7 @@ class DashboardController extends Controller
             'service' => 'Service général',
             'type' => 'Standard',
         ];
-        
+
         return view('admin.beds.show', compact('bed'));
     }
 
@@ -1197,7 +1417,7 @@ class DashboardController extends Controller
             'service' => 'Service général',
             'type' => 'Standard',
         ];
-        
+
         return view('admin.beds.edit', compact('bed'));
     }
 
@@ -1235,10 +1455,10 @@ class DashboardController extends Controller
         if ($clinicId && $prescription->clinic_id && $prescription->clinic_id !== $clinicId) {
             abort(403, 'Vous ne pouvez modifier que les prescriptions de votre clinique ou les prescriptions partagées.');
         }
-        
+
         $servicesQuery = \App\Models\Service::query();
         if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
+            $servicesQuery->where(function ($q) use ($clinicId) {
                 $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
             });
         }
@@ -1254,16 +1474,16 @@ class DashboardController extends Controller
         if ($clinicId && $prescription->clinic_id && $prescription->clinic_id !== $clinicId) {
             abort(403, 'Vous ne pouvez modifier que les prescriptions de votre clinique ou les prescriptions partagées.');
         }
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'service_id' => 'required|exists:services,id',
         ]);
-        
+
         $prescription->update($validated);
-        
+
         return redirect()->route('admin.prescriptions')->with('success', 'Prescription mise à jour avec succès.');
     }
 
@@ -1275,12 +1495,12 @@ class DashboardController extends Controller
             'price' => 'required|numeric|min:0',
             'service_id' => 'required|exists:services,id',
         ]);
-        
+
         $clinicId = $this->getCurrentClinicId();
         $validated['clinic_id'] = $clinicId;
-        
+
         \App\Models\Prescription::create($validated);
-        
+
         return redirect()->route('admin.prescriptions')->with('success', 'Prescription créée avec succès.');
     }
 
@@ -1293,7 +1513,7 @@ class DashboardController extends Controller
             abort(403, 'Vous ne pouvez supprimer que les prescriptions de votre clinique ou les prescriptions partagées.');
         }
         $prescription->delete();
-        
+
         return redirect()->route('admin.prescriptions')->with('success', 'Prescription supprimée avec succès.');
     }
 
@@ -1314,7 +1534,7 @@ class DashboardController extends Controller
     public function updateOrdonnance(Request $request, $id)
     {
         $ordonnance = \App\Models\Ordonnance::findOrFail($id);
-        
+
         $validated = $request->validate([
             'numero_ordonnance' => 'required|string|max:255',
             'date_prescription' => 'required|date',
@@ -1324,7 +1544,7 @@ class DashboardController extends Controller
             'instructions' => 'nullable|string',
             'medicaments' => 'required|array',
         ]);
-        
+
         $ordonnance->update([
             'numero_ordonnance' => $validated['numero_ordonnance'],
             'date_prescription' => $validated['date_prescription'],
@@ -1333,7 +1553,7 @@ class DashboardController extends Controller
             'statut' => $validated['statut'],
             'instructions' => $validated['instructions'] ?? null,
         ]);
-        
+
         // Mise à jour des médicaments
         $medicaments = [];
         foreach ($validated['medicaments'] as $medicamentId) {
@@ -1344,7 +1564,7 @@ class DashboardController extends Controller
             ];
         }
         $ordonnance->medicaments()->sync($medicaments);
-        
+
         return redirect()->route('admin.ordonnances.show', $ordonnance)->with('success', 'Ordonnance mise à jour avec succès.');
     }
 
@@ -1358,10 +1578,10 @@ class DashboardController extends Controller
             'instructions' => 'nullable|string',
             'medicaments' => 'required|array',
         ]);
-        
+
         // Générer un numéro d'ordonnance unique
         $numeroOrdonnance = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6));
-        
+
         $ordonnance = \App\Models\Ordonnance::create([
             'numero_ordonnance' => $numeroOrdonnance,
             'date_prescription' => $validated['date_prescription'],
@@ -1373,10 +1593,10 @@ class DashboardController extends Controller
             'statut' => $validated['statut'],
             'instructions' => $validated['instructions'] ?? null,
         ]);
-        
+
         // Attacher les médicaments
         $ordonnance->medicaments()->attach($validated['medicaments']);
-        
+
         return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance créée avec succès.');
     }
 
@@ -1385,7 +1605,7 @@ class DashboardController extends Controller
         $ordonnance = \App\Models\Ordonnance::findOrFail($id);
         $ordonnance->medicaments()->detach();
         $ordonnance->delete();
-        
+
         return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance supprimée avec succès.');
     }
 }
