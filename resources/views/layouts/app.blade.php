@@ -1,405 +1,103 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'CareWell - Plateforme de Santé')</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
+    <!-- Tailwind CSS (via Vite) -->
     @vite(['resources/css/app.css'])
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #1e40af;
-            --accent-color: #3b82f6;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --light-color: #f8fafc;
-            --dark-color: #1e293b;
-            --text-color: #334155;
-            --border-color: #e2e8f0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: var(--light-color);
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 1rem 0;
-            transition: all 0.3s ease;
-        }
-
-        .navbar.scrolled {
-            padding: 0.5rem 0;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.75rem;
-            color: white !important;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .navbar-brand:hover {
-            transform: scale(1.05);
-        }
-
-        .navbar-brand img {
-            height: 45px;
-            width: auto;
-            margin-right: 0.75rem;
-            transition: all 0.3s ease;
-        }
-
-        .navbar-brand:hover img {
-            transform: scale(1.1);
-        }
-
-        .navbar.scrolled .navbar-brand img {
-            height: 35px;
-        }
-
-        .nav-link {
-            color: rgba(255, 255, 255, 0.95) !important;
-            font-weight: 500;
-            padding: 0.5rem 1rem !important;
-            margin: 0 0.25rem;
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .nav-link::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            transition: left 0.3s ease;
-            z-index: -1;
-        }
-
-        .nav-link:hover::before {
-            left: 0;
-        }
-
-        .nav-link:hover {
-            color: white !important;
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white !important;
-            font-weight: 600;
-        }
-
-        .navbar-toggler {
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-        }
-
-        .navbar-toggler:focus {
-            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
-        }
-
-        .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-        }
-
-        .dropdown-menu {
-            border: none;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            border-radius: 0.75rem;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .dropdown-item {
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
-            transition: all 0.2s ease;
-            margin-bottom: 0.25rem;
-        }
-
-        .dropdown-item:hover {
-            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .dropdown-item i {
-            width: 20px;
-            text-align: center;
-        }
-
-        .btn-register {
-            background: white !important;
-            color: var(--primary-color) !important;
-            border: 2px solid white;
-            padding: 0.5rem 1.25rem !important;
-            font-weight: 600;
-            border-radius: 0.5rem;
-            margin-left: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn-register:hover {
-            background: rgba(255, 255, 255, 0.9) !important;
-            color: var(--secondary-color) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-        }
-
-        .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 5rem 0;
-        }
-
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--dark-color);
-        }
-
-        .section-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-color);
-            margin-bottom: 3rem;
-        }
-
-        .footer {
-            background: var(--dark-color);
-            color: white;
-            padding: 3rem 0 1rem;
-        }
-
-        .footer h5 {
-            color: var(--accent-color);
-            margin-bottom: 1rem;
-        }
-
-        .footer a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .footer a:hover {
-            color: var(--accent-color);
-        }
-
-        .social-links a {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            background: var(--accent-color);
-            color: white;
-            text-align: center;
-            line-height: 40px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .social-links a:hover {
-            background: var(--primary-color);
-            transform: translateY(-3px);
-        }
-
-        .user-avatar-nav {
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .user-avatar-nav img {
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .user-avatar-nav:hover img {
-            border-color: white;
-            transform: scale(1.1);
-        }
-
-        @media (max-width: 768px) {
-            .section-title {
-                font-size: 2rem;
-            }
-
-            .hero-section {
-                padding: 3rem 0;
-            }
-
-            .navbar-brand {
-                font-size: 1.5rem;
-            }
-
-            .navbar-brand img {
-                height: 35px !important;
-            }
-
-            .navbar.scrolled .navbar-brand img {
-                height: 30px !important;
-            }
-
-            .nav-link {
-                padding: 0.75rem 1rem !important;
-                margin: 0.25rem 0;
-            }
-
-            .navbar-nav {
-                padding: 1rem 0;
-            }
-        }
-
-        /* Animation au scroll */
-        @media (min-width: 992px) {
-            .navbar {
-                transition: padding 0.3s ease, box-shadow 0.3s ease;
-            }
-        }
-    </style>
-
     @yield('styles')
 </head>
-<body>
+<body class="font-['Inter',sans-serif] leading-relaxed text-slate-700 bg-slate-50 flex flex-col min-h-screen antialiased">
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand" href="{{ route('home') }}">
-                <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" class="logo-img">
-                <span>CareWell</span>
+    <nav id="navbar" class="sticky top-0 z-50 py-4 transition-all duration-500 bg-nav-gradient shadow-xl backdrop-blur-md border-b border-white/10">
+        <div class="container mx-auto px-4 max-w-[1320px] flex flex-wrap items-center justify-between">
+            <a href="{{ route('home') }}" class="font-bold text-2xl text-white flex items-center transition-all duration-300 hover:scale-[1.02] no-underline group">
+                <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" id="brand-img" class="h-10 w-auto mr-3 transition-all duration-300 group-hover:rotate-3 object-contain">
+                <span class="tracking-tight">CareWell</span>
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            <button type="button" id="mobile-menu-btn" class="lg:hidden border border-white/20 rounded-xl p-2.5 hover:bg-white/10 transition-colors focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-white">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
             </button>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('home') }}">Accueil</a>
+            <div id="mobile-menu" class="hidden w-full lg:flex lg:items-center lg:w-auto mt-4 lg:mt-0">
+                <ul class="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2 lg:ml-auto list-none p-0 m-0">
+                    @php
+                        $navItems = [
+                            ['route' => 'home', 'label' => 'Accueil'],
+                            ['route' => 'services', 'label' => 'Services'],
+                            ['route' => 'articles', 'label' => 'Articles'],
+                            ['route' => 'about', 'label' => 'À propos'],
+                            ['route' => 'contact', 'label' => 'Contact'],
+                        ];
+                    @endphp
+
+                    @foreach($navItems as $item)
+                    <li>
+                        <a href="{{ route($item['route']) }}" 
+                           class="block px-4 py-2 rounded-xl text-white/80 font-medium transition-all duration-300 hover:text-white hover:bg-white/10 relative group {{ request()->routeIs($item['route']) ? 'text-white bg-white/10 font-bold' : '' }}">
+                            {{ $item['label'] }}
+                            <span class="absolute bottom-1.5 left-4 right-4 h-0.5 bg-emerald-400 scale-x-0 transition-transform duration-300 group-hover:scale-x-100 {{ request()->routeIs($item['route']) ? 'scale-x-100' : '' }}"></span>
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('services') }}">Services</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('articles') }}">Articles</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('about') }}">À propos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('contact') }}">Contact</a>
-                    </li>
+                    @endforeach
+
                     @guest
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('login') }}">
-                                <i class="fas fa-sign-in-alt me-1"></i>Connexion
+                        <li class="lg:ml-4 flex flex-col lg:flex-row gap-2">
+                            <a href="{{ route('login') }}" class="px-5 py-2 text-white font-medium hover:text-white/80 transition-colors text-center">
+                                Connexion
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link btn-register" href="{{ route('register') }}">
-                                <i class="fas fa-user-plus me-1"></i>Inscription
+                            <a href="{{ route('register') }}" class="px-6 py-2 bg-emerald-500 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 hover:-translate-y-0.5 transition-all text-center">
+                                Inscription
                             </a>
                         </li>
                     @else
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar-nav me-2">
+                        <li class="relative lg:ml-4">
+                            <button type="button" id="user-dropdown-btn" class="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-white/10 transition-all text-white outline-none w-full lg:w-auto">
+                                <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0">
                                     @if(Auth::user()->photo)
-                                        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Avatar" class="rounded-circle" width="32" height="32">
+                                        <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="Avatar" class="w-full h-full object-cover">
                                     @else
-                                        <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight: 600; font-size: 0.875rem;">
+                                        <div class="w-full h-full bg-blue-500 flex items-center justify-center font-bold text-sm text-white">
                                             {{ strtoupper(substr(Auth::user()->first_name, 0, 1)) }}
                                         </div>
                                     @endif
                                 </div>
-                                <span>{{ Auth::user()->first_name }}</span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('dashboard') }}">
-                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ route('profile') }}">
-                                    <i class="fas fa-user-edit me-2"></i>Profil
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ route('appointments') }}">
-                                    <i class="fas fa-calendar me-2"></i>Rendez-vous
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ route('medical-files') }}">
-                                    <i class="fas fa-file-medical me-2"></i>Dossier médical
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button type="submit" class="dropdown-item">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                                <span class="font-medium truncate max-w-[120px]">{{ Auth::user()->first_name }}</span>
+                                <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
+                            </button>
+                            <div id="user-dropdown-menu" class="hidden absolute lg:right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl p-2 z-[100] border border-gray-100 transform origin-top lg:origin-top-right transition-all">
+                                <div class="px-4 py-3 mb-2 bg-gray-50 rounded-xl">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Connecté</p>
+                                    <p class="text-xs font-bold text-slate-800 truncate mb-0">{{ Auth::user()->email }}</p>
+                                </div>
+                                <a class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all group" href="{{ route('dashboard') }}">
+                                    <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors text-blue-600"><i class="fas fa-tachometer-alt"></i></div>
+                                    <span class="font-semibold text-sm">Dashboard</span>
+                                </a>
+                                <a class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all group" href="{{ route('profile') }}">
+                                    <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors text-blue-600"><i class="fas fa-user-edit"></i></div>
+                                    <span class="font-semibold text-sm">Mon Profil</span>
+                                </a>
+                                <hr class="my-2 border-gray-100">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-red-600 hover:bg-red-50 transition-all group">
+                                        <div class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors text-red-600"><i class="fas fa-sign-out-alt"></i></div>
+                                        <span class="font-semibold text-sm text-left">Déconnexion</span>
+                                    </button>
+                                </form>
+                            </div>
                         </li>
                     @endguest
                 </ul>
@@ -408,126 +106,115 @@
     </nav>
 
     <!-- Messages Flash -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-            <i class="fas fa-check-circle me-2"></i>
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="fixed top-24 right-4 z-[100] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+    @foreach(['success' => 'bg-emerald-50 border-emerald-200 text-emerald-800 icon-check-circle', 
+              'error' => 'bg-red-50 border-red-200 text-red-800 icon-exclamation-triangle', 
+              'warning' => 'bg-amber-50 border-amber-200 text-amber-800 icon-exclamation-circle', 
+              'info' => 'bg-blue-50 border-blue-200 text-blue-800 icon-info-circle'] as $type => $style)
+        @if(session($type))
+        <div class="pointer-events-auto p-4 rounded-2xl border {{ explode(' icon-', $style)[0] }} shadow-xl flex items-start gap-3 animate-in fade-in slide-in-from-right-8 duration-500">
+            <div class="flex-shrink-0 mt-0.5"><i class="fas {{ explode(' icon-', $style)[1] }} text-lg"></i></div>
+            <div class="flex-grow text-sm font-medium">{{ session($type) }}</div>
+            <button type="button" onclick="this.parentElement.remove()" class="flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity"><i class="fas fa-times"></i></button>
         </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show m-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            {{ session('warning') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if(session('info'))
-        <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            {{ session('info') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+        @endif
+    @endforeach
+    </div>
 
     <!-- Main Content -->
-    <main>
+    <main class="flex-grow">
         @yield('content')
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="mb-3">
-                        <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" style="height: 50px; width: auto; filter: brightness(0) invert(1);">
+    <footer class="bg-slate-900 text-white pt-20 pb-10 border-t border-white/5">
+        <div class="container mx-auto px-4 max-w-[1320px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
+                <div class="lg:col-span-4">
+                    <div class="mb-8">
+                        <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" class="h-12 w-auto brightness-0 invert">
                     </div>
-                    <p>Votre plateforme de santé de confiance, connectant patients et professionnels de santé pour des soins optimaux.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    <p class="text-slate-400 mb-10 leading-relaxed max-w-sm">Votre plateforme de santé de confiance, connectant patients et professionnels de santé pour des soins optimaux, coordonnés et sécurisés.</p>
+                    <div class="flex gap-4">
+                        @foreach(['facebook-f', 'twitter', 'linkedin-in', 'instagram'] as $social)
+                        <a href="#" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center transition-all hover:bg-white hover:text-slate-900 hover:-translate-y-2 group shadow-lg">
+                            <i class="fab fa-{{ $social }} transition-transform group-hover:scale-110"></i>
+                        </a>
+                        @endforeach
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h5>Services</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Consultations</a></li>
-                        <li><a href="#">Examens</a></li>
-                        <li><a href="#">Prescriptions</a></li>
-                        <li><a href="#">Suivi médical</a></li>
+                <div class="lg:col-span-2">
+                    <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Services</h5>
+                    <ul class="space-y-4 text-slate-400">
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Consultations</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Examens</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Prescriptions</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Suivi médical</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h5>Ressources</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Articles santé</a></li>
-                        <li><a href="#">Conseils</a></li>
-                        <li><a href="#">FAQ</a></li>
-                        <li><a href="#">Support</a></li>
+                <div class="lg:col-span-2">
+                    <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Ressources</h5>
+                    <ul class="space-y-4 text-slate-400">
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Articles santé</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Conseils</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">FAQ</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">Support</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <h5>Contact</h5>
-                    <p><i class="fas fa-map-marker-alt me-2"></i>123 Rue de la Santé, 75001 Paris</p>
-                    <p><i class="fas fa-phone me-2"></i>+33 1 23 45 67 89</p>
-                    <p><i class="fas fa-envelope me-2"></i>contact@carewell.fr</p>
+                <div class="lg:col-span-4">
+                    <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Contact</h5>
+                    <div class="space-y-6 text-slate-400">
+                        <p class="flex items-start gap-4"><i class="fas fa-map-marker-alt mt-1.5 text-blue-500"></i> <span>123 Rue de la Santé,<br>75001 Paris, France</span></p>
+                        <p class="flex items-center gap-4"><i class="fas fa-phone text-blue-500"></i> +33 1 23 45 67 89</p>
+                        <p class="flex items-center gap-4"><i class="fas fa-envelope text-blue-500"></i> contact@carewell.fr</p>
+                    </div>
                 </div>
             </div>
-            <hr class="my-4">
-            <div class="row">
-                <div class="col-md-6">
-                    <p>&copy; {{ date('Y') }} CareWell. Tous droits réservés.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <a href="#" class="me-3">Mentions légales</a>
-                    <a href="#" class="me-3">Politique de confidentialité</a>
-                    <a href="#">Conditions d'utilisation</a>
+            <div class="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-sm">
+                <p>&copy; {{ date('Y') }} CareWell. Excellence en soins connectés.</p>
+                <div class="flex flex-wrap gap-8 justify-center">
+                    <a href="#" class="hover:text-white transition-colors">Mentions légales</a>
+                    <a href="#" class="hover:text-white transition-colors">Confidentialité</a>
+                    <a href="#" class="hover:text-white transition-colors">Conditions</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        // Effet de scroll sur la navbar
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            const brandImg = document.getElementById('brand-img');
+            if (window.scrollY > 40) {
+                navbar.classList.add('py-2', 'bg-slate-900/95', 'shadow-2xl');
+                navbar.classList.remove('py-4', 'bg-nav-gradient');
+                brandImg.classList.add('h-8');
+                brandImg.classList.remove('h-10');
             } else {
-                navbar.classList.remove('scrolled');
+                navbar.classList.add('py-4', 'bg-nav-gradient');
+                navbar.classList.remove('py-2', 'bg-slate-900/95', 'shadow-2xl');
+                brandImg.classList.add('h-10');
+                brandImg.classList.remove('h-8');
             }
         });
 
-        // Marquer le lien actif
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentPath = window.location.pathname;
-            const navLinks = document.querySelectorAll('.nav-link');
-            
-            navLinks.forEach(link => {
-                if (link.getAttribute('href') === currentPath || 
-                    (currentPath !== '/' && link.getAttribute('href') !== '/' && currentPath.startsWith(link.getAttribute('href')))) {
-                    link.classList.add('active');
-                }
-            });
-        });
-    </script>
+        // Mobile menu
+        const mobileBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if(mobileBtn) mobileBtn.onclick = () => mobileMenu.classList.toggle('hidden');
 
+        // User dropdown
+        const userBtn = document.getElementById('user-dropdown-btn');
+        const userMenu = document.getElementById('user-dropdown-menu');
+        if(userBtn) {
+            userBtn.onclick = (e) => {
+                e.stopPropagation();
+                userMenu.classList.toggle('hidden');
+            }
+            document.onclick = () => userMenu.classList.add('hidden');
+        }
+    </script>
     @yield('scripts')
 </body>
 </html>

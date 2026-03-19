@@ -1,3 +1,39 @@
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+
+@theme {
+    --color-primary-600: #167848;
+    --color-primary-700: #0e5f36;
+    --color-primary-900: #052f1b;
+    --color-accent-600: #10b981;
+    --color-navy-800: #1e3a8a;
+    --color-navy-900: #1e293b;
+    
+    --shadow-premium: 0 40px 80px rgba(5, 47, 27, 0.25);
+    --shadow-soft: 0 24px 60px rgba(15, 107, 60, 0.08);
+}
+
+.bg-hero-gradient {
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 55%),
+                linear-gradient(120deg, rgba(5, 47, 27, 0.98), rgba(15, 107, 60, 0.92));
+}
+
+.bg-nav-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a8a 100%);
+}
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.glass-dark {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* ========================================
    TAILLES DE POLICE STANDARDISÉES
    ======================================== */
@@ -19,34 +55,34 @@
    OVERRIDE DES STYLES BOOTSTRAP
    ======================================== */
 
-/* Titres principaux */
+/* Titres principaux - Version assouplie pour la migration */
 h1, .h1 {
-    font-size: 16px !important;
-    font-weight: 600;
+    font-size: 2.5rem;
+    font-weight: 700;
 }
 
 h2, .h2 {
-    font-size: 16px !important;
-    font-weight: 600;
+    font-size: 2rem;
+    font-weight: 700;
 }
 
 h3, .h3 {
-    font-size: 14px !important;
+    font-size: 1.5rem;
     font-weight: 600;
 }
 
 h4, .h4 {
-    font-size: 14px !important;
+    font-size: 1.25rem;
     font-weight: 600;
 }
 
 h5, .h5 {
-    font-size: 14px !important;
+    font-size: 1.1rem;
     font-weight: 500;
 }
 
 h6, .h6 {
-    font-size: 12px !important;
+    font-size: 0.9rem;
     font-weight: 500;
 }
 
@@ -63,7 +99,7 @@ h6, .h6 {
 
 /* Paragraphes et texte */
 p, .card-text {
-    font-size: 14px !important;
+    font-size: 0.875rem;
 }
 
 .lead {

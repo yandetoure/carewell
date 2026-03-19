@@ -3,386 +3,95 @@
 @section('title', 'CareWell - Accueil')
 
 @section('content')
-@section('styles')
-<style>
-    :root {
-        --hero-dark: #052f1b;
-        --hero-light: #0f6b3c;
-        --success-100: #e8f6ee;
-        --success-200: #c8ead8;
-        --success-500: #1f8f57;
-        --success-600: #167848;
-        --success-700: #0e5f36;
-        --neutral-900: #0f172a;
-    }
-
-    .hero-modern {
-        position: relative;
-        padding: 7rem 0 6rem;
-        background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 55%),
-                    linear-gradient(120deg, rgba(5, 47, 27, 0.95), rgba(15, 107, 60, 0.85));
-        color: #fff;
-        overflow: hidden;
-    }
-
-    .hero-modern::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: url('{{ asset('images/pattern-mesh.svg') }}') center/cover;
-        opacity: 0.12;
-        mix-blend-mode: screen;
-        pointer-events: none;
-    }
-
-    .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(4px);
-        font-weight: 500;
-    }
-
-    .hero-title {
-        font-size: clamp(2.75rem, 4vw, 3.8rem);
-        line-height: 1.08;
-        font-weight: 700;
-        margin-bottom: 1.25rem;
-        letter-spacing: -0.02em;
-    }
-
-    .hero-desc {
-        font-size: 1.125rem;
-        color: rgba(255, 255, 255, 0.84);
-        margin-bottom: 2rem;
-    }
-
-    .hero-metrics {
-        display: grid;
-        gap: 1.25rem;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        margin-top: 3rem;
-    }
-
-    .metric-card {
-        padding: 1.5rem;
-        border-radius: 1.25rem;
-        background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-    }
-
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        display: block;
-    }
-
-    .hero-card {
-        position: relative;
-        padding: 2rem;
-        background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(232, 246, 238, 0.85));
-        border-radius: 1.75rem;
-        box-shadow: 0 40px 80px rgba(5, 47, 27, 0.25);
-        color: var(--neutral-900);
-        overflow: hidden;
-    }
-
-    .hero-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        border: 1px solid rgba(31, 143, 87, 0.18);
-        pointer-events: none;
-    }
-
-    .hero-card .badge-soft-success {
-        background: var(--success-200);
-        color: var(--success-600);
-        border-radius: 999px;
-        padding: 0.4rem 0.9rem;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .btn-pill-success {
-        background: linear-gradient(135deg, #20bf6b, #16a34a);
-        border: none;
-        color: #fff;
-        padding: 0.85rem 2rem;
-        border-radius: 999px;
-        font-weight: 600;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        box-shadow: 0 20px 32px rgba(14, 95, 54, 0.25);
-    }
-
-    .btn-pill-success:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 28px 48px rgba(14, 95, 54, 0.35);
-    }
-
-    .btn-pill-soft {
-        background: rgba(31, 143, 87, 0.12);
-        color: var(--success-700);
-        border: 1px solid rgba(31, 143, 87, 0.25);
-        border-radius: 999px;
-        padding: 0.85rem 2rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-pill-soft:hover {
-        background: rgba(31, 143, 87, 0.22);
-        color: var(--success-700);
-    }
-
-    .feature-grid {
-        margin-top: -4rem;
-        position: relative;
-        z-index: 2;
-    }
-
-    .feature-card {
-        height: 100%;
-        padding: 2.2rem 2rem;
-        border-radius: 1.5rem;
-        background: #fff;
-        border: 1px solid rgba(15, 107, 60, 0.08);
-        box-shadow: 0 24px 60px rgba(15, 107, 60, 0.08);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .feature-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 32px 80px rgba(15, 107, 60, 0.12);
-    }
-
-    .feature-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(31, 143, 87, 0.12);
-        color: var(--success-600);
-        font-size: 1.5rem;
-        margin-bottom: 1.25rem;
-    }
-
-    .section-label {
-        text-transform: uppercase;
-        letter-spacing: 0.2em;
-        color: var(--success-600);
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-
-    .services-showcase .card {
-        border-radius: 1.6rem;
-        border: none;
-        overflow: hidden;
-        box-shadow: 0 24px 48px rgba(15, 107, 60, 0.12);
-    }
-
-    .services-showcase .card-img-top {
-        height: 220px;
-        object-fit: cover;
-    }
-
-    .services-showcase .card-body {
-        padding: 1.75rem;
-    }
-
-    .services-showcase .price-badge {
-        background: rgba(31, 143, 87, 0.12);
-        color: var(--success-700);
-        font-weight: 600;
-        border-radius: 999px;
-        padding: 0.35rem 1rem;
-    }
-
-    .articles-stream {
-        background: linear-gradient(120deg, rgba(232, 246, 238, 0.6), rgba(200, 234, 216, 0.7));
-        border-radius: 2rem;
-        padding: 3.5rem 2.5rem;
-    }
-
-    .articles-stream .card {
-        border-radius: 1.5rem;
-        border: 1px solid rgba(31, 143, 87, 0.12);
-        box-shadow: none;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .articles-stream .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 28px 48px rgba(15, 107, 60, 0.18);
-    }
-
-    .articles-stream .card-img-top {
-        height: 220px;
-        object-fit: cover;
-    }
-
-    .stats-panel {
-        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 60%),
-                    linear-gradient(135deg, var(--success-600), var(--hero-dark));
-        color: #fff;
-        padding: 5rem 0;
-        position: relative;
-    }
-
-    .stats-panel .stat-box {
-        padding: 2rem 1.5rem;
-        border-radius: 1.5rem;
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(6px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .timeline {
-        position: relative;
-        padding-left: 2rem;
-        margin-top: 2.5rem;
-    }
-
-    .timeline::before {
-        content: '';
-        position: absolute;
-        left: 0.75rem;
-        top: 0.25rem;
-        bottom: 0.25rem;
-        width: 2px;
-        background: linear-gradient(180deg, rgba(31, 143, 87, 0.2), rgba(31, 143, 87, 0.6));
-    }
-
-    .timeline-step {
-        position: relative;
-        padding-left: 1.5rem;
-        margin-bottom: 1.75rem;
-    }
-
-    .timeline-step:last-child {
-        margin-bottom: 0;
-    }
-
-    .timeline-step::before {
-        content: '';
-        position: absolute;
-        left: -1.03rem;
-        top: 0.25rem;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #fff;
-        border: 4px solid var(--success-500);
-    }
-
-    .cta-wrapper {
-        padding: 5rem 0 6rem;
-        background: #fff;
-    }
-
-    .cta-card {
-        border-radius: 2rem;
-        padding: 3.5rem 3rem;
-        background: linear-gradient(135deg, rgba(31, 143, 87, 0.08), rgba(31, 143, 87, 0.2));
-        border: 1px solid rgba(31, 143, 87, 0.16);
-        box-shadow: 0 40px 80px rgba(15, 107, 60, 0.1);
-    }
-
-    @media (max-width: 992px) {
-        .feature-grid {
-            margin-top: 2rem;
-        }
-
-        .hero-card {
-            margin-top: 3rem;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .hero-modern {
-            padding: 4.5rem 0 4rem;
-        }
-
-        .hero-metrics {
-            margin-top: 2rem;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        }
-
-        .articles-stream {
-            padding: 2.5rem 1.5rem;
-        }
-    }
-</style>
-@endsection
 
 <!-- Hero Section -->
-<section class="hero-modern">
-    <div class="container position-relative">
-        <div class="row align-items-center gy-5">
-            <div class="col-lg-7">
-                <div class="hero-badge mb-3">
-                    <i class="fas fa-leaf"></i>
-                    <span>Plateforme de soins connectés & durables</span>
+<section class="relative pt-24 pb-20 lg:pt-40 lg:pb-32 text-white overflow-hidden bg-hero-gradient">
+    <!-- Subtle overlay for texture -->
+    <div class="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+    
+    <div class="container mx-auto px-4 relative z-10 max-w-[1320px]">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+            <div class="lg:col-span-12 xl:col-span-7">
+                <div class="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl glass-effect text-sm font-bold mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <span class="flex h-2 w-2 rounded-full bg-accent-600 animate-pulse"></span>
+                    <span class="uppercase tracking-widest opacity-90">Plateforme de soins connectés</span>
                 </div>
-                <h1 class="hero-title">Une équipe médicale engagée pour votre bien-être</h1>
-                <p class="hero-desc">CareWell réunit médecins, spécialistes et patients autour d'un parcours de soins personnalisés, sécurisé et disponible en permanence.</p>
-                <div class="d-flex flex-wrap gap-3">
-                    <a href="{{ route('register') }}" class="btn btn-pill-success">
-                        <i class="fas fa-user-plus me-2"></i>Créer mon espace patient
+                
+                <h1 class="text-5xl lg:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+                    Une équipe médicale <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-emerald-300">engagée</span> pour vous.
+                </h1>
+                
+                <p class="text-xl text-emerald-50/70 mb-12 max-w-2xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+                    CareWell réunit médecins, spécialistes et patients autour d'un parcours de soins personnalisés, sécurisé et disponible en permanence pour votre bien-être.
+                </p>
+                
+                <div class="flex flex-wrap gap-5 mb-16 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
+                    <a href="{{ route('register') }}" class="group relative px-8 py-4 bg-white text-emerald-900 font-bold rounded-2xl transition-all hover:scale-105 hover:shadow-premium overflow-hidden">
+                        <span class="relative z-10 flex items-center gap-2">
+                             <i class="fas fa-user-plus"></i> Créer mon espace
+                        </span>
+                        <div class="absolute inset-0 bg-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     </a>
-                    <a href="{{ route('services') }}" class="btn btn-pill-soft">
-                        <i class="fas fa-stethoscope me-2"></i>Explorer les services
+                    
+                    <a href="{{ route('services') }}" class="px-8 py-4 glass-effect text-white font-bold rounded-2xl transition-all hover:bg-white/20 hover:scale-105 flex items-center gap-2">
+                        <i class="fas fa-stethoscope"></i> Nos services
                     </a>
                 </div>
 
-                <div class="hero-metrics">
-                    <div class="metric-card">
-                        <span class="metric-value">{{ \App\Models\Appointment::count() }}+</span>
-                        <span>Rendez-vous orchestrés en toute simplicité</span>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-500">
+                    @php
+                        $stats = [
+                            ['count' => \App\Models\Appointment::count(), 'label' => 'Rendez-vous'],
+                            ['count' => \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'doctor'); })->count(), 'label' => 'Spécialistes'],
+                            ['count' => \App\Models\User::count(), 'label' => 'Patients'],
+                        ];
+                    @endphp
+                    @foreach($stats as $stat)
+                    <div class="p-6 rounded-3xl glass-effect group hover:bg-white/10 transition-colors">
+                        <span class="text-3xl font-extrabold block mb-1 group-hover:scale-110 transition-transform origin-left">{{ $stat['count'] }}+</span>
+                        <span class="text-sm font-medium opacity-60 uppercase tracking-wider">{{ $stat['label'] }}</span>
                     </div>
-                    <div class="metric-card">
-                        <span class="metric-value">{{ \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'doctor'); })->count() }}+</span>
-                        <span>Professionnels de santé vérifiés</span>
-                    </div>
-                    <div class="metric-card">
-                        <span class="metric-value">{{ \App\Models\User::count() }}+</span>
-                        <span>Patients accompagnés au quotidien</span>
-                    </div>
+                    @endforeach
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="hero-card">
-                    <div class="d-flex align-items-center justify-content-between mb-4">
-                        <span class="badge-soft-success"><i class="fas fa-bell me-2"></i>Prochain créneau disponible</span>
-                        <span class="text-muted small">Temps réel</span>
+            
+            <div class="lg:col-span-12 xl:col-span-5 h-full">
+                <div class="relative p-10 bg-white shadow-premium rounded-[2.5rem] text-slate-800 overflow-hidden group">
+                    <!-- Subtle bg element -->
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+                    
+                    <div class="flex items-center justify-between mb-10">
+                        <span class="bg-emerald-100 text-emerald-700 rounded-2xl px-5 py-2 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-bolt"></i> Disponibilité immédiate
+                        </span>
+                        <span class="text-slate-400 text-xs font-bold uppercase">Temps réel</span>
                     </div>
-                    <h4 class="fw-semibold mb-3">Planifiez une consultation</h4>
-                    <p class="mb-4">Choisissez un spécialiste, sélectionnez un horaire et laissez notre équipe gérer la suite.</p>
-                    <div class="timeline">
-                        <div class="timeline-step">
-                            <h6 class="fw-semibold mb-1">1. Sélectionnez votre besoin</h6>
-                            <p class="mb-0 text-muted">Cardiologie, pédiatrie, suivi en ligne, examens et plus.</p>
+
+                    <h3 class="text-3xl font-bold mb-4 tracking-tight">Prendre rendez-vous</h3>
+                    <p class="text-slate-500 mb-10 leading-relaxed">Simplifiez votre parcours de santé en quelques étapes rapides et sécurisées.</p>
+                    
+                    <div class="space-y-10 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                        <div class="relative pl-10">
+                            <div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-white border-4 border-emerald-500 z-10"></div>
+                            <h4 class="text-base font-bold mb-1">Choisissez votre besoin</h4>
+                            <p class="text-sm text-slate-500">Cardiologie, pédiatrie ou simple consultation de routine.</p>
                         </div>
-                        <div class="timeline-step">
-                            <h6 class="fw-semibold mb-1">2. Confirmez votre rendez-vous</h6>
-                            <p class="mb-0 text-muted">Recevez une validation instantanée avec rappels automatiques.</p>
+                        <div class="relative pl-10">
+                            <div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-white border-4 border-emerald-500 z-10"></div>
+                            <h4 class="text-base font-bold mb-1">Validez votre créneau</h4>
+                            <p class="text-sm text-slate-500">Sélectionnez le moment qui vous convient le mieux.</p>
                         </div>
-                        <div class="timeline-step">
-                            <h6 class="fw-semibold mb-1">3. Bénéficiez d'un suivi connecté</h6>
-                            <p class="mb-0 text-muted">Télé-consultation, compte-rendu et ordonnance en ligne.</p>
+                        <div class="relative pl-10">
+                            <div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-white border-4 border-emerald-500 z-10"></div>
+                            <h4 class="text-base font-bold mb-1">Suivez votre dossier</h4>
+                            <p class="text-sm text-slate-500">Retrouvez vos comptes-rendus et ordonnances en ligne.</p>
                         </div>
                     </div>
-                    <div class="mt-4 pt-3">
-                        <a href="{{ route('appointments.create') }}" class="btn btn-pill-success w-100">
-                            <i class="fas fa-calendar-plus me-2"></i>Réserver maintenant
+                    
+                    <div class="mt-12">
+                        <a href="{{ route('appointments.create') }}" class="block w-full text-center py-5 bg-gradient-to-br from-emerald-500 to-primary-700 text-white font-bold rounded-2xl shadow-xl hover:shadow-emerald-200 transition-all hover:-translate-y-1">
+                            Prendre rendez-vous
                         </a>
                     </div>
                 </div>
@@ -391,84 +100,68 @@
     </div>
 </section>
 
-<!-- Key Features -->
-<section class="feature-grid pb-5">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-3 col-sm-6">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-hands-helping"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-2">Parcours coordonné</h5>
-                    <p class="text-muted mb-0">Reliez médecins traitants, spécialistes et diagnostic sur une même plateforme.</p>
+<!-- Features Section -->
+<section class="py-24 bg-white relative">
+    <div class="container mx-auto px-4 max-w-[1320px]">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 -mt-32 relative z-20">
+            @php
+                $features = [
+                    ['icon' => 'hands-helping', 'title' => 'Parcours coordonné', 'desc' => 'Une communication fluide entre vos différents praticiens.'],
+                    ['icon' => 'mobile-alt', 'title' => 'Application mobile', 'desc' => 'Gérez votre santé du bout des doigts, où que vous soyez.'],
+                    ['icon' => 'shield-virus', 'title' => 'Données sécurisées', 'desc' => 'Vos données médicales sont cryptées et protégées.'],
+                    ['icon' => 'heartbeat', 'title' => 'Suivi préventif', 'desc' => 'Des rappels et conseils personnalisés pour votre bien-être.'],
+                ];
+            @endphp
+            @foreach($features as $feature)
+            <div class="p-10 rounded-[2.5rem] bg-white border border-slate-100 shadow-premium transition-all hover:-translate-y-3 group hover:border-emerald-200">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 text-2xl flex items-center justify-center mb-8 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500">
+                    <i class="fas fa-{{ $feature['icon'] }}"></i>
                 </div>
+                <h3 class="text-xl font-bold mb-4 tracking-tight group-hover:text-emerald-700 transition-colors">{{ $feature['title'] }}</h3>
+                <p class="text-slate-500 text-sm leading-relaxed">{{ $feature['desc'] }}</p>
             </div>
-            <div class="col-lg-3 col-sm-6">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-2">Application tout-en-un</h5>
-                    <p class="text-muted mb-0">Gérez vos rendez-vous, documents et téléconsultations où que vous soyez.</p>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-virus"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-2">Sécurité renforcée</h5>
-                    <p class="text-muted mb-0">Hébergement certifié, chiffrement des données et conformité RGPD.</p>
-                </div>
-            </div>
-            <div class="col-lg-3 col-sm-6">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-heartbeat"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-2">Suivi préventif</h5>
-                    <p class="text-muted mb-0">Alertes santé, programmes bien-être et coaching personnalisé.</p>
-                </div>
-            </div>
+            @endforeach
         </div>
     </div>
 </section>
 
 <!-- Services Preview -->
-<section class="py-6">
-    <div class="container">
-        <div class="row align-items-center mb-5">
-            <div class="col-lg-6">
-                <span class="section-label">Nos expertises</span>
-                <h2 class="mt-2 mb-3">Des services médicaux pensés pour chaque étape de votre santé</h2>
-                <p class="text-muted mb-0">Consultez les spécialités disponibles et découvrez comment nos équipes vous accompagnent, en cabinet comme à distance.</p>
+<section class="py-24 bg-slate-50/50">
+    <div class="container mx-auto px-4 max-w-[1320px]">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
+            <div class="max-w-2xl">
+                <span class="text-xs font-bold text-emerald-600 uppercase tracking-[0.2em] mb-4 block">Découvrez nos pôles</span>
+                <h2 class="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-none mb-6">Des services médicaux pensés pour chaque étape</h2>
+                <p class="text-lg text-slate-500 leading-relaxed">Consultez les spécialités disponibles et profitez d'un accompagnement sur-mesure par nos experts de santé.</p>
             </div>
-            <div class="col-lg-6 text-lg-end mt-4 mt-lg-0">
-                <a href="{{ route('services') }}" class="btn btn-pill-soft">Voir tous les services</a>
-            </div>
+            <a href="{{ route('services') }}" class="px-8 py-4 bg-white border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 group">
+                Tous nos services <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+            </a>
         </div>
 
-        <div class="row g-4 services-showcase">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             @foreach(\App\Models\Service::take(6)->get() as $service)
-            <div class="col-xl-4 col-md-6">
-                <div class="card h-100">
+            <div class="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-soft hover:shadow-premium transition-all duration-500 flex flex-col group">
+                <div class="h-64 relative overflow-hidden">
                     @if($service->photo)
-                        <img src="{{ asset('storage/' . $service->photo) }}" alt="{{ $service->name }}" class="card-img-top">
+                        <img src="{{ asset('storage/' . $service->photo) }}" alt="{{ $service->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
                     @else
-                        <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height: 220px;">
-                            <i class="fas fa-stethoscope fa-3x text-success"></i>
+                        <div class="w-full h-full bg-slate-100 flex items-center justify-center transition-colors group-hover:bg-emerald-50">
+                            <i class="fas fa-stethoscope text-5xl text-slate-300 group-hover:text-emerald-300 transition-colors"></i>
                         </div>
                     @endif
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <span class="price-badge">{{ number_format($service->price, 0, ',', ' ') }} FCFA</span>
-                            <span class="text-muted small">{{ $service->duration ?? '30 min' }}</span>
-                        </div>
-                        <h5 class="fw-semibold">{{ $service->name }}</h5>
-                        <p class="text-muted flex-grow-1">{{ Str::limit($service->description, 120) }}</p>
-                        <a href="{{ route('services.show', $service->id) }}" class="btn btn-pill-soft mt-3">En savoir plus</a>
+                    <div class="absolute top-6 right-6">
+                        <span class="px-5 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-slate-900 font-black text-sm shadow-xl">
+                            {{ number_format($service->price, 0, ',', ' ') }} FCFA
+                        </span>
                     </div>
+                </div>
+                <div class="p-10 flex flex-col flex-grow">
+                    <h5 class="text-2xl font-bold mb-4 tracking-tight text-slate-900">{{ $service->name }}</h5>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-8 grow">{{ Str::limit($service->description, 130) }}</p>
+                    <a href="{{ route('services.show', $service->id) }}" class="flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-500 hover:text-white transition-all">
+                        Détails du service <i class="fas fa-plus text-[10px]"></i>
+                    </a>
                 </div>
             </div>
             @endforeach
@@ -476,102 +169,66 @@
     </div>
 </section>
 
-<!-- Knowledge hub -->
-<section class="py-6">
-    <div class="container">
-        <div class="articles-stream">
-            <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-                <div>
-                    <span class="section-label">Conseils & prévention</span>
-                    <h2 class="mt-2 mb-0">Restez informé avec notre équipe médicale</h2>
-                </div>
-                <a href="{{ route('articles') }}" class="btn btn-pill-soft mt-4 mt-sm-0">Tous les articles</a>
+<!-- Stats Impact -->
+<section class="py-32 bg-slate-900 overflow-hidden relative">
+    <!-- Background accents -->
+    <div class="absolute top-0 right-0 w-1/2 h-full bg-emerald-500/5 blur-[120px]"></div>
+    <div class="absolute bottom-0 left-0 w-1/4 h-1/2 bg-blue-500/5 blur-[100px]"></div>
+    
+    <div class="container mx-auto px-4 relative z-10 max-w-[1320px]">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+            <div class="lg:col-span-12 xl:col-span-5">
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] mb-6 block">Notre Impact</span>
+                <h2 class="text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-8">Une communauté médicale en pleine expansion</h2>
+                <p class="text-lg text-slate-400 leading-relaxed mb-0">Nous accompagnons chaque jour des milliers de patients et de praticiens pour une santé plus humaine, plus connectée et plus efficace.</p>
             </div>
-            <div class="row g-4">
-                @foreach(\App\Models\Article::take(3)->get() as $article)
-                <div class="col-lg-4 col-md-6">
-                    <div class="card h-100">
-                        @if($article->photo)
-                            <img src="{{ asset('storage/' . $article->photo) }}" alt="{{ $article->title }}" class="card-img-top">
-                        @else
-                            <div class="card-img-top d-flex align-items-center justify-content-center bg-white" style="height: 220px;">
-                                <i class="fas fa-newspaper fa-3x text-success"></i>
-                            </div>
-                        @endif
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="fw-semibold">{{ $article->title }}</h5>
-                            <p class="text-muted flex-grow-1">{{ Str::limit($article->content, 150) }}</p>
-                            <div class="d-flex align-items-center justify-content-between mt-3">
-                                <small class="text-muted"><i class="fas fa-clock me-1"></i>{{ $article->created_at->diffForHumans() }}</small>
-                                <a href="{{ route('articles.show', $article->id) }}" class="btn btn-pill-soft btn-sm">Lire plus</a>
-                            </div>
+            <div class="lg:col-span-12 xl:col-span-7">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    @php
+                        $impact = [
+                            ['icon' => 'users', 'count' => \App\Models\User::count(), 'label' => 'Patients'],
+                            ['icon' => 'user-md', 'count' => \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'doctor'); })->count(), 'label' => 'Spécialistes'],
+                            ['icon' => 'calendar-check', 'count' => \App\Models\Appointment::count(), 'label' => 'Consultations'],
+                        ];
+                    @endphp
+                    @foreach($impact as $item)
+                    <div class="p-10 rounded-[2.5rem] bg-white/5 border border-white/10 text-center group hover:bg-white/10 transition-all">
+                        <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-6 text-emerald-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-{{ $item['icon'] }} text-xl"></i>
                         </div>
+                        <h3 class="text-4xl font-black text-white mb-2">{{ $item['count'] }}+</h3>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">{{ $item['label'] }}</p>
                     </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Statistics -->
-<section class="stats-panel">
-    <div class="container">
-        <div class="row g-4 align-items-center">
-            <div class="col-lg-4">
-                <span class="section-label text-white">Impact réel</span>
-                <h2 class="mt-3 mb-3">Une communauté médicale qui grandit avec vous</h2>
-                <p class="mb-0">Nous accompagnons patients, praticiens et secrétariats médicaux dans la transformation de leurs parcours de soins.</p>
-            </div>
-            <div class="col-lg-8">
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="stat-box text-center">
-                            <div class="mb-2"><i class="fas fa-users fa-2x"></i></div>
-                            <h3 class="fw-bold">{{ \App\Models\User::count() }}+</h3>
-                            <p class="mb-0">Patients connectés</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-box text-center">
-                            <div class="mb-2"><i class="fas fa-user-md fa-2x"></i></div>
-                            <h3 class="fw-bold">{{ \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'doctor'); })->count() }}+</h3>
-                            <p class="mb-0">Médecins spécialistes</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="stat-box text-center">
-                            <div class="mb-2"><i class="fas fa-calendar-check fa-2x"></i></div>
-                            <h3 class="fw-bold">{{ \App\Models\Appointment::count() }}+</h3>
-                            <p class="mb-0">Consultations assurées</p>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Call to action -->
-<section class="cta-wrapper">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-xl-8 col-lg-9">
-                <div class="cta-card text-center">
-                    <span class="section-label">Passez à l'action</span>
-                    <h2 class="mt-3 mb-3">Prêt à simplifier votre suivi de santé ?</h2>
-                    <p class="text-muted">Rejoignez une plateforme pensée pour la collaboration entre patients, médecins et secrétaires médicaux. Inscription rapide, support dédié et accompagnement humain.</p>
-                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
-                        <a href="{{ route('register') }}" class="btn btn-pill-success">
-                            <i class="fas fa-user-plus me-2"></i>Créer mon compte
-                        </a>
-                        <a href="{{ route('contact') }}" class="btn btn-pill-soft">
-                            <i class="fas fa-envelope me-2"></i>Parler à un conseiller
-                        </a>
-                    </div>
+<!-- CTA Section -->
+<section class="py-24 bg-white">
+    <div class="container mx-auto px-4 max-w-[1320px]">
+        <div class="bg-gradient-to-br from-slate-50 to-emerald-50 rounded-[3rem] p-12 lg:p-24 text-center border border-emerald-100 relative overflow-hidden">
+            <!-- Shape decoration -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-white opacity-40 rounded-full blur-3xl -translate-y-1/2"></div>
+            
+            <div class="relative z-10 max-w-3xl mx-auto">
+                <span class="text-xs font-bold text-emerald-600 uppercase tracking-[0.2em] mb-6 block">Rejoignez-nous</span>
+                <h2 class="text-4xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none mb-10 italic">Prêt à transformer votre suivi de santé ?</h2>
+                <p class="text-lg text-slate-500 mb-12 leading-relaxed">Inscrivez-vous dès aujourd'hui et profitez d'une plateforme conçue pour faciliter la collaboration entre vous et votre équipe médicale.</p>
+                
+                <div class="flex flex-wrap justify-center gap-6">
+                    <a href="{{ route('register') }}" class="px-10 py-5 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all hover:scale-105 hover:shadow-2xl shadow-slate-200">
+                        Créer mon compte
+                    </a>
+                    <a href="{{ route('contact') }}" class="px-10 py-5 bg-white border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-50 transition-all hover:scale-105">
+                        Nous contacter
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
 @endsection

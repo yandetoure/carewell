@@ -69,11 +69,7 @@ class DashboardController extends Controller
         $totalPatients = (clone $usersQuery)->role('Patient')->count();
         $totalSecretaries = (clone $usersQuery)->role('Secretary')->count();
         $totalAppointments = $appointmentsQuery->count();
-        $totalPrescriptions = $isSuperAdmin
-            ? Ordonnance::count()
-            : Ordonnance::whereHas('medecin', function ($q) use ($user) {
-                $q->where('clinic_id', $user->clinic_id);
-            })->count();
+        $totalPrescriptions = Ordonnance::count();
 
         // Revenus du mois
         $revenueQuery = Appointment::query()
