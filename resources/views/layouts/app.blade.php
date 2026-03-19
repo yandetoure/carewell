@@ -20,7 +20,7 @@
     <nav id="navbar" class="sticky top-0 z-50 py-4 transition-all duration-500 bg-nav-gradient shadow-xl backdrop-blur-md border-b border-white/10">
         <div class="container mx-auto px-4 max-w-[1320px] flex flex-wrap items-center justify-between">
             <a href="{{ route('home') }}" class="font-bold text-2xl text-white flex items-center transition-all duration-300 hover:scale-[1.02] no-underline group">
-                <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" id="brand-img" class="h-10 w-auto mr-3 transition-all duration-300 group-hover:rotate-3 object-contain">
+                <img src="{{ asset('images/logo_new.png') }}" alt="CareWell Logo" id="brand-img" class="h-10 w-auto mr-3 transition-all duration-300 group-hover:rotate-3 object-contain">
                 <span class="tracking-tight">CareWell</span>
             </a>
 
@@ -127,17 +127,17 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-white pt-20 pb-10 border-t border-white/5">
+    <footer class="bg-[#052f1b] text-white pt-20 pb-10 border-t border-white/5">
         <div class="container mx-auto px-4 max-w-[1320px]">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
                 <div class="lg:col-span-4">
                     <div class="mb-8">
-                        <img src="{{ asset('images/logo.png') }}" alt="CareWell Logo" class="h-12 w-auto brightness-0 invert">
+                        <img src="{{ asset('images/logo_new.png') }}" alt="CareWell Logo" class="h-12 w-auto brightness-0 invert">
                     </div>
-                    <p class="text-slate-400 mb-10 leading-relaxed max-w-sm">Votre plateforme de santé de confiance, connectant patients et professionnels de santé pour des soins optimaux, coordonnés et sécurisés.</p>
+                    <p class="text-emerald-100/60 mb-10 leading-relaxed max-w-sm">Votre plateforme de santé de confiance, connectant patients et professionnels de santé pour des soins optimaux, coordonnés et sécurisés.</p>
                     <div class="flex gap-4">
                         @foreach(['facebook-f', 'twitter', 'linkedin-in', 'instagram'] as $social)
-                        <a href="#" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center transition-all hover:bg-white hover:text-slate-900 hover:-translate-y-2 group shadow-lg">
+                        <a href="#" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center transition-all hover:bg-emerald-500 hover:text-white hover:-translate-y-2 group shadow-lg">
                             <i class="fab fa-{{ $social }} transition-transform group-hover:scale-110"></i>
                         </a>
                         @endforeach
@@ -145,37 +145,37 @@
                 </div>
                 <div class="lg:col-span-2">
                     <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Services</h5>
-                    <ul class="space-y-4 text-slate-400">
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Consultations</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Examens</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Prescriptions</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Suivi médical</a></li>
+                    <ul class="space-y-4 text-emerald-100/60 list-none p-0 m-0">
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Consultations</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Examens</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Prescriptions</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Suivi médical</a></li>
                     </ul>
                 </div>
                 <div class="lg:col-span-2">
                     <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Ressources</h5>
-                    <ul class="space-y-4 text-slate-400">
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Articles santé</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Conseils</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">FAQ</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Support</a></li>
+                    <ul class="space-y-4 text-emerald-100/60 list-none p-0 m-0">
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Articles santé</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Conseils</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">FAQ</a></li>
+                        <li><a href="#" class="hover:text-emerald-400 transition-colors no-underline">Support</a></li>
                     </ul>
                 </div>
                 <div class="lg:col-span-4">
                     <h5 class="text-white font-bold mb-8 text-xs uppercase tracking-[0.2em]">Contact</h5>
-                    <div class="space-y-6 text-slate-400">
-                        <p class="flex items-start gap-4"><i class="fas fa-map-marker-alt mt-1.5 text-blue-500"></i> <span>123 Rue de la Santé,<br>75001 Paris, France</span></p>
-                        <p class="flex items-center gap-4"><i class="fas fa-phone text-blue-500"></i> +33 1 23 45 67 89</p>
-                        <p class="flex items-center gap-4"><i class="fas fa-envelope text-blue-500"></i> contact@carewell.fr</p>
+                    <div class="space-y-6 text-emerald-100/60">
+                        <p class="flex items-start gap-4"><i class="fas fa-map-marker-alt mt-1.5 text-emerald-500"></i> <span>123 Rue de la Santé,<br>75001 Paris, France</span></p>
+                        <p class="flex items-center gap-4"><i class="fas fa-phone text-emerald-500"></i> +33 1 23 45 67 89</p>
+                        <p class="flex items-center gap-4"><i class="fas fa-envelope text-emerald-500"></i> contact@carewell.fr</p>
                     </div>
                 </div>
             </div>
-            <div class="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-sm">
+            <div class="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-emerald-100/40 text-sm">
                 <p>&copy; {{ date('Y') }} CareWell. Excellence en soins connectés.</p>
                 <div class="flex flex-wrap gap-8 justify-center">
-                    <a href="#" class="hover:text-white transition-colors">Mentions légales</a>
-                    <a href="#" class="hover:text-white transition-colors">Confidentialité</a>
-                    <a href="#" class="hover:text-white transition-colors">Conditions</a>
+                    <a href="#" class="hover:text-white transition-colors no-underline">Mentions légales</a>
+                    <a href="#" class="hover:text-white transition-colors no-underline">Confidentialité</a>
+                    <a href="#" class="hover:text-white transition-colors no-underline">Conditions</a>
                 </div>
             </div>
         </div>
@@ -187,13 +187,13 @@
             const navbar = document.getElementById('navbar');
             const brandImg = document.getElementById('brand-img');
             if (window.scrollY > 40) {
-                navbar.classList.add('py-2', 'bg-slate-900/95', 'shadow-2xl');
+                navbar.classList.add('py-2', 'bg-[#052f1b]/95', 'shadow-2xl');
                 navbar.classList.remove('py-4', 'bg-nav-gradient');
                 brandImg.classList.add('h-8');
                 brandImg.classList.remove('h-10');
             } else {
                 navbar.classList.add('py-4', 'bg-nav-gradient');
-                navbar.classList.remove('py-2', 'bg-slate-900/95', 'shadow-2xl');
+                navbar.classList.remove('py-2', 'bg-[#052f1b]/95', 'shadow-2xl');
                 brandImg.classList.add('h-10');
                 brandImg.classList.remove('h-8');
             }
