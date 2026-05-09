@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Exam;
-use App\Models\Ticket;
+use App\Models\Service;
+use App\Models\MedicalFileExam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -11,22 +12,10 @@ use Illuminate\Validation\ValidationException;
 class ExamController extends Controller
 {
     /**
-     * Obtenir le clinic_id actuel pour le filtrage
-     */
-    protected function getCurrentClinicId()
-    {
-        $user = Auth::user();
-        if ($user->hasRole('Super Admin')) {
-            return session('selected_clinic_id');
-        }
-        return $user->clinic_id;
-    }
-    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // Affichage des examens
         $exams = Exam::with('service')->get(); 
         return response()->json([
             'status' => true,
@@ -39,36 +28,12 @@ class ExamController extends Controller
      */
     public function adminIndex()
     {
-        $clinicId = $this->getCurrentClinicId();
-        // Afficher les examens liés aux services partagés (clinic_id null) + les services de la clinique
-        $examsQuery = Exam::with('service');
-        if ($clinicId) {
-            $examsQuery->whereHas('service', function($q) use ($clinicId) {
-                $q->where(function($sq) use ($clinicId) {
-                    $sq->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-                });
-            });
-        }
-        $exams = $examsQuery->orderBy('created_at', 'desc')->paginate(15);
+        $exams = Exam::with('service')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
         
-        // Statistiques
-        $statsQuery = Exam::query();
-        if ($clinicId) {
-            $statsQuery->whereHas('service', function($q) use ($clinicId) {
-                $q->where(function($sq) use ($clinicId) {
-                    $sq->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-                });
-            });
-        }
-        $totalExams = $statsQuery->count();
-        
-        $servicesQuery = \App\Models\Service::query();
-        if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-            });
-        }
-        $services = $servicesQuery->get();
+        $totalExams = Exam::count();
+        $services = Service::all();
         
         return view('admin.exams.index', compact('exams', 'totalExams', 'services'));
     }
@@ -78,15 +43,7 @@ class ExamController extends Controller
      */
     public function adminCreate()
     {
-        $clinicId = $this->getCurrentClinicId();
-        // Afficher les services partagés (clinic_id null) + les services de la clinique
-        $servicesQuery = \App\Models\Service::query();
-        if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-            });
-        }
-        $services = $servicesQuery->get();
+        $services = Service::all();
         return view('admin.exams.create', compact('services'));
     }
 
@@ -104,15 +61,7 @@ class ExamController extends Controller
      */
     public function adminEdit(Exam $exam)
     {
-        $clinicId = $this->getCurrentClinicId();
-        // Afficher les services partagés (clinic_id null) + les services de la clinique
-        $servicesQuery = \App\Models\Service::query();
-        if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-            });
-        }
-        $services = $servicesQuery->get();
+        $services = Service::all();
         $exam->load('service', 'results', 'medicalFileExam');
         return view('admin.exams.edit', compact('exam', 'services'));
     }
@@ -124,9 +73,13 @@ class ExamController extends Controller
     {
         $patient = Auth::user();
         
-        // Récupérer les examens du patient connecté
-        $exams = collect([]); // Temporairement vide, à implémenter selon votre modèle
-        
+        $exams = MedicalFileExam::with(['exam', 'doctor'])
+            ->whereHas('medicalFile', function($query) use ($patient) {
+                $query->where('user_id', $patient->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
         return view('patient.exams.index', compact('exams'));
     }
 
@@ -136,7 +89,6 @@ class ExamController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validation des données
             $request->validate([
                 'name' => 'required|string|max:255|unique:exams',
                 'description' => 'required|string|min:5',  
@@ -151,7 +103,6 @@ class ExamController extends Controller
                 'service_id' => $request->service_id,
             ]);
 
-            // Si c'est une requête API, retourner JSON
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'status' => true,
@@ -160,11 +111,9 @@ class ExamController extends Controller
                 ], 201);
             }
 
-            // Sinon, rediriger vers l'interface admin
             return redirect()->route('admin.exams.show', $exam)
                 ->with('success', 'Examen créé avec succès !');
         } catch (ValidationException $e) {
-            // Si c'est une requête API, retourner JSON
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'status' => false,
@@ -173,7 +122,6 @@ class ExamController extends Controller
                 ], 422);
             }
 
-            // Sinon, rediriger avec erreurs
             return back()->withErrors($e->validator)->withInput();
         }
     }
@@ -183,8 +131,7 @@ class ExamController extends Controller
      */
     public function show(string $id)
     {
-        // Affichage des détails d'un examen
-        $exam = Exam::with('service','medicalFileExam')->find($id);
+        $exam = Exam::with(['service', 'medicalFileExam'])->find($id);
         
         if (!$exam) {
             return response()->json([
@@ -204,7 +151,6 @@ class ExamController extends Controller
      */
     public function update(Request $request, Exam $exam)
     {
-        // Validation des données
         $request->validate([
             'name' => 'required|string|max:255|unique:exams,name,' . $exam->id,
             'description' => 'required|string|min:5',  
@@ -219,7 +165,6 @@ class ExamController extends Controller
             'service_id' => $request->service_id,
         ]);
 
-        // Si c'est une requête API, retourner JSON
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
@@ -228,7 +173,6 @@ class ExamController extends Controller
             ]);
         }
 
-        // Sinon, rediriger vers l'interface admin
         return redirect()->route('admin.exams.show', $exam)
             ->with('success', 'Examen modifié avec succès !');
     }
@@ -240,7 +184,6 @@ class ExamController extends Controller
     {
         $exam->delete();
 
-        // Si c'est une requête API, retourner JSON
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => true,
@@ -248,7 +191,6 @@ class ExamController extends Controller
             ]);
         }
 
-        // Sinon, rediriger vers l'interface admin
         return redirect()->route('admin.exams')
             ->with('success', 'Examen supprimé avec succès !');
     }

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Clinic;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
@@ -15,15 +14,7 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Récupérer les cliniques
-        $clinics = Clinic::all();
-        
-        if ($clinics->isEmpty()) {
-            $this->command->warn('Aucune clinique trouvée. Veuillez exécuter ClinicSeeder d\'abord.');
-            return;
-        }
-
-        // Création du Super Admin (sans clinique)
+        // Création du Super Admin
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@carewell.sn'],
             [
@@ -40,8 +31,7 @@ class UserSeeder extends Seeder
             $superAdmin->assignRole('Super Admin');
         }
 
-        // Création de l'admin pour la première clinique
-        $firstClinic = $clinics->first();
+        // Création de l'admin
         $admin = User::firstOrCreate(
             ['email' => 'ndeye@gmail.com'],
             [
@@ -52,7 +42,6 @@ class UserSeeder extends Seeder
                 'phone_number' => '+221774344454',
                 'day_of_birth' => '1990-01-01',
                 'status' => true,
-                'clinic_id' => $firstClinic->id,
             ]
         );
         if (!$admin->hasRole('Admin')) {
@@ -103,10 +92,7 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        // Répartir les médecins entre les cliniques
-        $clinicIndex = 0;
         foreach ($doctors as $doctorData) {
-            $clinic = $clinics[$clinicIndex % $clinics->count()];
             $doctor = User::firstOrCreate(
                 ['email' => $doctorData['email']],
                 [
@@ -119,13 +105,49 @@ class UserSeeder extends Seeder
                     'specialite' => $doctorData['specialite'],
                     'numero_ordre' => $doctorData['numero_ordre'],
                     'status' => true,
-                    'clinic_id' => $clinic->id,
                 ]
             );
             if (!$doctor->hasRole('Doctor')) {
                 $doctor->assignRole('Doctor');
             }
-            $clinicIndex++;
+        }
+
+        // Création d'infirmiers
+        $nurses = [
+            [
+                'first_name' => 'Jean',
+                'last_name' => 'Gomez',
+                'email' => 'jean.gomez@carewell.com',
+                'adress' => 'Yoff',
+                'phone_number' => '+221778881111',
+                'day_of_birth' => '1990-01-01',
+            ],
+            [
+                'first_name' => 'Sophie',
+                'last_name' => 'Sow',
+                'email' => 'sophie.sow@carewell.com',
+                'adress' => 'Plateau',
+                'phone_number' => '+221778882222',
+                'day_of_birth' => '1992-01-01',
+            ],
+        ];
+
+        foreach ($nurses as $nurseData) {
+            $nurse = User::firstOrCreate(
+                ['email' => $nurseData['email']],
+                [
+                    'first_name' => $nurseData['first_name'],
+                    'last_name' => $nurseData['last_name'],
+                    'password' => Hash::make('password'),
+                    'adress' => $nurseData['adress'],
+                    'phone_number' => $nurseData['phone_number'],
+                    'day_of_birth' => $nurseData['day_of_birth'],
+                    'status' => true,
+                ]
+            );
+            if (!$nurse->hasRole('Nurse')) {
+                $nurse->assignRole('Nurse');
+            }
         }
 
         // Création de patients
@@ -196,10 +218,7 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        // Répartir les patients entre les cliniques
-        $clinicIndex = 0;
         foreach ($patients as $patientData) {
-            $clinic = $clinics[$clinicIndex % $clinics->count()];
             $patient = User::firstOrCreate(
                 ['email' => $patientData['email']],
                 [
@@ -210,13 +229,12 @@ class UserSeeder extends Seeder
                     'phone_number' => $patientData['phone_number'],
                     'day_of_birth' => $patientData['day_of_birth'],
                     'status' => true,
-                    'clinic_id' => $clinic->id,
                 ]
             );
             if (!$patient->hasRole('Patient')) {
                 $patient->assignRole('Patient');
+                $patient->createMedicalFile();
             }
-            $clinicIndex++;
         }
     }     
 }

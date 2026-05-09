@@ -11,24 +11,12 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class FinancialDataExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
-    protected $clinicId;
-
-    public function __construct($clinicId = null)
-    {
-        $this->clinicId = $clinicId;
-    }
-
     public function collection()
     {
-        $query = Appointment::with(['user', 'service', 'doctor'])
+        return Appointment::with(['user', 'service', 'doctor'])
             ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year);
-
-        if ($this->clinicId) {
-            $query->where('clinic_id', $this->clinicId);
-        }
-
-        return $query->get();
+            ->whereYear('created_at', now()->year)
+            ->get();
     }
 
     public function headings(): array

@@ -12,19 +12,13 @@
                         <div class="row align-items-center">
                             <div class="col-md-8">
                                 <h2 class="mb-2">
-                                    <i class="fas fa-chart-line me-2"></i>
-                                    Rapport Financier Détaillé
-                                </h2>
-                                @if($clinic)
-                                    <h4 class="mb-1">{{ $clinic->name }}</h4>
-                                    <p class="mb-0">
-                                        <i class="fas fa-map-marker-alt me-2"></i>{{ $clinic->address }}<br>
-                                        <i class="fas fa-phone me-2"></i>{{ $clinic->phone_number }}<br>
-                                        <i class="fas fa-envelope me-2"></i>{{ $clinic->email }}
-                                    </p>
-                                @else
-                                    <h4>CareWell - Toutes les cliniques</h4>
-                                @endif
+                                     <i class="fas fa-chart-line me-2"></i>
+                                     Rapport Financier Détaillé
+                                 </h2>
+                                 <h4>CareWell - Plateforme de Soins</h4>
+                                 <p class="mb-0">
+                                     <i class="fas fa-globe me-2"></i> Rapport d'activité global
+                                 </p>
                             </div>
                             <div class="col-md-4 text-end">
                                 <p class="mb-0"><strong>Date du rapport:</strong><br>{{ now()->format('d/m/Y à H:i') }}</p>

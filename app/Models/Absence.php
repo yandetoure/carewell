@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +9,7 @@ use Carbon\Carbon;
 
 class Absence extends Model
 {
-    use HasFactory, BelongsToClinic;
+    use HasFactory;
 
     protected $fillable = [
         'doctor_id',
@@ -24,7 +23,6 @@ class Absence extends Model
         'is_full_day',
         'status',
         'appointments_pending',
-        'clinic_id',
     ];
 
     protected $casts = [
@@ -42,14 +40,6 @@ class Absence extends Model
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'doctor_id');
-    }
-
-    /**
-     * Get the clinic that the absence belongs to
-     */
-    public function clinic()
-    {
-        return $this->belongsTo(Clinic::class);
     }
 
     /**

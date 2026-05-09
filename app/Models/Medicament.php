@@ -24,13 +24,7 @@ class Medicament extends Model
         'disponible',
         'date_expiration',
         'quantite_stock',
-        'clinic_id',
     ];
-
-    public function clinic()
-    {
-        return $this->belongsTo(Clinic::class);
-    }
 
     /**
      * The attributes that should be cast.

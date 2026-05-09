@@ -138,7 +138,7 @@
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-     /     / Graphique d'évolution des revenus
+            // Graphique d'évolution des revenus
             const revenueCtx = document.getElementById('revenueChart').getContext('2d');
             new Chart(revenueCtx, {
                 type: 'line',

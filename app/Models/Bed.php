@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToClinic;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Bed extends Model
 {
-    use HasFactory, BelongsToClinic;
+    use HasFactory;
 
     /**
      * The attributes that are mass assignable.
@@ -26,7 +25,6 @@ class Bed extends Model
         'expected_discharge_date',
         'discharge_date',
         'notes',
-        'clinic_id',
     ];
 
     /**
@@ -64,10 +62,10 @@ class Bed extends Model
         return $this->hasOneThrough(
             User::class,
             MedicalFile::class,
-            'id', // Foreign key on medical_files table
-            'id', // Foreign key on users table
-            'medical_file_id', // Local key on beds table
-            'user_id' // Local key on medical_files table
+            'id', 
+            'id', 
+            'medical_file_id', 
+            'user_id' 
         );
     }
 
@@ -148,7 +146,6 @@ class Bed extends Model
      */
     public function admitPatient($medicalFileId, $admissionDate = null, $expectedDischargeDate = null, $notes = null, $admittedBy = null)
     {
-        // Mettre à jour le lit
         $this->update([
             'status' => 'occupe',
             'medical_file_id' => $medicalFileId,
@@ -156,7 +153,6 @@ class Bed extends Model
             'expected_discharge_date' => $expectedDischargeDate,
         ]);
 
-        // Créer un enregistrement d'historique
         BedAdmission::create([
             'bed_id' => $this->id,
             'medical_file_id' => $medicalFileId,
@@ -172,10 +168,8 @@ class Bed extends Model
      */
     public function dischargePatient($dischargeDate = null, $dischargeReason = null, $notes = null, $dischargedBy = null)
     {
-        // Enregistrer la date de sortie dans le lit
         $actualDischargeDate = $dischargeDate ?? now()->toDateString();
         
-        // Mettre à jour l'enregistrement d'admission actif
         $currentAdmission = $this->currentAdmission;
         if ($currentAdmission) {
             $currentAdmission->update([
@@ -186,7 +180,6 @@ class Bed extends Model
             ]);
         }
         
-        // Libérer le lit
         $this->update([
             'status' => 'libre',
             'medical_file_id' => null,
@@ -250,13 +243,5 @@ class Bed extends Model
             return now()->diffInDays($this->admission_date);
         }
         return 0;
-    }
-
-    /**
-     * Get the clinic that the bed belongs to
-     */
-    public function clinic()
-    {
-        return $this->belongsTo(Clinic::class);
     }
 }

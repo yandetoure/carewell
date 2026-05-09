@@ -1,4 +1,5 @@
 <?php declare(strict_types=1); 
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -9,51 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
 {
-    /**
-     * Obtenir le clinic_id actuel pour le filtrage
-     */
-    protected function getCurrentClinicId()
-    {
-        $user = Auth::user();
-        if ($user && $user->hasRole('Super Admin')) {
-            return session('selected_clinic_id');
-        }
-        return $user ? $user->clinic_id : null;
-    }
-
-    /**
-     * Obtenir le clinic_id pour un ticket
-     */
-    protected function getTicketClinicId($appointmentId = null, $userId = null, $doctorId = null)
-    {
-        // Si on a un appointment, utiliser son clinic_id
-        if ($appointmentId) {
-            $appointment = \App\Models\Appointment::find($appointmentId);
-            if ($appointment && $appointment->clinic_id) {
-                return $appointment->clinic_id;
-            }
-        }
-        
-        // Si on a un user, utiliser son clinic_id
-        if ($userId) {
-            $user = \App\Models\User::find($userId);
-            if ($user && $user->clinic_id) {
-                return $user->clinic_id;
-            }
-        }
-        
-        // Si on a un doctor, utiliser son clinic_id
-        if ($doctorId) {
-            $doctor = \App\Models\User::find($doctorId);
-            if ($doctor && $doctor->clinic_id) {
-                return $doctor->clinic_id;
-            }
-        }
-        
-        // Sinon, utiliser le clinic_id de l'utilisateur connecté
-        return $this->getCurrentClinicId();
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -68,45 +24,31 @@ class TicketController extends Controller
      */
     public function adminTickets()
     {
-        $clinicId = $this->getCurrentClinicId();
+        $tickets = Ticket::with(['appointment.service', 'prescription', 'exam', 'user', 'doctor'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
         
-        $ticketsQuery = Ticket::with(['appointment.service', 'prescription', 'exam', 'user', 'doctor']);
-        if ($clinicId) {
-            $ticketsQuery->where('clinic_id', $clinicId);
-        }
-        $tickets = $ticketsQuery->orderBy('created_at', 'desc')->paginate(15);
+        $totalTickets = Ticket::count();
+        $paidTickets = Ticket::where('is_paid', true)->count();
+        $unpaidTickets = Ticket::where('is_paid', false)->count();
         
-        // Statistiques
-        $statsQuery = Ticket::query();
-        if ($clinicId) {
-            $statsQuery->where('clinic_id', $clinicId);
-        }
-        $totalTickets = (clone $statsQuery)->count();
-        $paidTickets = (clone $statsQuery)->where('is_paid', true)->count();
-        $unpaidTickets = (clone $statsQuery)->where('is_paid', false)->count();
-        
-        $revenueQuery = Ticket::where('is_paid', true)
+        $totalRevenue = Ticket::where('is_paid', true)
             ->join('appointments', 'tickets.appointment_id', '=', 'appointments.id')
-            ->join('services', 'appointments.service_id', '=', 'services.id');
-        if ($clinicId) {
-            $revenueQuery->where('tickets.clinic_id', $clinicId);
-        }
-        $totalRevenue = $revenueQuery->sum('services.price');
+            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->sum('services.price');
         
         return view('admin.accounting.tickets', compact('tickets', 'totalTickets', 'paidTickets', 'unpaidTickets', 'totalRevenue'));
     }
 
     public function updatePaymentStatus(Request $request, $id)
     {
-        $user = Auth::user(); // Récupère l'utilisateur authentifié
+        $user = Auth::user();
     
-        // Vérifiez si l'utilisateur est authentifié
         if (!$user) {
             return response()->json(['message' => 'Non autorisé'], 401);
         }
     
-        // Vérifiez si l'utilisateur a le rôle approprié
-        if (!$user->hasRole('accountant')) {
+        if (!$user->hasRole('Accountant') && !$user->hasRole('Admin') && !$user->hasRole('Super Admin')) {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
     
@@ -119,28 +61,27 @@ class TicketController extends Controller
             'data' => $ticket,
         ]);
     }
+
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         try {
-            // Validation des données
             $request->validate([
                 'appointment_id' => 'nullable|exists:appointments,id',
                 'prescription_id' => 'nullable|exists:prescriptions,id',
                 'exam_id' => 'nullable|exists:exams,id',
+                'user_id' => 'required|exists:users,id',
+                'doctor_id' => 'nullable|exists:users,id',
             ]);
-            $clinicId = $this->getTicketClinicId(
-                $request->appointment_id,
-                $request->user_id ?? null,
-                $request->doctor_id ?? null
-            );
+
             $ticket = Ticket::create([
                 'appointment_id' => $request->appointment_id,
                 'prescription_id' => $request->prescription_id,
                 'exam_id' => $request->exam_id,
-                'clinic_id' => $clinicId,
+                'user_id' => $request->user_id,
+                'doctor_id' => $request->doctor_id,
                 'is_paid' => false,
             ]);
 
@@ -163,11 +104,9 @@ class TicketController extends Controller
      */
     public function show(string $id)
     {
-        // Récupérer un ticket par son ID
         $ticket = Ticket::with(['appointment.service', 'appointment.user', 'prescription', 'exam', 'user', 'doctor'])->find($id);
 
         if (!$ticket) {
-            // Si c'est une requête web, rediriger avec erreur
             if (!request()->expectsJson()) {
                 return redirect()->route('admin.tickets')
                     ->with('error', 'Ticket non trouvé');
@@ -179,7 +118,6 @@ class TicketController extends Controller
             ], 404);
         }
 
-        // Si c'est une requête web, afficher la vue
         if (!request()->expectsJson()) {
             return view('admin.accounting.show-ticket', compact('ticket'));
         }
@@ -190,20 +128,15 @@ class TicketController extends Controller
         ]);
     }
 
-
-    //Rcuperer les ticket de l'utlisateur connecé
     public function showTickets(Request $request)
     {
-        $user = auth()->user();
-    
-        // Définir la limite par page (par défaut 6)
+        $user = Auth::user();
         $limit = $request->input('limit', 6);
     
-        // Récupérer les tickets de l'utilisateur connecté avec pagination
         $tickets = Ticket::with(['appointment.service', 'prescription.service', 'exam.service', 'user', 'doctor'])
-            ->where('user_id', $user->id) // Filtrer les tickets par l'utilisateur connecté
-            ->orderBy('created_at', 'desc') // Trier par date de création décroissante
-            ->paginate($limit); // Pagination avec la limite définie
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate($limit);
     
         if ($tickets->isNotEmpty()) {
             return response()->json([
@@ -219,99 +152,68 @@ class TicketController extends Controller
             ], 404);
         }
     }
-    
 
-    /**
-     * Update the specified resource in storage.
-     */
-    /**
- * Update the specified resource in storage.
- * Only allows updating the 'is_paid' field to true if the user is a comptable or an admin.
- */
-public function update(Request $request, string $id)
-{
-    // Récupérer l'utilisateur connecté
-    $user = auth()->user();
+    public function update(Request $request, string $id)
+    {
+        try {
+            $request->validate([
+                'is_paid' => 'required|boolean',
+            ]);
 
-    // Vérifier si l'utilisateur a le rôle de comptable ou d'admin
-    // if (!$user->hasRole(['accountant', 'admin'])) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'Vous n\'avez pas l\'autorisation de mettre à jour ce ticket',
-    //     ], 403);
-    // }
+            $ticket = Ticket::find($id);
 
-    try {
-        // Validation des données, uniquement pour 'is_paid'
-        $request->validate([
-            'is_paid' => 'required|boolean',
-        ]);
+            if (!$ticket) {
+                if (!$request->expectsJson()) {
+                    return redirect()->route('admin.tickets')
+                        ->with('error', 'Ticket non trouvé');
+                }
+                
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Ticket non trouvé',
+                ], 404);
+            }
 
-        // Trouver le ticket
-        $ticket = Ticket::find($id);
+            if ($ticket->is_paid) {
+                if (!$request->expectsJson()) {
+                    return redirect()->route('admin.tickets')
+                        ->with('info', 'Ce ticket est déjà marqué comme payé');
+                }
+                
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Le statut is_paid est déjà à true',
+                ], 400);
+            }
 
-        // Vérifier si le ticket existe
-        if (!$ticket) {
-            // Si c'est une requête web, rediriger avec erreur
+            $ticket->update([
+                'is_paid' => true,
+            ]);
+
             if (!$request->expectsJson()) {
                 return redirect()->route('admin.tickets')
-                    ->with('error', 'Ticket non trouvé');
+                    ->with('success', 'Ticket marqué comme payé avec succès');
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Le statut du ticket a été mis à jour à true',
+                'data' => $ticket,
+            ]);
+        } catch (ValidationException $e) {
+            if (!$request->expectsJson()) {
+                return redirect()->route('admin.tickets')
+                    ->withErrors($e->validator->errors());
             }
             
             return response()->json([
                 'status' => false,
-                'message' => 'Ticket non trouvé',
-            ], 404);
+                'message' => 'Erreur de validation',
+                'errors' => $e->validator->errors(),
+            ], 422);
         }
-
-        // Vérifier si 'is_paid' est déjà à true
-        if ($ticket->is_paid) {
-            // Si c'est une requête web, rediriger avec message
-            if (!$request->expectsJson()) {
-                return redirect()->route('admin.tickets')
-                    ->with('info', 'Ce ticket est déjà marqué comme payé');
-            }
-            
-            return response()->json([
-                'status' => false,
-                'message' => 'Le statut is_paid est déjà à true',
-            ], 400);
-        }
-
-        // Mettre à jour uniquement le statut 'is_paid' à true
-        $ticket->update([
-            'is_paid' => true,
-        ]);
-
-        // Si c'est une requête web, rediriger avec succès
-        if (!$request->expectsJson()) {
-            return redirect()->route('admin.tickets')
-                ->with('success', 'Ticket marqué comme payé avec succès');
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Le statut du ticket a été mis à jour à true',
-            'data' => $ticket,
-        ]);
-    } catch (ValidationException $e) {
-        // Si c'est une requête web, rediriger avec erreur
-        if (!$request->expectsJson()) {
-            return redirect()->route('admin.tickets')
-                ->withErrors($e->validator->errors());
-        }
-        
-        return response()->json([
-            'status' => false,
-            'message' => 'Erreur de validation',
-            'errors' => $e->validator->errors(),
-        ], 422);
     }
-}
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $ticket = Ticket::find($id);
@@ -330,31 +232,24 @@ public function update(Request $request, string $id)
         }
     }
 
-    /**
- * Display the tickets for the authenticated user.
- */
-public function userTickets()
-{
-    $user = Auth()->user();
+    public function userTickets()
+    {
+        $user = Auth::user();
+        $limit = request()->input('limit', 10);
 
-    // Récupérer les tickets avec pagination
-    $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
-                    ->where('user_id', $user->id)
-                    ->orderBy('created_at', 'desc')
-                    ->paginate($limit);
+        $tickets = Ticket::with(['appointment', 'prescription', 'exam', 'user'])
+                        ->where('user_id', $user->id)
+                        ->orderBy('created_at', 'desc')
+                        ->paginate($limit);
 
-    // Retourner les tickets paginés
-    return response()->json([
-        'status' => true,
-        'data' => [
-            'tickets' => $tickets->items(),
-            'total' => $tickets->total(),
-            'current_page' => $tickets->currentPage(),
-            'last_page' => $tickets->lastPage(),
-        ],
-    ]);
-}
-
-
-
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'tickets' => $tickets->items(),
+                'total' => $tickets->total(),
+                'current_page' => $tickets->currentPage(),
+                'last_page' => $tickets->lastPage(),
+            ],
+        ]);
+    }
 }

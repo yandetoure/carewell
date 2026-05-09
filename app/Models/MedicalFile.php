@@ -2,137 +2,96 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToClinic;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class MedicalFile extends Model
 {
+    use HasFactory;
 
-
-    use HasFactory, BelongsToClinic;
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'identification_number',
         'user_id',
-        'clinic_id'
     ];
 
-    /**
-     * Boot function to handle model events.
-     */
     protected static function boot()
     {
         parent::boot();
 
-        // Automatically generate identification_number when creating a new user
         static::creating(function ($user) {
             $user->identification_number = self::generateUniqueIdentificationNumber();
         });
     }
 
-    /**
-     * Generate a unique identification number.
-     *
-     * @return string
-     */
     private static function generateUniqueIdentificationNumber()
     {
-        $identification_number = Str::random(10); // Génère une chaîne aléatoire de 10 caractères
+        $identification_number = Str::random(10); 
 
-        // Vérifie que l'identification_number est unique
         while (self::where('identification_number', $identification_number)->exists()) {
             $identification_number = Str::random(10);
         }
 
         return $identification_number;
     }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-        // Déclaration de la relation avec MedicalFilePrescription
-        public function medicalprescription()
-        {
-            return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
-        }
-
-        // Alias pour prescriptions (utilisé dans le contrôleur)
-        public function prescriptions()
-        {
-            return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
-        }
-        // Déclaration de la relation avec Examen
-         public function medicalexam()
-                {
-          return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
-        }
-
-        // Alias pour exams (utilisé dans le contrôleur)
-        public function exams()
-        {
-            return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
-        }
-
-        // Déclaration de la relation avec MedicalHistory
-        public function medicalHistories()
-        {
-            return $this->hasMany(MedicalHistory::class,  'medical_files_id');
-        }
-
-        public function note()
-        {
-            return $this->hasMany(Note::class, 'medical_files_id');
-        }       
-        
-        public function medicaldisease()
-        {
-            return $this->hasMany(DiseaseMedicalFile::class, 'medical_file_id');
-        } 
-
-        /**
-         * Get all beds associated with this medical file (history).
-         */
-        public function beds()
-        {
-            return $this->hasMany(Bed::class, 'medical_file_id');
-        }
-
-        /**
-         * Get all vital signs for this medical file.
-         */
-        public function vitalSigns()
-        {
-            return $this->hasMany(VitalSign::class);
-        }
-
-        /**
-         * Get the latest vital signs for this medical file.
-         */
-        public function latestVitalSigns()
-        {
-            return $this->hasOne(VitalSign::class)->latest('recorded_at');
-        }
-
-        /**
-         * Get all bed admissions for this medical file.
-         */
-        public function bedAdmissions()
-        {
-            return $this->hasMany(BedAdmission::class, 'medical_file_id');
-        }
-
-    /**
-     * Get the clinic that the medical file belongs to
-     */
-    public function clinic()
+    public function medicalprescription()
     {
-        return $this->belongsTo(Clinic::class);
+        return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
+    }
+
+    public function prescriptions()
+    {
+        return $this->hasMany(MedicalFilePrescription::class, 'medical_files_id');
+    }
+
+    public function medicalexam()
+    {
+        return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
+    }
+
+    public function exams()
+    {
+        return $this->hasMany(MedicalFileExam::class, 'medical_file_id');
+    }
+
+    public function medicalHistories()
+    {
+        return $this->hasMany(MedicalHistory::class,  'medical_files_id');
+    }
+
+    public function note()
+    {
+        return $this->hasMany(Note::class, 'medical_files_id');
+    }       
+    
+    public function medicaldisease()
+    {
+        return $this->hasMany(DiseaseMedicalFile::class, 'medical_file_id');
+    } 
+
+    public function beds()
+    {
+        return $this->hasMany(Bed::class, 'medical_file_id');
+    }
+
+    public function vitalSigns()
+    {
+        return $this->hasMany(VitalSign::class);
+    }
+
+    public function latestVitalSigns()
+    {
+        return $this->hasOne(VitalSign::class)->latest('recorded_at');
+    }
+
+    public function bedAdmissions()
+    {
+        return $this->hasMany(BedAdmission::class, 'medical_file_id');
     }
 }

@@ -18,47 +18,6 @@ use App\Models\medicalfilePrescription;
 class MedicalFileController extends Controller
 {
     /**
-     * Obtenir le clinic_id pour un ticket
-     */
-    protected function getTicketClinicId($appointmentId = null, $userId = null, $doctorId = null)
-    {
-        // Si on a un appointment, utiliser son clinic_id
-        if ($appointmentId) {
-            $appointment = \App\Models\Appointment::find($appointmentId);
-            if ($appointment && $appointment->clinic_id) {
-                return $appointment->clinic_id;
-            }
-        }
-        
-        // Si on a un user, utiliser son clinic_id
-        if ($userId) {
-            $user = \App\Models\User::find($userId);
-            if ($user && $user->clinic_id) {
-                return $user->clinic_id;
-            }
-        }
-        
-        // Si on a un doctor, utiliser son clinic_id
-        if ($doctorId) {
-            $doctor = \App\Models\User::find($doctorId);
-            if ($doctor && $doctor->clinic_id) {
-                return $doctor->clinic_id;
-            }
-        }
-        
-        // Sinon, utiliser le clinic_id de l'utilisateur connecté
-        $currentUser = Auth::user();
-        if ($currentUser) {
-            if ($currentUser->hasRole('Super Admin')) {
-                return session('selected_clinic_id');
-            }
-            return $currentUser->clinic_id;
-        }
-        
-        return null;
-    }
-
-    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -74,7 +33,6 @@ class MedicalFileController extends Controller
     {
         $doctor = Auth::user();
         
-        // Récupérer les dossiers médicaux des patients du docteur
         $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
             ->whereHas('user.appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id);
@@ -82,7 +40,6 @@ class MedicalFileController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15);
         
-        // Statistiques
         $totalFiles = $medicalFiles->total();
         $recentFiles = MedicalFile::whereHas('user.appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id);
@@ -100,7 +57,6 @@ class MedicalFileController extends Controller
     {
         $doctor = Auth::user();
         
-        // Récupérer les dossiers médicaux des patients du docteur avec leurs antécédents
         $medicalFiles = MedicalFile::with([
             'user', 
             'medicalHistories.doctor',
@@ -112,11 +68,8 @@ class MedicalFileController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
         
-        // Ajouter des accesseurs pour compatibilité avec la vue
         $medicalFiles = $medicalFiles->map(function($file) use ($doctor) {
-            // Ajouter un accesseur patient (alias de user)
             $file->patient = $file->user;
-            // Ajouter un accesseur doctor (le docteur connecté ou le dernier docteur qui a ajouté un antécédent/note)
             $latestHistory = $file->medicalHistories->sortByDesc('created_at')->first();
             $latestNote = $file->note->sortByDesc('created_at')->first();
             
@@ -128,9 +81,7 @@ class MedicalFileController extends Controller
                 $file->doctor = $doctor;
             }
             
-            // Ajouter patient_id pour compatibilité
             $file->patient_id = $file->user_id;
-            // Ajouter consultation_type (peut être null)
             $file->consultation_type = null;
             
             return $file;
@@ -150,7 +101,6 @@ class MedicalFileController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les dossiers médicaux des patients du service du secrétaire
         $medicalFiles = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription', 'user'])
             ->whereHas('user.appointments', function($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);
@@ -158,7 +108,6 @@ class MedicalFileController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15);
         
-        // Statistiques
         $totalFiles = $medicalFiles->total();
         $recentFiles = MedicalFile::whereHas('user.appointments', function($query) use ($secretary) {
                 $query->where('service_id', $secretary->service_id);
@@ -183,13 +132,11 @@ class MedicalFileController extends Controller
     {
         $doctor = Auth::user()->load('service');
         
-        // Vérifier que le patient a eu des rendez-vous avec ce docteur
         $patient = \App\Models\User::whereHas('appointments', function($query) use ($doctor) {
                 $query->where('doctor_id', $doctor->id);
             })
             ->findOrFail($patientId);
         
-        // Récupérer le dossier médical du patient
         $medicalFile = MedicalFile::with([
             'note.doctor', 
             'medicalHistories.doctor', 
@@ -200,7 +147,6 @@ class MedicalFileController extends Controller
             ->where('user_id', $patientId)
             ->first();
         
-        // Si pas de dossier médical, en créer un
         if (!$medicalFile) {
             $medicalFile = MedicalFile::create([
                 'user_id' => $patientId,
@@ -209,19 +155,11 @@ class MedicalFileController extends Controller
             ]);
         }
         
-        // Récupérer la liste des maladies pour le modal
         $diseases = \App\Models\Disease::orderBy('name')->get();
-        
-        // Récupérer la liste des prescriptions (soins hospitaliers) pour le modal
         $prescriptions = \App\Models\Prescription::with('service')->orderBy('name')->get();
-        
-        // Récupérer la liste des examens pour le modal
         $exams = \App\Models\Exam::with('service')->orderBy('name')->get();
-        
-        // Récupérer la liste des médicaments pour le modal ordonnance
         $medicaments = \App\Models\Medicament::disponible()->orderBy('nom')->get();
         
-        // Récupérer les ordonnances du patient
         $ordonnances = \App\Models\Ordonnance::where('patient_id', $patientId)
             ->with(['medicaments' => function($query) {
                 $query->withPivot(['quantite', 'posologie', 'duree_jours', 'instructions_speciales']);
@@ -259,8 +197,6 @@ class MedicalFileController extends Controller
     
         return response()->json(['data' => $medicalFile]);
     }
-    
-
     
     public function showAuthMedicalFile()
     {
@@ -308,9 +244,6 @@ class MedicalFileController extends Controller
         return response()->json(['message' => 'Dossier médical supprimé avec succès']);
     }
 
-
-
-
     public function addNote(Request $request, string $id)
     {
         $medicalFile = MedicalFile::find($id);
@@ -323,12 +256,6 @@ class MedicalFileController extends Controller
             'content' => 'required|string',
         ]);
     
-        // Vérifier si l'utilisateur connecté a le rôle "doctor"
-        // if (Auth::user()->role !== 'Doctor') {
-        //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter une note.'], 403);
-        // }
-    
-        // Ajouter l'ID du docteur
         $note = $medicalFile->note()->create([
             'content' => $validated['content'],
             'doctor_id' => Auth::id(), 
@@ -337,63 +264,49 @@ class MedicalFileController extends Controller
         return response()->json(['message' => 'Note ajoutée avec succès', 'data' => $note]);
     }
     
-    
     public function addPrescription(Request $request, string $id)
-{
-    $validated = $request->validate([
-        'prescription_id' => 'required|exists:prescriptions,id',
-        'quantity' => 'nullable|integer|min:1',
-        'frequency' => 'nullable|string',
-        'duration' => 'nullable|string',
-        'instructions' => 'nullable|string',
-    ]);
+    {
+        $validated = $request->validate([
+            'prescription_id' => 'required|exists:prescriptions,id',
+            'quantity' => 'nullable|integer|min:1',
+            'frequency' => 'nullable|string',
+            'duration' => 'nullable|string',
+            'instructions' => 'nullable|string',
+        ]);
 
-    $medicalFile = MedicalFile::find($id);
+        $medicalFile = MedicalFile::find($id);
 
-    if (!$medicalFile) {
-        return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+        if (!$medicalFile) {
+            return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+        }
+
+        $prescription = Prescription::find($validated['prescription_id']);
+        
+        if (!$prescription) {
+            return response()->json(['message' => 'Prescription non trouvée'], 404);
+        }
+
+        $userId = $medicalFile->user_id;
+
+        $medicalFile->medicalprescription()->create([
+            'prescription_id' => $prescription->id,
+            'doctor_id' => Auth::id(),
+            'quantity' => $validated['quantity'] ?? null,
+            'frequency' => $validated['frequency'] ?? null,
+            'duration' => $validated['duration'] ?? null,
+            'instructions' => $validated['instructions'] ?? null,
+        ]);
+
+        $ticket = Ticket::create([
+            'prescription_id' => $prescription->id,
+            'doctor_id' => Auth::id(),
+            'user_id' => $userId,
+            'is_paid' => false,
+        ]);
+        
+        return response()->json(['message' => 'Prescription ajoutée avec succès']);
     }
-
-    // Optionnel : Décommentez si vous souhaitez restreindre l'accès uniquement aux médecins
-    // if (Auth::user()->role !== 'doctor') {
-    //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter une prescription.'], 403);
-    // }
-
-    $prescription = Prescription::find($validated['prescription_id']);
     
-    if (!$prescription) {
-        return response()->json(['message' => 'Prescription non trouvée'], 404);
-    }
-
-    // Récupérer l'ID du patient à partir du dossier médical
-    $userId = $medicalFile->user_id; // Assurez-vous que `patient_id` existe dans votre modèle MedicalFile
-
-    // Créer la prescription
-    $medicalFile->medicalprescription()->create([
-        'prescription_id' => $prescription->id,
-        'doctor_id' => Auth::id(),
-        'quantity' => $validated['quantity'] ?? null,
-        'frequency' => $validated['frequency'] ?? null,
-        'duration' => $validated['duration'] ?? null,
-        'instructions' => $validated['instructions'] ?? null,
-    ]);
-
-    // Créer le ticket en ajoutant l'ID du patient
-    $clinicId = $this->getTicketClinicId(null, $userId, Auth::id());
-    $ticket = Ticket::create([
-        'prescription_id' => $prescription->id,
-        'doctor_id' => Auth::id(),
-        'user_id' => $userId,
-        'clinic_id' => $clinicId,
-        'is_paid' => false,
-    ]);
-    
-    return response()->json(['message' => 'Prescription ajoutée avec succès']);
-}
-    
-    
-
-
     public function addExam(Request $request, string $id)
     {
         $validated = $request->validate([
@@ -408,15 +321,11 @@ class MedicalFileController extends Controller
             return response()->json(['message' => 'Dossier médical non trouvé'], 404);
         }
     
-        // if (Auth::user()->role !== 'doctor') {
-        //     return response()->json(['message' => 'Accès refusé. Seul un docteur peut ajouter un examen.'], 403);
-        // }
-    
         $exam = Exam::find($validated['exam_id']);
         if (!$exam) {
             return response()->json(['message' => 'Examen non trouvé'], 404);
         }
-        $userId = $medicalFile->user_id; // Assurez-vous que `patient_id` existe dans votre modèle MedicalFile
+        $userId = $medicalFile->user_id;
 
         $medicalFile->medicalexam()->create([
             'exam_id' => $exam->id,
@@ -425,20 +334,15 @@ class MedicalFileController extends Controller
             'instructions' => $validated['instructions'] ?? null,
         ]);    
 
-
-        $clinicId = $this->getTicketClinicId(null, $userId, Auth::id());
         $ticket = Ticket::create([
             'exam_id' => $exam->id,
             'doctor_id' => Auth::id(),       
             'user_id' => $userId,
-            'clinic_id' => $clinicId,
             'is_paid' => false, 
         ]);
         return response()->json(['message' => 'Examen ajouté avec succès']);
     }
     
-
-
     public function addMedicalHistories(Request $request, string $id)
     {
         $medicalFile = MedicalFile::find($id);
@@ -456,8 +360,6 @@ class MedicalFileController extends Controller
         return response()->json(['message' => 'Antecedent ajoutée avec succès', 'data' => $medicalHistories]);
     }
 
-
-        
     public function addDisease(Request $request, string $id)
     {
         $validated = $request->validate([
@@ -507,7 +409,6 @@ class MedicalFileController extends Controller
         $doctor = Auth::user();
         $patient = $medicalFile->user;
     
-        // Créer l'ordonnance
         $ordonnance = \App\Models\Ordonnance::create([
             'patient_id' => $patient->id,
             'medecin_id' => $doctor->id,
@@ -516,12 +417,11 @@ class MedicalFileController extends Controller
             'medecin_first_name' => $doctor->first_name,
             'medecin_last_name' => $doctor->last_name,
             'date_prescription' => now(),
-            'date_validite' => now()->addDays(30), // Validité de 30 jours par défaut
+            'date_validite' => now()->addDays(30),
             'statut' => 'active',
             'instructions' => 'Ordonnance créée depuis le dossier médical'
         ]);
     
-        // Ajouter chaque médicament à l'ordonnance
         foreach ($validated['medicaments'] as $medicamentData) {
             $ordonnance->medicaments()->attach($medicamentData['id'], [
                 'quantite' => $medicamentData['quantite'],
@@ -535,5 +435,4 @@ class MedicalFileController extends Controller
     
         return response()->json(['message' => 'Ordonnance créée avec succès']);
     }
-    
 }

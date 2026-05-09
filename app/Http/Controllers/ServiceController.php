@@ -6,31 +6,19 @@ use App\Models\Service;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class ServiceController extends Controller
 {
-    /**
-     * Obtenir le clinic_id actuel pour le filtrage
-     */
-    protected function getCurrentClinicId()
-    {
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if ($user && $user->hasRole('Super Admin')) {
-            return session('selected_clinic_id');
-        }
-        return $user ? $user->clinic_id : null;
-    }
     public function index(Request $request)
     {
         $query = Service::query();
 
-        // Filtre par recherche
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // Tri
         switch ($request->get('sort')) {
             case 'name':
                 $query->orderBy('name');
@@ -52,7 +40,6 @@ class ServiceController extends Controller
 
     public function show(Service $service)
     {
-        // Récupérer les services similaires
         $relatedServices = Service::where('id', '!=', $service->id)
                                  ->where('price', '>=', $service->price * 0.7)
                                  ->where('price', '<=', $service->price * 1.3)
@@ -80,8 +67,6 @@ class ServiceController extends Controller
             $validated['photo'] = $request->file('photo')->store('services', 'public');
         }
 
-        $clinicId = $this->getCurrentClinicId();
-        $validated['clinic_id'] = $clinicId;
         Service::create($validated);
 
         return redirect()->route('admin.services')->with('success', 'Service créé avec succès.');
@@ -89,22 +74,11 @@ class ServiceController extends Controller
 
     public function edit(Service $service)
     {
-        // Vérifier que le service peut être modifié (soit partagé, soit appartient à la clinique)
-        $clinicId = $this->getCurrentClinicId();
-        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
-            abort(403, 'Vous ne pouvez modifier que les services de votre clinique ou les services partagés.');
-        }
         return view('admin.services.edit', compact('service'));
     }
 
     public function update(Request $request, Service $service)
     {
-        // Vérifier que le service peut être modifié (soit partagé, soit appartient à la clinique)
-        $clinicId = $this->getCurrentClinicId();
-        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
-            abort(403, 'Vous ne pouvez modifier que les services de votre clinique ou les services partagés.');
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:1000',
@@ -116,25 +90,20 @@ class ServiceController extends Controller
             'requirements' => 'nullable|string|max:1000',
         ]);
 
-        // Gestion de la suppression de photo
         if ($request->has('remove_photo') && $request->remove_photo == '1') {
             if ($service->photo) {
                 Storage::delete('public/' . $service->photo);
             }
             $validated['photo'] = null;
         } elseif ($request->hasFile('photo')) {
-            // Supprimer l'ancienne photo
             if ($service->photo) {
                 Storage::delete('public/' . $service->photo);
             }
             $validated['photo'] = $request->file('photo')->store('services', 'public');
         } else {
-            // Ne pas mettre à jour la photo si elle n'est pas fournie
             unset($validated['photo']);
         }
 
-        // Retirer les champs null ou vides pour éviter les violations de contraintes
-        // Ne mettre à jour que les champs qui ont été explicitement fournis
         foreach (['category', 'duration', 'requirements'] as $field) {
             if (!isset($validated[$field]) || $validated[$field] === null || $validated[$field] === '') {
                 unset($validated[$field]);
@@ -148,12 +117,6 @@ class ServiceController extends Controller
 
     public function destroy(Service $service)
     {
-        // Vérifier que le service peut être supprimé (soit partagé, soit appartient à la clinique)
-        $clinicId = $this->getCurrentClinicId();
-        if ($clinicId && $service->clinic_id && $service->clinic_id !== $clinicId) {
-            abort(403, 'Vous ne pouvez supprimer que les services de votre clinique ou les services partagés.');
-        }
-
         if ($service->photo) {
             Storage::delete('public/' . $service->photo);
         }
@@ -165,24 +128,14 @@ class ServiceController extends Controller
 
     public function adminIndex()
     {
-        $clinicId = $this->getCurrentClinicId();
-        // Afficher les services partagés (clinic_id null) + les services de la clinique
-        $servicesQuery = Service::query();
-        if ($clinicId) {
-            $servicesQuery->where(function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId)->orWhereNull('clinic_id');
-            });
-        }
-        $services = $servicesQuery->paginate(20);
+        $services = Service::paginate(20);
         return view('admin.services.index', compact('services'));
     }
 
     public function adminShow(Service $service)
     {
         try {
-            // Charger les statistiques du service
             $service->loadCount('appointments');
-            
             return view('admin.services.show', compact('service'));
         } catch (\Exception $e) {
             return response()->json([
@@ -192,20 +145,15 @@ class ServiceController extends Controller
         }
     }
 
-    /**
-     * Display services for patients.
-     */
     public function patientIndex(Request $request)
     {
         $query = Service::query();
 
-        // Filtre par recherche
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // Tri par nom (ordre alphabétique)
         $query->orderBy('name');
 
         $services = $query->paginate(12);
@@ -213,29 +161,20 @@ class ServiceController extends Controller
         return view('patient.services.index', compact('services'));
     }
 
-    /**
-     * Display a specific service for patients.
-     */
     public function patientShow(Service $service)
     {
-        // Récupérer les services similaires (basés sur le prix ou la description)
         $relatedServices = Service::where('id', '!=', $service->id)
                                  ->orderBy('price')
                                  ->take(3)
                                  ->get();
 
-        // Récupérer les médecins disponibles pour ce service (à implémenter selon votre modèle)
         $doctors = collect([]);
 
         return view('patient.services.show', compact('service', 'relatedServices', 'doctors'));
     }
 
-    /**
-     * Afficher la page de gestion des catégories pour l'admin
-     */
     public function getCategories()
     {
-        // Récupérer les catégories depuis la base de données
         $categories = Category::ordered()->get()->mapWithKeys(function ($category) {
             return [$category->slug => [
                 'id' => $category->id,
@@ -252,30 +191,23 @@ class ServiceController extends Controller
         return view('admin.categories.index', compact('categories'));
     }
 
-    /**
-     * Display services for secretary.
-     */
     public function secretaryServices(Request $request)
     {
-        $secretary = \Illuminate\Support\Facades\Auth::user();
+        $secretary = Auth::user();
         
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer le service du secrétaire
-        $secretaryService = \App\Models\Service::find($secretary->service_id);
+        $secretaryService = Service::find($secretary->service_id);
         
-        // Récupérer tous les services pour référence
         $query = Service::query();
 
-        // Filtre par recherche
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
         }
 
-        // Tri
         switch ($request->get('sort')) {
             case 'name':
                 $query->orderBy('name');
@@ -292,7 +224,6 @@ class ServiceController extends Controller
 
         $services = $query->paginate(12);
 
-        // Statistiques
         $totalServices = Service::count();
         $servicesWithAppointments = Service::whereHas('appointments')->count();
         $recentServices = Service::where('created_at', '>=', now()->subDays(30))->count();
@@ -300,21 +231,16 @@ class ServiceController extends Controller
         return view('secretary.services.index', compact('services', 'secretaryService', 'totalServices', 'servicesWithAppointments', 'recentServices'));
     }
 
-    /**
-     * Display service categories for secretary.
-     */
     public function secretaryCategories()
     {
-        $secretary = \Illuminate\Support\Facades\Auth::user();
+        $secretary = Auth::user();
         
         if (!$secretary || !$secretary->hasRole('Secretary')) {
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer le service du secrétaire
-        $secretaryService = \App\Models\Service::find($secretary->service_id);
+        $secretaryService = Service::find($secretary->service_id);
 
-        // Catégories avec compteurs
         $categories = [
             'general' => [
                 'name' => 'Santé générale',
@@ -390,5 +316,4 @@ class ServiceController extends Controller
 
         return view('secretary.services.categories', compact('categories', 'secretaryService'));
     }
-
 }

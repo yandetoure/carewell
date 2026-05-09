@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Service;
-use App\Models\Clinic;
 use Illuminate\Database\Seeder;
 
 class ServiceSeeder extends Seeder
@@ -13,12 +12,6 @@ class ServiceSeeder extends Seeder
      */
     public function run(): void
     {
-        $clinics = Clinic::all();
-        
-        if ($clinics->isEmpty()) {
-            $this->command->warn('Aucune clinique trouvée. Veuillez exécuter ClinicSeeder d\'abord.');
-            return;
-        }
         $services = [
             [
                 'name' => 'Urgences',
@@ -142,17 +135,11 @@ class ServiceSeeder extends Seeder
             ],
         ];
 
-        // Créer les services pour chaque clinique
-        foreach ($clinics as $clinic) {
-            foreach ($services as $service) {
-                Service::firstOrCreate(
-                    [
-                        'name' => $service['name'],
-                        'clinic_id' => $clinic->id,
-                    ],
-                    array_merge($service, ['clinic_id' => $clinic->id])
-                );
-            }
+        foreach ($services as $service) {
+            Service::firstOrCreate(
+                ['name' => $service['name']],
+                $service
+            );
         }
     }
 }

@@ -4,16 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Ticket;
+use App\Models\MedicalFile;
+use App\Models\Prescription;
 use Illuminate\Http\Request;
 use App\Mail\PrescriptionMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Models\MedicalFilePrescription;
 use Illuminate\Validation\ValidationException;
-
-
-
-
 
 class MedicalFilePrescriptionController extends Controller
 {
@@ -22,8 +20,7 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function index()
     {
-        // Affichage des prescriptions médicales
-        $medicalFilePrescriptions = MedicalFilePrescription::with(['medicalFile', 'prescription'])->get(); // Récupérer les prescriptions avec leurs fichiers médicaux et services
+        $medicalFilePrescriptions = MedicalFilePrescription::with(['medicalFile.user', 'prescription', 'doctor'])->get(); 
         return response()->json([
             'status' => true,
             'data' => $medicalFilePrescriptions,
@@ -36,48 +33,41 @@ class MedicalFilePrescriptionController extends Controller
     public function store(Request $request)
     {
         try {
-            // Assurez-vous que l'utilisateur est un médecin
             $user = Auth::user();
-            if (!$user || !$user->hasRole('Doctor')) {
+            if (!$user || (!$user->hasRole('Doctor') && !$user->hasRole('Admin'))) {
                 return response()->json(['status' => false, 'message' => 'Unauthorized'], 403);
             }
     
-            // Validation des données
             $request->validate([
                 'prescription_id' => 'required|exists:prescriptions,id',
                 'medical_files_id' => 'required|exists:medical_files,id',
+                'dosage' => 'nullable|string',
+                'duration' => 'nullable|string',
+                'instructions' => 'nullable|string',
             ]);
             
-            // Création d'une nouvelle instance de prescription médicale
             $medicalFilePrescription = MedicalFilePrescription::create([
                 'is_done' => false,
                 'prescription_id' => $request->prescription_id,
                 'medical_files_id' => $request->medical_files_id,
+                'doctor_id' => $user->id,
+                'dosage' => $request->dosage,
+                'duration' => $request->duration,
+                'instructions' => $request->instructions,
             ]);
     
-            // Obtenir le clinic_id depuis le medical file
-            $medicalFile = \App\Models\MedicalFile::find($request->medical_files_id);
-            $clinicId = null;
-            if ($medicalFile && $medicalFile->user) {
-                $clinicId = $medicalFile->user->clinic_id;
-            } elseif (Auth::check()) {
-                $user = Auth::user();
-                if ($user->hasRole('Super Admin')) {
-                    $clinicId = session('selected_clinic_id');
-                } else {
-                    $clinicId = $user->clinic_id;
-                }
-            }
+            $medicalFile = MedicalFile::with('user')->find($request->medical_files_id);
             
-            // Création du ticket associé à la prescription
-            $ticket = Ticket::create([
+            Ticket::create([
                 'prescription_id' => $request->prescription_id,
-                'clinic_id' => $clinicId,
+                'user_id' => $medicalFile->user_id,
+                'doctor_id' => $user->id,
                 'is_paid' => false,
             ]);
     
-            // Envoi d'un email (si besoin, ici il faut récupérer l'utilisateur)
-            Mail::to($user->email)->send(new PrescriptionMail($user));
+            if ($medicalFile && $medicalFile->user && $medicalFile->user->email) {
+                Mail::to($medicalFile->user->email)->send(new PrescriptionMail($medicalFile->user));
+            }
     
             return response()->json([
                 'status' => true,
@@ -98,15 +88,13 @@ class MedicalFilePrescriptionController extends Controller
             ], 500);
         }
     }
-    
 
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        // Affichage des détails d'une prescription médicale
-        $medicalFilePrescription = MedicalFilePrescription::with(['service', 'medicalFile'])->find($id);
+        $medicalFilePrescription = MedicalFilePrescription::with(['prescription', 'medicalFile.user', 'doctor'])->find($id);
         
         if (!$medicalFilePrescription) {
             return response()->json([
@@ -126,13 +114,11 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // Validation des données
         $request->validate([
             'is_done' => 'required|boolean',
-            'prescription_id' => 'required|exists:prescriptions,id', // Correction du nom de la table ici
+            'prescription_id' => 'required|exists:prescriptions,id', 
         ]);
 
-        // Modifier une prescription
         $medicalFilePrescription = MedicalFilePrescription::find($id);
         
         if (!$medicalFilePrescription) {
@@ -143,8 +129,7 @@ class MedicalFilePrescriptionController extends Controller
         }
 
         $medicalFilePrescription->is_done = $request->is_done;
-        $medicalFilePrescription->prescription_id = $request->prescription_id; // Assurez-vous que cela est correct
-        $medicalFilePrescription->service_id = $request->service_id; // Vérifiez si service_id est inclus dans la requête
+        $medicalFilePrescription->prescription_id = $request->prescription_id; 
         $medicalFilePrescription->save();
 
         return response()->json([
@@ -159,7 +144,6 @@ class MedicalFilePrescriptionController extends Controller
      */
     public function destroy(string $id)
     {
-        // Supprimer une prescription
         $medicalFilePrescription = MedicalFilePrescription::find($id);
         
         if (!$medicalFilePrescription) {
@@ -177,88 +161,81 @@ class MedicalFilePrescriptionController extends Controller
         ]);
     }
 
+    /**
+     * Afficher les prescriptions du service du médecin connecté, avec les informations de l'utilisateur.
+     */
+    public function getPrescriptionsByService()
+    {
+        $doctor = auth()->user();
 
-/**
- * Afficher les prescriptions du service du médecin connecté, avec les informations de l'utilisateur.
- */
-public function getPrescriptionsByService()
-{
-    // Récupérer l'utilisateur connecté
-    $doctor = auth()->user();
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
 
-    // Vérifier que l'utilisateur est un médecin
-    if (!$doctor || !$doctor->hasRole('Doctor')) {
-        abort(403, 'Accès non autorisé');
+        $prescriptions = MedicalFilePrescription::with([
+                'medicalFile.user',
+                'prescription.service',
+                'doctor'
+            ])
+            ->whereHas('prescription', function ($query) use ($doctor) {
+                $query->where('service_id', $doctor->service_id);
+            })
+                ->get();
+
+        return view('doctor.prescriptions', compact('prescriptions', 'doctor'));
     }
 
-    // Récupérer les prescriptions de soins hospitaliers du service
-    $prescriptions = MedicalFilePrescription::with([
-            'medicalFile.user',
-            'prescription.service',
-            'doctor'
-        ])
-        ->whereHas('prescription', function ($query) use ($doctor) {
-            $query->where('service_id', $doctor->service_id);
-        })
-        ->get();
+    public function updatePrescriptionStatus(Request $request, $id)
+    {
+        $doctor = Auth::user();
+        $prescription = MedicalFilePrescription::find($id);
 
-    return view('doctor.prescriptions', compact('prescriptions', 'doctor'));
-}
+        if (!$prescription) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Prescription non trouvée',
+                ], 404);
+            }
+            return redirect()->back()->withErrors(['error' => 'Prescription non trouvée.']);
+        }
 
-public function updatePrescriptionStatus(Request $request, $id)
-{
-    $doctor = Auth::user();
-    $prescription = MedicalFilePrescription::find($id);
+        if ($prescription->prescription->service_id !== $doctor->service_id) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous n\'êtes pas autorisé à modifier cette prescription.',
+                ], 403);
+            }
+            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier cette prescription.']);
+        }
 
-    if (!$prescription) {
+        try {
+            $request->validate([
+                'is_done' => 'required|boolean'
+            ]);
+            
+            $prescription->is_done = $request->is_done;
+            $prescription->save();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur de validation',
+                    'errors' => $e->validator->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->validator->errors());
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
-                'success' => false,
-                'message' => 'Prescription non trouvée',
-            ], 404);
+                'success' => true,
+                'message' => 'Statut de la prescription mis à jour avec succès.',
+                'data' => $prescription,
+            ]);
         }
-        return redirect()->back()->withErrors(['error' => 'Prescription non trouvée.']);
-    }
-
-    // Vérifier que la prescription appartient au service du médecin
-    if ($prescription->prescription->service_id !== $doctor->service_id) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à modifier cette prescription.',
-            ], 403);
-        }
-        return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier cette prescription.']);
-    }
-
-    try {
-        $request->validate([
-            'is_done' => 'required|boolean'
-        ]);
         
-        $prescription->is_done = $request->is_done;
-        $prescription->save();
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors()
-            ], 422);
-        }
-        return redirect()->back()->withErrors($e->validator->errors());
+        return redirect()->back()->with('success', 'Statut de la prescription mis à jour avec succès.');
     }
-
-    if ($request->expectsJson()) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Statut de la prescription mis à jour avec succès.',
-            'data' => $prescription,
-        ]);
-    }
-    
-    return redirect()->back()->with('success', 'Statut de la prescription mis à jour avec succès.');
-}
-
-
 }

@@ -6,47 +6,23 @@ use App\Models\Bed;
 use App\Models\Service;
 use App\Models\MedicalFile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BedController extends Controller
 {
-    /**
-     * Obtenir le clinic_id actuel pour le filtrage
-     */
-    protected function getCurrentClinicId()
-    {
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if ($user && $user->hasRole('Super Admin')) {
-            return session('selected_clinic_id');
-        }
-        return $user ? $user->clinic_id : null;
-    }
-
     /**
      * Display a listing of the beds.
      */
     public function index()
     {
-        $clinicId = $this->getCurrentClinicId();
+        $beds = Bed::with(['service', 'medicalFile.user'])->get();
+        $services = Service::all();
         
-        $bedsQuery = Bed::with(['service', 'medicalFile.user']);
-        if ($clinicId) {
-            $bedsQuery->where('clinic_id', $clinicId);
-        }
-        $beds = $bedsQuery->get();
-        
-        $servicesQuery = Service::query();
-        if ($clinicId) {
-            $servicesQuery->where('clinic_id', $clinicId);
-        }
-        $services = $servicesQuery->get();
-        
-        // Statistiques
         $totalBeds = $beds->count();
         $availableBeds = $beds->where('status', 'libre')->count();
         $occupiedBeds = $beds->where('status', 'occupe')->count();
         $maintenanceBeds = $beds->where('status', 'maintenance')->count();
         
-        // Transformer les données pour la vue
         $bedsData = $beds->map(function($bed) {
             return [
                 'id' => $bed->id,
@@ -70,12 +46,7 @@ class BedController extends Controller
      */
     public function create()
     {
-        $clinicId = $this->getCurrentClinicId();
-        $servicesQuery = Service::query();
-        if ($clinicId) {
-            $servicesQuery->where('clinic_id', $clinicId);
-        }
-        $services = $servicesQuery->get();
+        $services = Service::all();
         return view('admin.beds.create', compact('services'));
     }
 
@@ -92,8 +63,6 @@ class BedController extends Controller
             'status' => 'nullable|in:libre,occupe,maintenance,admission_impossible',
         ]);
 
-        $clinicId = $this->getCurrentClinicId();
-        $validated['clinic_id'] = $clinicId;
         $bed = Bed::create($validated);
 
         return redirect()->route('admin.beds.index')
@@ -107,18 +76,11 @@ class BedController extends Controller
     {
         $bed->load(['service', 'medicalFile.user', 'admissions.medicalFile.user']);
         
-        // Récupérer les patients disponibles (avec dossier médical et non déjà admis)
-        $clinicId = $this->getCurrentClinicId();
-        $availablePatientsQuery = MedicalFile::with('user')
+        $availablePatients = MedicalFile::with('user')
             ->whereDoesntHave('beds', function($query) {
                 $query->where('status', 'occupe');
-            });
-        if ($clinicId) {
-            $availablePatientsQuery->whereHas('user', function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId);
-            });
-        }
-        $availablePatients = $availablePatientsQuery->get()
+            })
+            ->get()
             ->map(function($medicalFile) {
                 return [
                     'id' => $medicalFile->id,
@@ -129,7 +91,6 @@ class BedController extends Controller
                 ];
             });
         
-        // Préparer les données pour la vue
         $bedData = [
             'id' => $bed->id,
             'number' => $bed->bed_number,
@@ -157,14 +118,8 @@ class BedController extends Controller
     public function edit(Bed $bed)
     {
         $bed->load(['service', 'medicalFile.user']);
-        $clinicId = $this->getCurrentClinicId();
-        $servicesQuery = Service::query();
-        if ($clinicId) {
-            $servicesQuery->where('clinic_id', $clinicId);
-        }
-        $services = $servicesQuery->get();
+        $services = Service::all();
         
-        // Préparer les données pour la vue
         $bedData = [
             'id' => $bed->id,
             'number' => $bed->bed_number,
@@ -203,7 +158,6 @@ class BedController extends Controller
      */
     public function destroy(Bed $bed)
     {
-        // Vérifier si le lit est occupé
         if ($bed->isOccupied()) {
             return redirect()->route('admin.beds.index')
                 ->with('error', 'Impossible de supprimer un lit occupé');

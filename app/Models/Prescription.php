@@ -14,14 +14,8 @@ class Prescription extends Model
         'quantity',
         'price',
         'service_id',
-        'clinic_id',
     ];
 
-    public function clinic()
-    {
-        return $this->belongsTo(Clinic::class);
-    }
-    
     public function service(){
         return $this->belongsTo(Service::class);
     }
@@ -29,7 +23,4 @@ class Prescription extends Model
     public function medicalFilePrescriptions(){
         return $this->hasMany(MedicalFilePrescription::class);
     }
-    
-    
-    
 }

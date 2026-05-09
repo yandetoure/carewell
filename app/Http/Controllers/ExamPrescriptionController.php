@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Result;
 use App\Models\Ticket;
-use App\Models\Medical;
+use App\Models\MedicalFile;
+use App\Models\Exam;
 use Illuminate\Http\Request;
 use App\Models\MedicalFileExam;
 use Illuminate\Support\Facades\Mail;
@@ -18,7 +19,7 @@ class ExamPrescriptionController extends Controller
      */
     public function index()
     {
-        $medicalFileExamens = MedicalFileExam::with(['medicalFile', 'exam'])->get(); // Récupérer les examens avec leurs fichiers médicaux et examens
+        $medicalFileExamens = MedicalFileExam::with(['medicalFile.user', 'exam', 'doctor'])->get();
         return response()->json([
             'status' => true,
             'data' => $medicalFileExamens,
@@ -31,42 +32,41 @@ class ExamPrescriptionController extends Controller
     public function store(Request $request)
     {
         try {
+            $user = Auth::user();
+            if (!$user || (!$user->hasRole('Doctor') && !$user->hasRole('Admin'))) {
+                return response()->json(['status' => false, 'message' => 'Unauthorized'], 403);
+            }
+
             $request->validate([
                 'exam_id' => 'required|exists:exams,id',
                 'medical_files_id' => 'required|exists:medical_files,id',
+                'instructions' => 'nullable|string',
             ]);
             
             $medicalFileExam = MedicalFileExam::create([
                 'is_done' => false,
                 'exam_id' => $request->exam_id,
                 'medical_files_id' => $request->medical_files_id,
+                'doctor_id' => $user->id,
+                'instructions' => $request->instructions,
             ]);
 
-            // Obtenir le clinic_id depuis le medical file
-            $medicalFile = \App\Models\MedicalFile::find($request->medical_files_id);
-            $clinicId = null;
-            if ($medicalFile && $medicalFile->user) {
-                $clinicId = $medicalFile->user->clinic_id;
-            } elseif (Auth::check()) {
-                $user = Auth::user();
-                if ($user->hasRole('Super Admin')) {
-                    $clinicId = session('selected_clinic_id');
-                } else {
-                    $clinicId = $user->clinic_id;
-                }
-            }
-            
-            $ticket = Ticket::create([
+            $medicalFile = MedicalFile::with('user')->find($request->medical_files_id);
+
+            Ticket::create([
                 'exam_id' => $request->exam_id,
-                'clinic_id' => $clinicId,
+                'user_id' => $medicalFile->user_id,
+                'doctor_id' => $user->id,
                 'is_paid' => false,
             ]);
 
-            Mail::to($user->email)->send(new \App\Mail\PrescriptionMail($user));
+            if ($medicalFile && $medicalFile->user && $medicalFile->user->email) {
+                Mail::to($medicalFile->user->email)->send(new \App\Mail\PrescriptionMail($medicalFile->user));
+            }
 
             return response()->json([
                 'status' => true,
-                'message' => 'Examen créé avec succès',
+                'message' => 'Examen prescrit avec succès',
                 'data' => $medicalFileExam,
             ], 201);
         } catch (ValidationException $e) {
@@ -83,7 +83,7 @@ class ExamPrescriptionController extends Controller
      */
     public function show(string $id)
     {
-        $medicalFileExam = MedicalFileExam::with([ 'medicalFile.user', 'Exam', 'result'])->find($id);
+        $medicalFileExam = MedicalFileExam::with(['medicalFile.user', 'exam', 'result', 'doctor'])->find($id);
         
         if (!$medicalFileExam) {
             return response()->json([
@@ -103,7 +103,6 @@ class ExamPrescriptionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        // Validation des données
         $request->validate([
             'is_done' => 'required|boolean',
             'exam_id' => 'required|exists:exams,id',
@@ -124,7 +123,7 @@ class ExamPrescriptionController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => "L'examen a été modifié avec succès",
+            'message' => "Le statut de l'examen a été modifié avec succès",
             'data' => $medicalFileExam,
         ]);
     }
@@ -151,166 +150,32 @@ class ExamPrescriptionController extends Controller
         ]);
     }
 
-public function getExamByService()
-{
-    // Récupérer l'utilisateur connecté
-    $doctor = auth()->user();
+    public function getExamByService()
+    {
+        $doctor = auth()->user();
 
-    // Vérifier que l'utilisateur est un médecin
-    if (!$doctor || !$doctor->hasRole('Doctor')) {
-        abort(403, 'Accès non autorisé');
+        if (!$doctor || !$doctor->hasRole('Doctor')) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        $exams = MedicalFileExam::with([
+                'medicalFile.user',
+                'exam.service',
+                'doctor'
+            ])
+            ->whereHas('exam', function ($query) use ($doctor) {
+                $query->where('service_id', $doctor->service_id);
+            })
+            ->get();
+
+        return view('doctor.exams', compact('exams', 'doctor'));
     }
 
-    // Récupérer les examens liés au service avec les informations de l'utilisateur
-    $exams = MedicalFileExam::with([
-            'medicalFile.user',
-            'exam.service',
-            'doctor'
-        ])
-        ->whereHas('exam', function ($query) use ($doctor) {
-            $query->where('service_id', $doctor->service_id);
-        })
-        ->get();
+    public function updateExamStatus(Request $request, $id)
+    {
+        $doctor = Auth::user();
+        $exam = MedicalFileExam::find($id);
 
-    return view('doctor.exams', compact('exams', 'doctor'));
-}
-
-public function updateExamStatus(Request $request, $id)
-{
-    $doctor = Auth::user();
-    $exam = MedicalFileExam::find($id);
-
-    if (!$exam) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Examen non trouvé',
-            ], 404);
-        }
-        return redirect()->back()->withErrors(['error' => 'Examen non trouvé.']);
-    }
-
-    // Vérifier que l'examen appartient au service du médecin
-    if ($exam->exam->service_id !== $doctor->service_id) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'êtes pas autorisé à modifier cet examen.',
-            ], 403);
-        }
-        return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier cet examen.']);
-    }
-
-    try {
-        $request->validate([
-            'is_done' => 'required|boolean'
-        ]);
-        
-        $exam->is_done = $request->is_done;
-        $exam->save();
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors()
-            ], 422);
-        }
-        return redirect()->back()->withErrors($e->validator->errors());
-    }
-
-    if ($request->expectsJson()) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Statut de l\'examen mis à jour avec succès.',
-            'data' => $exam,
-        ]);
-    }
-    
-    return redirect()->back()->with('success', 'Statut de l\'examen mis à jour avec succès.');
-}
-
-public function getExamResult($examId)
-{
-    $doctor = Auth::user();
-    
-    try {
-        // Trouver l'examen correspondant à l'ID
-        $exam = MedicalFileExam::find($examId);
-
-        // Vérification de l'existence de l'examen
-        if (!$exam) {
-            if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Examen non trouvé',
-                ], 404);
-            }
-            return redirect()->back()->withErrors(['error' => 'Examen non trouvé.']);
-        }
-
-        // Vérifier que l'examen appartient au service du médecin
-        if ($exam->exam->service_id !== $doctor->service_id) {
-            if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vous n\'êtes pas autorisé à voir le résultat de cet examen.',
-                ], 403);
-            }
-            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à voir le résultat de cet examen.']);
-        }
-
-        // Récupérer le résultat de l'examen
-        $result = Result::with('doctor')->where('exam_id', $exam->exam_id)->first();
-
-        if (!$result) {
-            if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Aucun résultat trouvé pour cet examen',
-                ], 404);
-            }
-            return redirect()->back()->withErrors(['error' => 'Aucun résultat trouvé pour cet examen.']);
-        }
-
-        if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
-            return response()->json([
-                'success' => true,
-                'result' => $result,
-            ]);
-        }
-        
-        return view('doctor.exam-result', compact('result', 'exam'));
-
-    } catch (\Exception $e) {
-        if (request()->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la récupération du résultat: ' . $e->getMessage(),
-            ], 500);
-        }
-        return redirect()->back()->withErrors(['error' => 'Erreur lors de la récupération du résultat.']);
-    }
-}
-
-public function storeResult(Request $request, $examId)
-{
-    $doctor = Auth::user();
-    
-    try {
-        // Validation des données
-        $request->validate([
-            'result' => 'required|string',
-            'status' => 'required|in:normal,abnormal,pending',
-            'notes' => 'nullable|string',
-            'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240', // 10MB max par photo
-            'pdfs.*' => 'nullable|mimes:pdf|max:10240', // 10MB max par PDF
-        ]);
-
-        // Trouver l'examen correspondant à l'ID
-        $exam = MedicalFileExam::find($examId);
-
-        // Vérification de l'existence de l'examen
         if (!$exam) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -321,98 +186,211 @@ public function storeResult(Request $request, $examId)
             return redirect()->back()->withErrors(['error' => 'Examen non trouvé.']);
         }
 
-        // Vérifier que l'examen appartient au service du médecin
         if ($exam->exam->service_id !== $doctor->service_id) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Vous n\'êtes pas autorisé à ajouter un résultat à cet examen.',
+                    'message' => 'Vous n\'êtes pas autorisé à modifier cet examen.',
                 ], 403);
             }
-            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à ajouter un résultat à cet examen.']);
+            return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier cet examen.']);
         }
 
-        // Vérifier si l'examen a été effectué
-        if (!$exam->is_done) {
+        try {
+            $request->validate([
+                'is_done' => 'required|boolean'
+            ]);
+            
+            $exam->is_done = $request->is_done;
+            $exam->save();
+        } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'L\'examen n\'est pas encore effectué. Impossible d\'ajouter un résultat.',
-                ], 400);
+                    'message' => 'Erreur de validation',
+                    'errors' => $e->validator->errors()
+                ], 422);
             }
-            return redirect()->back()->withErrors(['error' => 'L\'examen n\'est pas encore effectué.']);
+            return redirect()->back()->withErrors($e->validator->errors());
         }
-
-        // Traitement des fichiers
-        $files = [];
-        
-        // Traiter les photos
-        if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('exam_results/photos', 'public');
-                $files[] = [
-                    'type' => 'photo',
-                    'name' => $photo->getClientOriginalName(),
-                    'path' => $path,
-                    'size' => $photo->getSize()
-                ];
-            }
-        }
-        
-        // Traiter les PDFs
-        if ($request->hasFile('pdfs')) {
-            foreach ($request->file('pdfs') as $pdf) {
-                $path = $pdf->store('exam_results/pdfs', 'public');
-                $files[] = [
-                    'type' => 'pdf',
-                    'name' => $pdf->getClientOriginalName(),
-                    'path' => $path,
-                    'size' => $pdf->getSize()
-                ];
-            }
-        }
-
-        // Créer le résultat et associer l'examen
-        $result = Result::create([
-            'name' => $request->result,
-            'exam_id' => $exam->exam_id, // Utiliser l'ID de l'examen réel, pas du MedicalFileExam
-            'description' => $request->notes,
-            'status' => $request->status,
-            'doctor_id' => $doctor->id,
-            'files' => $files
-        ]);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Résultat ajouté avec succès',
-                'data' => $result,
+                'message' => 'Statut de l\'examen mis à jour avec succès.',
+                'data' => $exam,
             ]);
         }
         
-        return redirect()->back()->with('success', 'Résultat ajouté avec succès.');
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->validator->errors()
-            ], 422);
-        }
-        return redirect()->back()->withErrors($e->validator->errors());
-    } catch (\Exception $e) {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'ajout du résultat: ' . $e->getMessage(),
-            ], 500);
-        }
-        return redirect()->back()->withErrors(['error' => 'Erreur lors de l\'ajout du résultat.']);
+        return redirect()->back()->with('success', 'Statut de l\'examen mis à jour avec succès.');
     }
-}
-    
-    
-    
 
+    public function getExamResult($examId)
+    {
+        $doctor = Auth::user();
+        
+        try {
+            $exam = MedicalFileExam::find($examId);
+
+            if (!$exam) {
+                if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Examen non trouvé',
+                    ], 404);
+                }
+                return redirect()->back()->withErrors(['error' => 'Examen non trouvé.']);
+            }
+
+            if ($exam->exam->service_id !== $doctor->service_id) {
+                if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vous n\'êtes pas autorisé à voir le résultat de cet examen.',
+                    ], 403);
+                }
+                return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à voir le résultat de cet examen.']);
+            }
+
+            $result = Result::with('doctor')->where('exam_id', $exam->exam_id)->first();
+
+            if (!$result) {
+                if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Aucun résultat trouvé pour cet examen',
+                    ], 404);
+                }
+                return redirect()->back()->withErrors(['error' => 'Aucun résultat trouvé pour cet examen.']);
+            }
+
+            if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
+                return response()->json([
+                    'success' => true,
+                    'result' => $result,
+                ]);
+            }
+            
+            return view('doctor.exam-result', compact('result', 'exam'));
+
+        } catch (\Exception $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de la récupération du résultat: ' . $e->getMessage(),
+                ], 500);
+            }
+            return redirect()->back()->withErrors(['error' => 'Erreur lors de la récupération du résultat.']);
+        }
+    }
+
+    public function storeResult(Request $request, $examId)
+    {
+        $doctor = Auth::user();
+        
+        try {
+            $request->validate([
+                'result' => 'required|string',
+                'status' => 'required|in:normal,abnormal,pending',
+                'notes' => 'nullable|string',
+                'photos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'pdfs.*' => 'nullable|mimes:pdf|max:10240',
+            ]);
+
+            $exam = MedicalFileExam::find($examId);
+
+            if (!$exam) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Examen non trouvé',
+                    ], 404);
+                }
+                return redirect()->back()->withErrors(['error' => 'Examen non trouvé.']);
+            }
+
+            if ($exam->exam->service_id !== $doctor->service_id) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vous n\'êtes pas autorisé à ajouter un résultat à cet examen.',
+                    ], 403);
+                }
+                return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à ajouter un résultat à cet examen.']);
+            }
+
+            if (!$exam->is_done) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'L\'examen n\'est pas encore effectué. Impossible d\'ajouter un résultat.',
+                    ], 400);
+                }
+                return redirect()->back()->withErrors(['error' => 'L\'examen n\'est pas encore effectué.']);
+            }
+
+            $files = [];
+            
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $photo) {
+                    $path = $photo->store('exam_results/photos', 'public');
+                    $files[] = [
+                        'type' => 'photo',
+                        'name' => $photo->getClientOriginalName(),
+                        'path' => $path,
+                        'size' => $photo->getSize()
+                    ];
+                }
+            }
+            
+            if ($request->hasFile('pdfs')) {
+                foreach ($request->file('pdfs') as $pdf) {
+                    $path = $pdf->store('exam_results/pdfs', 'public');
+                    $files[] = [
+                        'type' => 'pdf',
+                        'name' => $pdf->getClientOriginalName(),
+                        'path' => $path,
+                        'size' => $pdf->getSize()
+                    ];
+                }
+            }
+
+            $result = Result::create([
+                'name' => $request->result,
+                'exam_id' => $exam->exam_id,
+                'description' => $request->notes,
+                'status' => $request->status,
+                'doctor_id' => $doctor->id,
+                'files' => $files
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Résultat ajouté avec succès',
+                    'data' => $result,
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Résultat ajouté avec succès.');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur de validation',
+                    'errors' => $e->validator->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->validator->errors());
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de l\'ajout du résultat: ' . $e->getMessage(),
+                ], 500);
+            }
+            return redirect()->back()->withErrors(['error' => 'Erreur lors de l\'ajout du résultat.']);
+        }
+    }
 }

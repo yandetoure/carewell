@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Result;
+use App\Models\Exam;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -10,18 +11,6 @@ use Illuminate\Validation\ValidationException;
 
 class ResultController extends Controller
 {
-    /**
-     * Obtenir le clinic_id actuel pour le filtrage
-     */
-    protected function getCurrentClinicId()
-    {
-        $user = Auth::user();
-        if ($user && $user->hasRole('Super Admin')) {
-            return session('selected_clinic_id');
-        }
-        return $user ? $user->clinic_id : null;
-    }
-
     /**
      * Display a listing of the results.
      */
@@ -41,12 +30,10 @@ class ResultController extends Controller
     {
         $doctor = Auth::user();
 
-        // Vérifier que l'utilisateur est un médecin
         if (!$doctor || !$doctor->hasRole('Doctor')) {
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les résultats des examens du service du médecin
         $results = Result::with(['exam.service', 'doctor'])
             ->whereHas('exam', function ($query) use ($doctor) {
                 $query->where('service_id', $doctor->service_id);
@@ -54,7 +41,6 @@ class ResultController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        // Statistiques des résultats du service
         $totalResults = Result::whereHas('exam', function ($query) use ($doctor) {
             $query->where('service_id', $doctor->service_id);
         })->count();
@@ -71,7 +57,6 @@ class ResultController extends Controller
             $query->where('service_id', $doctor->service_id);
         })->where('status', 'pending')->count();
 
-        // Résultats récents (dernières 7 jours) du service
         $recentResults = Result::whereHas('exam', function ($query) use ($doctor) {
             $query->where('service_id', $doctor->service_id);
         })->where('created_at', '>=', now()->subDays(7))->count();
@@ -92,32 +77,9 @@ class ResultController extends Controller
      */
     public function adminIndex()
     {
-        $clinicId = $this->getCurrentClinicId();
-        
-        $resultsQuery = Result::with('exam');
-        if ($clinicId) {
-            $resultsQuery->whereHas('exam.service', function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId);
-            });
-        }
-        $results = $resultsQuery->orderBy('created_at', 'desc')->paginate(15);
-        
-        // Statistiques
-        $statsQuery = Result::query();
-        if ($clinicId) {
-            $statsQuery->whereHas('exam.service', function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId);
-            });
-        }
-        $totalResults = $statsQuery->count();
-        
-        $examsQuery = \App\Models\Exam::query();
-        if ($clinicId) {
-            $examsQuery->whereHas('service', function($q) use ($clinicId) {
-                $q->where('clinic_id', $clinicId);
-            });
-        }
-        $exams = $examsQuery->get();
+        $results = Result::with('exam')->orderBy('created_at', 'desc')->paginate(15);
+        $totalResults = Result::count();
+        $exams = Exam::all();
         
         return view('admin.results.index', compact('results', 'totalResults', 'exams'));
     }
@@ -128,14 +90,12 @@ class ResultController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validation des données
             $request->validate([
                 'name' => 'required|string|max:255',
-                'exam_id' => 'required|exists:exams,id', // Assurez-vous que cela correspond à votre table
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Optionnel et de taille maximale 2 Mo
+                'exam_id' => 'required|exists:exams,id',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
-            // Création d'une nouvelle instance de résultat
             $result = Result::create([
                 'name' => $request->name,
                 'exam_id' => $request->exam_id,
@@ -162,8 +122,6 @@ class ResultController extends Controller
     public function show($id)
     {
         $doctor = Auth::user();
-        
-        // Affichage d'un résultat spécifique
         $result = Result::with(['exam.service', 'doctor'])->find($id);
 
         if (!$result) {
@@ -176,7 +134,6 @@ class ResultController extends Controller
             return redirect()->back()->withErrors(['error' => 'Résultat non trouvé.']);
         }
 
-        // Vérifier que le résultat appartient au service du médecin
         if ($doctor && $doctor->hasRole('Doctor') && $result->exam->service_id !== $doctor->service_id) {
             if (request()->expectsJson() || request()->header('Accept') === 'application/json') {
                 return response()->json([
@@ -205,7 +162,6 @@ class ResultController extends Controller
         $doctor = Auth::user();
         
         try {
-            // Validation des données
             $request->validate([
                 'name' => 'required|string',
                 'status' => 'required|in:normal,abnormal,pending',
@@ -214,7 +170,6 @@ class ResultController extends Controller
                 'pdfs.*' => 'nullable|mimes:pdf|max:10240',
             ]);
 
-            // Recherche du résultat à modifier
             $result = Result::with('exam')->find($id);
 
             if (!$result) {
@@ -227,7 +182,6 @@ class ResultController extends Controller
                 return redirect()->back()->withErrors(['error' => 'Résultat non trouvé.']);
             }
 
-            // Vérifier que le résultat appartient au service du médecin
             if ($doctor && $doctor->hasRole('Doctor') && $result->exam->service_id !== $doctor->service_id) {
                 if ($request->expectsJson()) {
                     return response()->json([
@@ -238,15 +192,12 @@ class ResultController extends Controller
                 return redirect()->back()->withErrors(['error' => 'Vous n\'êtes pas autorisé à modifier ce résultat.']);
             }
 
-            // Mise à jour des données de base
             $result->name = $request->name;
             $result->status = $request->status;
             $result->description = $request->description;
 
-            // Traitement des nouveaux fichiers
             $existingFiles = $result->files ?? [];
             
-            // Traiter les nouvelles photos
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $photo) {
                     $path = $photo->store('exam_results/photos', 'public');
@@ -259,7 +210,6 @@ class ResultController extends Controller
                 }
             }
             
-            // Traiter les nouveaux PDFs
             if ($request->hasFile('pdfs')) {
                 foreach ($request->file('pdfs') as $pdf) {
                     $path = $pdf->store('exam_results/pdfs', 'public');
@@ -310,7 +260,6 @@ class ResultController extends Controller
      */
     public function destroy($id)
     {
-        // Recherche du résultat à supprimer
         $result = Result::find($id);
 
         if (!$result) {
@@ -320,13 +269,10 @@ class ResultController extends Controller
             ], 404);
         }
 
-        // Supprimez l'ancienne image si nécessaire
         if ($result->image) {
             Storage::disk('public')->delete($result->image);
         }
 
-
-        // Suppression du résultat
         $result->delete();
 
         return response()->json([

@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
+use App\Models\User;
+use App\Models\Message;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -45,12 +49,10 @@ class ProfileController extends Controller
 
         $user = Auth::user();
 
-        // Supprimer l'ancienne photo si elle existe
         if ($user->photo) {
             Storage::delete('public/' . $user->photo);
         }
 
-        // Stocker la nouvelle photo
         $path = $request->file('photo')->store('users/photos', 'public');
         $user->update(['photo' => $path]);
 
@@ -72,9 +74,6 @@ class ProfileController extends Controller
         return redirect()->back()->with('success', 'Votre mot de passe a été modifié avec succès.');
     }
 
-    /**
-     * Afficher le profil du médecin
-     */
     public function doctorProfile()
     {
         $doctor = Auth::user();
@@ -83,25 +82,20 @@ class ProfileController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les statistiques du médecin
-        $totalAppointments = \App\Models\Appointment::where('service_id', $doctor->service_id)->count();
-        $todayAppointments = \App\Models\Appointment::where('service_id', $doctor->service_id)
+        $totalAppointments = Appointment::where('doctor_id', $doctor->id)->count();
+        $todayAppointments = Appointment::where('doctor_id', $doctor->id)
             ->whereDate('appointment_date', today())
             ->count();
-        $totalPatients = \App\Models\User::whereHas('appointments', function($query) use ($doctor) {
-            $query->where('service_id', $doctor->service_id);
+        $totalPatients = User::whereHas('appointments', function($query) use ($doctor) {
+            $query->where('doctor_id', $doctor->id);
         })->count();
-        $totalMessages = \App\Models\Message::where('sender_id', $doctor->id)->count();
+        $totalMessages = Message::where('sender_id', $doctor->id)->count();
 
-        // Récupérer le service du médecin
-        $service = \App\Models\Service::find($doctor->service_id);
+        $service = Service::find($doctor->service_id);
 
         return view('doctor.profile', compact('doctor', 'service', 'totalAppointments', 'todayAppointments', 'totalPatients', 'totalMessages'));
     }
 
-    /**
-     * Afficher les paramètres du médecin
-     */
     public function doctorSettings()
     {
         $doctor = Auth::user();
@@ -110,10 +104,8 @@ class ProfileController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
-        // Récupérer les services disponibles pour le changement
-        $services = \App\Models\Service::all();
+        $services = Service::all();
 
-        // Paramètres par défaut
         $settings = [
             'email_notifications' => true,
             'sms_notifications' => false,
@@ -136,9 +128,6 @@ class ProfileController extends Controller
         return view('doctor.settings', compact('doctor', 'services', 'settings'));
     }
 
-    /**
-     * Mettre à jour le profil du médecin
-     */
     public function updateDoctorProfile(Request $request)
     {
         $doctor = Auth::user();
@@ -175,9 +164,6 @@ class ProfileController extends Controller
         return redirect()->back()->with('success', 'Votre profil a été mis à jour avec succès.');
     }
 
-    /**
-     * Mettre à jour les paramètres du médecin
-     */
     public function updateDoctorSettings(Request $request)
     {
         $doctor = Auth::user();
