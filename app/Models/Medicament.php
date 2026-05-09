@@ -16,6 +16,7 @@ class Medicament extends Model
      */
     protected $fillable = [
         'nom',
+        'categorie',
         'forme',
         'dosage',
         'description',
@@ -24,6 +25,7 @@ class Medicament extends Model
         'disponible',
         'date_expiration',
         'quantite_stock',
+        'unite_mesure',
     ];
 
     /**

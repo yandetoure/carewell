@@ -201,6 +201,74 @@ class DashboardController extends Controller
         return view('admin.pharmacy.index', compact('medicaments', 'totalMedicaments', 'availableMedicaments', 'lowStockMedicines'));
     }
 
+    public function showMedicament(Medicament $medicament)
+    {
+        return view('admin.pharmacy.show', compact('medicament'));
+    }
+
+    public function editMedicament(Medicament $medicament)
+    {
+        return view('admin.pharmacy.edit', compact('medicament'));
+    }
+
+    public function storeMedicament(Request $request)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'categorie' => 'required|string|max:255',
+            'forme' => 'nullable|string|max:255',
+            'dosage' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'laboratoire' => 'nullable|string|max:255',
+            'prix_unitaire' => 'required|numeric|min:0',
+            'quantite_stock' => 'required|integer|min:0',
+            'unite_mesure' => 'required|string|max:255',
+            'date_expiration' => 'nullable|date',
+            'disponible' => 'required|in:0,1',
+        ]);
+
+        $data = $validated;
+        $data['prix'] = $validated['prix_unitaire'];
+        $data['disponible'] = (bool) $validated['disponible'];
+        unset($data['prix_unitaire']);
+
+        Medicament::create($data);
+
+        return redirect()->route('admin.pharmacy')->with('success', 'Médicament ajouté avec succès.');
+    }
+
+    public function updateMedicament(Request $request, Medicament $medicament)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'categorie' => 'required|string|max:255',
+            'forme' => 'nullable|string|max:255',
+            'dosage' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'laboratoire' => 'nullable|string|max:255',
+            'prix_unitaire' => 'required|numeric|min:0',
+            'quantite_stock' => 'required|integer|min:0',
+            'unite_mesure' => 'required|string|max:255',
+            'date_expiration' => 'nullable|date',
+            'disponible' => 'required|in:0,1',
+        ]);
+
+        $data = $validated;
+        $data['prix'] = $validated['prix_unitaire'];
+        $data['disponible'] = (bool) $validated['disponible'];
+        unset($data['prix_unitaire']);
+
+        $medicament->update($data);
+
+        return redirect()->route('admin.pharmacy')->with('success', 'Médicament mis à jour avec succès.');
+    }
+
+    public function destroyMedicament(Medicament $medicament)
+    {
+        $medicament->delete();
+        return redirect()->route('admin.pharmacy')->with('success', 'Médicament supprimé avec succès.');
+    }
+
     public function prescriptionsManagement()
     {
         $prescriptions = Prescription::with('service')->orderBy('name')->paginate(20);

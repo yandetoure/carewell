@@ -54,7 +54,7 @@
                                 <i class="fas fa-money-bill-wave text-success me-3"></i>
                                 <div>
                                     <strong>Prix unitaire</strong><br>
-                                    <span class="text-muted">{{ number_format($medicament->prix_unitaire, 0, ',', ' ') }} FCFA</span>
+                                    <span class="text-muted">{{ number_format($medicament->prix, 0, ',', ' ') }} FCFA</span>
                                 </div>
                             </div>
                         </div>
@@ -194,7 +194,7 @@
                                     <i class="fas fa-calculator text-white"></i>
                                 </div>
                                 <div class="ms-3">
-                                    <h4 class="mb-1">{{ number_format($medicament->prix_unitaire * $medicament->quantite_stock, 0, ',', ' ') }}</h4>
+                                    <h4 class="mb-1">{{ number_format($medicament->prix * $medicament->quantite_stock, 0, ',', ' ') }}</h4>
                                     <p class="text-muted mb-0">Valeur stock</p>
                                 </div>
                             </div>

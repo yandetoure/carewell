@@ -188,7 +188,7 @@
                                         <small class="text-muted">{{ $medicament->unite_mesure }}</small>
                                     </td>
                                     <td>
-                                        <span class="fw-bold text-success">{{ number_format($medicament->prix_unitaire, 0, ',', ' ') }} FCFA</span>
+                                        <span class="fw-bold text-success">{{ number_format($medicament->prix, 0, ',', ' ') }} FCFA</span>
                                     </td>
                                     <td>
                                         <div>{{ $medicament->date_expiration ? $medicament->date_expiration->format('d/m/Y') : 'N/A' }}</div>

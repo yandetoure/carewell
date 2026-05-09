@@ -104,7 +104,7 @@
                                 <div class="mb-3">
                                     <label for="prix_unitaire" class="form-label">Prix unitaire (FCFA) *</label>
                                     <input type="number" class="form-control" id="prix_unitaire" name="prix_unitaire" 
-                                           value="{{ old('prix_unitaire', $medicament->prix_unitaire) }}" required min="0" step="0.01">
+                                           value="{{ old('prix_unitaire', $medicament->prix) }}" required min="0" step="0.01">
                                 </div>
                             </div>
                         </div>
