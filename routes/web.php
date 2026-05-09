@@ -336,6 +336,7 @@ Route::middleware('auth')->group(function () {
 
     // Routes pour les administrateurs uniquement (sans middleware de rôle pour l'instant)
     Route::group(['prefix' => 'admin'], function () {
+        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
         Route::get('/users', [AuthController::class, 'getUsers'])->name('admin.users');
         Route::post('/users', [AuthController::class, 'store'])->name('admin.users.store');
         Route::get('/users/{user}', [AuthController::class, 'show'])->name('admin.users.show');
