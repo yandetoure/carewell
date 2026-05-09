@@ -242,7 +242,7 @@
                                     <i class="fas fa-calendar-alt text-white"></i>
                                 </div>
                                 <div class="ms-3">
-                                    <h4 class="mb-1">{{ $ordonnance->date_prescription->diffInDays(now()) }}</h4>
+                                    <h4 class="mb-1">{{ number_format($ordonnance->date_prescription->diffInDays(now()), 0) }}</h4>
                                     <p class="text-muted mb-0">Jours écoulés</p>
                                 </div>
                             </div>
