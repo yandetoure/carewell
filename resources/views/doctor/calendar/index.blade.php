@@ -2,193 +2,155 @@
 
 @section('title', 'Calendrier - Docteur')
 @section('page-title', 'Mon Calendrier')
-@section('page-subtitle', 'Visualisez vos disponibilités et planifiez vos absences')
+@section('page-subtitle', 'Gérez vos disponibilités et planifiez vos absences en toute simplicité')
 @section('user-role', 'Médecin')
 
 @section('content')
 <div class="container-fluid py-4">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <!-- Statistiques -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-success">
-                            <i class="fas fa-calendar-check text-white"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalAvailabilities }}</h4>
-                            <p class="text-muted mb-0">Disponibilités</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning">
-                            <i class="fas fa-calendar-times text-white"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h4 class="mb-1">{{ $totalAbsences }}</h4>
-                            <p class="text-muted mb-0">Absences</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-info">
-                            <i class="fas fa-clock text-white"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h4 class="mb-1">{{ $upcomingAbsences }}</h4>
-                            <p class="text-muted mb-0">À venir</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-primary">
-                            <i class="fas fa-calendar-alt text-white"></i>
-                        </div>
-                        <div class="ms-3">
-                            <h4 class="mb-1">{{ now()->format('M Y') }}</h4>
-                            <p class="text-muted mb-0">Mois actuel</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
+    <!-- Statistiques & Actions -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-calendar-alt me-2"></i>Actions rapides
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <a href="{{ route('doctor.availability.create') }}" class="btn btn-success">
-                                <i class="fas fa-plus me-2"></i>Nouvelle disponibilité
-                            </a>
-                            <a href="{{ route('doctor.calendar.create-absence') }}" class="btn btn-warning">
-                                <i class="fas fa-calendar-times me-2"></i>Nouvelle absence
-                            </a>
-                            <button type="button" class="btn btn-info" onclick="refreshCalendar()">
-                                <i class="fas fa-sync me-2"></i>Actualiser
-                            </button>
+                        <div>
+                            <p class="text-xs font-weight-bold text-uppercase text-success mb-1">Disponibilités</p>
+                            <h3 class="font-weight-bolder mb-0">{{ $totalAvailabilities }}</h3>
+                        </div>
+                        <div class="icon-shape bg-gradient-success shadow-success text-center border-radius-md">
+                            <i class="fas fa-calendar-check text-lg opacity-10" aria-hidden="true"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-xs font-weight-bold text-uppercase text-warning mb-1">Absences Totales</p>
+                            <h3 class="font-weight-bolder mb-0">{{ $totalAbsences }}</h3>
+                        </div>
+                        <div class="icon-shape bg-gradient-warning shadow-warning text-center border-radius-md">
+                            <i class="fas fa-calendar-times text-lg opacity-10" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-xs font-weight-bold text-uppercase text-info mb-1">Absences à venir</p>
+                            <h3 class="font-weight-bolder mb-0">{{ $upcomingAbsences }}</h3>
+                        </div>
+                        <div class="icon-shape bg-gradient-info shadow-info text-center border-radius-md">
+                            <i class="fas fa-clock text-lg opacity-10" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card action-card h-100 border-dashed border-2 border-primary bg-light-primary">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center py-2">
+                    <div class="btn-group w-100 mb-2">
+                        <a href="{{ route('doctor.availability.create') }}" class="btn btn-primary btn-sm flex-grow-1">
+                            <i class="fas fa-plus me-1"></i> Dispo.
+                        </a>
+                        <a href="{{ route('doctor.calendar.create-absence') }}" class="btn btn-outline-warning btn-sm flex-grow-1">
+                            <i class="fas fa-calendar-minus me-1"></i> Absence
+                        </a>
+                    </div>
+                    <button type="button" class="btn btn-white btn-sm w-100" onclick="refreshCalendar()">
+                        <i class="fas fa-sync-alt me-1"></i> Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Calendrier -->
+    <!-- Calendrier Main Section -->
     <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
+        <div class="col-lg-9">
+            <div class="card shadow-lg calendar-main-card">
+                <div class="card-header pb-0 bg-white">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-calendar me-2"></i>Calendrier des disponibilités et absences
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="previousMonth()">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span id="current-month" class="btn btn-sm btn-outline-secondary">{{ now()->format('F Y') }}</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="nextMonth()">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                        <h5 class="mb-0 font-weight-bolder">Planning Interactif</h5>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="badge bg-light text-dark border">
+                                <span id="calendar-view-title" class="font-weight-bold text-primary"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div id="calendar-container">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Chargement...</span>
-                            </div>
-                            <p class="mt-3 text-muted">Chargement du calendrier...</p>
-                        </div>
-                    </div>
+                <div class="card-body p-3">
+                    <div id="fullCalendar" class="min-height-600"></div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Légende -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Légende
-                    </h5>
+        <div class="col-lg-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white pb-0">
+                    <h6 class="font-weight-bolder mb-0">Légende & Infos</h6>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-success">Disponibilités</h6>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-success me-2"></div>
-                                <span>Créneaux disponibles pour les rendez-vous</span>
+                <div class="card-body p-3">
+                    <div class="legend-section mb-4">
+                        <p class="text-xs text-uppercase text-muted font-weight-bold mb-3">Types d'événements</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="legend-dot bg-success"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Disponibilité</h6>
+                                <p class="text-xs text-muted mb-0">Créneau de consultation</p>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="text-warning">Absences</h6>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-warning me-2"></div>
-                                <span>Congés</span>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="legend-dot bg-warning"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Congé</h6>
+                                <p class="text-xs text-muted mb-0">Absence planifiée</p>
                             </div>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-info me-2"></div>
-                                <span>Formations</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="legend-dot bg-info"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Formation</h6>
+                                <p class="text-xs text-muted mb-0">Séminaire ou cours</p>
                             </div>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-danger me-2"></div>
-                                <span>Maladie</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="legend-dot bg-danger"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Maladie</h6>
+                                <p class="text-xs text-muted mb-0">Arrêt maladie</p>
                             </div>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-secondary me-2"></div>
-                                <span>Personnel</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="legend-dot bg-secondary"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Personnel</h6>
+                                <p class="text-xs text-muted mb-0">Affaires privées</p>
                             </div>
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="legend-color bg-purple me-2"></div>
-                                <span>Autre</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="legend-dot bg-purple"></span>
+                            <div class="ms-3">
+                                <h6 class="text-sm mb-0">Autre</h6>
+                                <p class="text-xs text-muted mb-0">Motifs divers</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-alert p-3 bg-light-info border-radius-md border-1 border-info">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle text-info mt-1"></i>
+                            <div class="ms-3">
+                                <p class="text-xs mb-0">
+                                    Cliquez sur un événement pour voir les détails ou le modifier. Vous pouvez aussi glisser les événements pour les replanifier.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -198,22 +160,48 @@
     </div>
 </div>
 
-<!-- Modal pour les détails -->
-<div class="modal fade" id="eventModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="eventModalTitle">Détails</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="eventModalBody">
-                <!-- Contenu dynamique -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                <div id="eventModalActions">
-                    <!-- Actions dynamiques -->
+<!-- Modal Détails Événement -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-xl border-radius-lg">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center">
+                    <div class="icon-shape icon-sm bg-gradient-primary shadow text-center border-radius-md me-3">
+                        <i id="modalEventIcon" class="fas fa-calendar text-white opacity-10"></i>
+                    </div>
+                    <h5 class="modal-title font-weight-bolder mb-0" id="eventTitle">Détails de l'événement</h5>
                 </div>
+                <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-4">
+                <div id="eventDetails">
+                    <div class="row mb-3">
+                        <div class="col-4 text-muted text-xs font-weight-bold">TYPE</div>
+                        <div class="col-8 text-sm font-weight-bolder" id="detailType">-</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-4 text-muted text-xs font-weight-bold">DATE & HEURE</div>
+                        <div class="col-8 text-sm font-weight-bolder" id="detailTime">-</div>
+                    </div>
+                    <div class="row mb-3" id="detailServiceRow">
+                        <div class="col-4 text-muted text-xs font-weight-bold">SERVICE</div>
+                        <div class="col-8 text-sm font-weight-bolder" id="detailService">-</div>
+                    </div>
+                    <div class="row mb-3" id="detailDurationRow">
+                        <div class="col-4 text-muted text-xs font-weight-bold">DURÉE RDV</div>
+                        <div class="col-8 text-sm font-weight-bolder" id="detailDuration">-</div>
+                    </div>
+                    <div class="row mb-0" id="detailStatusRow">
+                        <div class="col-4 text-muted text-xs font-weight-bold">STATUT</div>
+                        <div class="col-8" id="detailStatus">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light btn-sm mb-0" data-bs-dismiss="modal">Fermer</button>
+                <a href="#" id="editEventBtn" class="btn btn-primary btn-sm mb-0">
+                    <i class="fas fa-edit me-1"></i> Modifier
+                </a>
             </div>
         </div>
     </div>
@@ -221,277 +209,195 @@
 @endsection
 
 @push('styles')
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
 <style>
-.stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-}
-
-.bg-purple {
-    background-color: #6f42c1 !important;
-}
-
-#calendar-container {
-    min-height: 600px;
-}
-
-.calendar-day {
-    min-height: 120px;
-    border: 1px solid #dee2e6;
-    padding: 8px;
-    position: relative;
-}
-
-.calendar-day:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-day.today {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
-}
-
-.calendar-day.other-month {
-    background-color: #f8f9fa;
-    color: #6c757d;
-}
-
-.calendar-event {
-    font-size: 0.75rem;
-    padding: 2px 4px;
-    margin: 1px 0;
-    border-radius: 3px;
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.calendar-event:hover {
-    opacity: 0.8;
-}
-
-.calendar-event.availability {
-    background-color: #28a745;
-    color: white;
-}
-
-.calendar-event.absence {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.calendar-event.absence.formation {
-    background-color: #17a2b8;
-    color: white;
-}
-
-.calendar-event.absence.maladie {
-    background-color: #dc3545;
-    color: white;
-}
-
-.calendar-event.absence.personnel {
-    background-color: #6c757d;
-    color: white;
-}
-
-.calendar-event.absence.autre {
-    background-color: #6f42c1;
-    color: white;
-}
+    /* Premium Stats Cards */
+    .stat-card {
+        border: none;
+        border-radius: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
+    }
+    .icon-shape {
+        width: 48px;
+        height: 48px;
+        background-position: 50%;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .bg-gradient-success { background: linear-gradient(310deg, #17ad37, #98ec2d); }
+    .bg-gradient-warning { background: linear-gradient(310deg, #f53939, #fbcf33); }
+    .bg-gradient-info { background: linear-gradient(310deg, #2152ff, #21d4fd); }
+    .bg-gradient-primary { background: linear-gradient(310deg, #7928ca, #ff0080); }
+    
+    .shadow-success { box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(23, 173, 55, 0.4); }
+    .shadow-warning { box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(245, 57, 57, 0.4); }
+    .shadow-info { box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(33, 82, 255, 0.4); }
+    
+    .text-xs { font-size: 0.75rem; }
+    .font-weight-bolder { font-weight: 700 !important; }
+    
+    /* Calendar Styling */
+    .calendar-main-card {
+        border-radius: 1.25rem;
+        overflow: hidden;
+    }
+    .min-height-600 { min-height: 700px; }
+    
+    /* FullCalendar Overrides */
+    .fc { font-family: 'Inter', sans-serif; --fc-border-color: #f0f2f5; }
+    .fc .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 700; color: #344767; }
+    .fc .fc-button { 
+        background: #fff; border: 1px solid #d2d6da; color: #344767; 
+        font-weight: 600; text-transform: capitalize; padding: 0.5rem 1rem;
+        border-radius: 0.5rem !important; transition: all 0.2s ease;
+    }
+    .fc .fc-button:hover { background: #f8f9fa !important; color: #344767 !important; border-color: #d2d6da !important; }
+    .fc .fc-button-primary:not(:disabled).fc-button-active, 
+    .fc .fc-button-primary:not(:disabled):active { 
+        background-color: #344767 !important; color: #fff !important; border-color: #344767 !important;
+    }
+    .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f0f2f5 !important; }
+    .fc .fc-daygrid-day.fc-day-today { background-color: rgba(33, 82, 255, 0.05) !important; }
+    .fc .fc-col-header-cell { background: #f8f9fa; padding: 10px 0; font-size: 0.85rem; font-weight: 600; color: #67748e; }
+    
+    /* Legend Dots */
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .bg-purple { background-color: #6f42c1 !important; }
+    .bg-light-info { background-color: #e8f2ff !important; }
+    .bg-light-primary { background-color: rgba(121, 40, 202, 0.05) !important; }
+    
+    /* Event Badges */
+    .fc-event { border: none !important; border-radius: 4px !important; padding: 2px 4px !important; font-size: 0.8rem !important; }
+    .fc-event-main { padding-left: 2px; }
+    
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .stat-card { animation: fadeIn 0.5s ease-out forwards; }
 </style>
 @endpush
 
 @push('scripts')
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 <script>
-let currentDate = new Date();
-let calendarData = {};
-
-// Charger les données du calendrier
-function loadCalendarData(year, month) {
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0);
-    
-    fetch(`/doctor/calendar/data?start=${startDate.toISOString().split('T')[0]}&end=${endDate.toISOString().split('T')[0]}`)
-        .then(response => response.json())
-        .then(data => {
-            calendarData = data;
-            renderCalendar(year, month);
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des données:', error);
-            document.getElementById('calendar-container').innerHTML = 
-                '<div class="alert alert-danger">Erreur lors du chargement du calendrier</div>';
-        });
-}
-
-// Rendre le calendrier
-function renderCalendar(year, month) {
-    const container = document.getElementById('calendar-container');
-    const monthNames = [
-        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-    ];
-    
-    document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    let calendarHTML = `
-        <div class="calendar-header">
-            <div class="row">
-                <div class="col text-center"><strong>Dim</strong></div>
-                <div class="col text-center"><strong>Lun</strong></div>
-                <div class="col text-center"><strong>Mar</strong></div>
-                <div class="col text-center"><strong>Mer</strong></div>
-                <div class="col text-center"><strong>Jeu</strong></div>
-                <div class="col text-center"><strong>Ven</strong></div>
-                <div class="col text-center"><strong>Sam</strong></div>
-            </div>
-        </div>
-        <div class="calendar-body">
-    `;
-    
-    const today = new Date();
-    const currentDate = new Date(startDate);
-    
-    for (let week = 0; week < 6; week++) {
-        calendarHTML += '<div class="row">';
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('fullCalendar');
+        const eventDetailModal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
         
-        for (let day = 0; day < 7; day++) {
-            const isCurrentMonth = currentDate.getMonth() === month;
-            const isToday = currentDate.toDateString() === today.toDateString();
-            
-            let dayClass = 'calendar-day col';
-            if (!isCurrentMonth) dayClass += ' other-month';
-            if (isToday) dayClass += ' today';
-            
-            calendarHTML += `<div class="${dayClass}">`;
-            calendarHTML += `<div class="day-number">${currentDate.getDate()}</div>`;
-            
-            // Ajouter les événements
-            const dateStr = currentDate.toISOString().split('T')[0];
-            const dayEvents = getEventsForDate(dateStr);
-            
-            dayEvents.forEach(event => {
-                calendarHTML += `<div class="calendar-event ${event.type} ${event.type === 'absence' ? event.status : ''}" onclick="showEventDetails('${event.id}')">${event.title}</div>`;
-            });
-            
-            calendarHTML += '</div>';
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        calendarHTML += '</div>';
-    }
-    
-    calendarHTML += '</div>';
-    container.innerHTML = calendarHTML;
-}
-
-// Obtenir les événements pour une date
-function getEventsForDate(date) {
-    const events = [];
-    
-    // Ajouter les disponibilités
-    if (calendarData.availabilities) {
-        calendarData.availabilities.forEach(availability => {
-            if (availability.start === date) {
-                events.push(availability);
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'fr',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week: 'Semaine',
+                day: 'Jour'
+            },
+            events: function(fetchInfo, successCallback, failureCallback) {
+                fetch(`/doctor/calendar/data?start=${fetchInfo.startStr.split('T')[0]}&end=${fetchInfo.endStr.split('T')[0]}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const events = [];
+                        
+                        // Formater les disponibilités
+                        data.availabilities.forEach(avail => {
+                            events.push({
+                                id: avail.id,
+                                title: avail.title.replace('Disponible: ', ''),
+                                start: avail.start,
+                                end: avail.end,
+                                backgroundColor: '#2dce89',
+                                borderColor: '#2dce89',
+                                extendedProps: {
+                                    type: 'availability',
+                                    time: avail.time,
+                                    duration: avail.duration,
+                                    service: avail.title.replace('Disponible: ', '')
+                                }
+                            });
+                        });
+                        
+                        // Formater les absences
+                        data.absences.forEach(abs => {
+                            events.push({
+                                id: abs.id,
+                                title: abs.title,
+                                start: abs.start,
+                                end: abs.end,
+                                backgroundColor: abs.color,
+                                borderColor: abs.color,
+                                extendedProps: {
+                                    type: 'absence',
+                                    status: abs.status,
+                                    isFullDay: abs.is_full_day
+                                }
+                            });
+                        });
+                        
+                        successCallback(events);
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        failureCallback(error);
+                    });
+            },
+            eventClick: function(info) {
+                const event = info.event;
+                const props = event.extendedProps;
+                
+                document.getElementById('eventTitle').textContent = event.title;
+                document.getElementById('detailType').textContent = props.type === 'availability' ? 'DISPONIBILITÉ' : 'ABSENCE';
+                
+                // Formater l'heure
+                let timeStr = FullCalendar.formatDate(event.start, {
+                    month: 'long',
+                    year: 'numeric',
+                    day: 'numeric',
+                    locale: 'fr'
+                });
+                
+                if (props.type === 'availability') {
+                    timeStr += ` (${props.time})`;
+                    document.getElementById('detailServiceRow').style.display = 'flex';
+                    document.getElementById('detailDurationRow').style.display = 'flex';
+                    document.getElementById('detailStatusRow').style.display = 'none';
+                    document.getElementById('detailService').textContent = props.service;
+                    document.getElementById('detailDuration').textContent = props.duration;
+                    document.getElementById('modalEventIcon').className = 'fas fa-calendar-check text-white opacity-10';
+                    document.getElementById('editEventBtn').href = `/doctor/availability/${event.id.replace('avail_', '')}/edit`;
+                } else {
+                    document.getElementById('detailServiceRow').style.display = 'none';
+                    document.getElementById('detailDurationRow').style.display = 'none';
+                    document.getElementById('detailStatusRow').style.display = 'flex';
+                    document.getElementById('detailStatus').innerHTML = `<span class="badge bg-light text-dark border">${props.status.toUpperCase()}</span>`;
+                    document.getElementById('modalEventIcon').className = 'fas fa-calendar-times text-white opacity-10';
+                    document.getElementById('editEventBtn').href = `/doctor/calendar/absence/${event.id.replace('absence_', '')}/edit`;
+                }
+                
+                document.getElementById('detailTime').textContent = timeStr;
+                eventDetailModal.show();
+            },
+            eventMouseEnter: function(info) {
+                info.el.style.cursor = 'pointer';
             }
         });
-    }
-    
-    // Ajouter les absences
-    if (calendarData.absences) {
-        calendarData.absences.forEach(absence => {
-            if (absence.start <= date && absence.end > date) {
-                events.push(absence);
-            }
-        });
-    }
-    
-    return events;
-}
-
-// Afficher les détails d'un événement
-function showEventDetails(eventId) {
-    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-    const modalTitle = document.getElementById('eventModalTitle');
-    const modalBody = document.getElementById('eventModalBody');
-    const modalActions = document.getElementById('eventModalActions');
-    
-    // Trouver l'événement
-    let event = null;
-    if (eventId.startsWith('avail_')) {
-        event = calendarData.availabilities.find(a => a.id === eventId);
-    } else if (eventId.startsWith('absence_')) {
-        event = calendarData.absences.find(a => a.id === eventId);
-    }
-    
-    if (!event) return;
-    
-    modalTitle.textContent = event.title;
-    
-    if (event.type === 'availability') {
-        modalBody.innerHTML = `
-            <p><strong>Service:</strong> ${event.title.replace('Disponible: ', '')}</p>
-            <p><strong>Horaires:</strong> ${event.time}</p>
-            <p><strong>Durée RDV:</strong> ${event.duration}</p>
-        `;
-        modalActions.innerHTML = `
-            <a href="/doctor/availability/${event.id.replace('avail_', '')}/edit" class="btn btn-primary">
-                <i class="fas fa-edit me-1"></i>Modifier
-            </a>
-        `;
-    } else if (event.type === 'absence') {
-        modalBody.innerHTML = `
-            <p><strong>Type:</strong> ${event.title}</p>
-            <p><strong>Statut:</strong> ${event.status}</p>
-            <p><strong>Jour entier:</strong> ${event.is_full_day ? 'Oui' : 'Non'}</p>
-        `;
-        modalActions.innerHTML = `
-            <a href="/doctor/calendar/absence/${event.id.replace('absence_', '')}/edit" class="btn btn-primary">
-                <i class="fas fa-edit me-1"></i>Modifier
-            </a>
-        `;
-    }
-    
-    modal.show();
-}
-
-// Navigation du calendrier
-function previousMonth() {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    loadCalendarData(currentDate.getFullYear(), currentDate.getMonth());
-}
-
-function nextMonth() {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    loadCalendarData(currentDate.getFullYear(), currentDate.getMonth());
-}
-
-function refreshCalendar() {
-    loadCalendarData(currentDate.getFullYear(), currentDate.getMonth());
-}
-
-// Initialiser le calendrier
-document.addEventListener('DOMContentLoaded', function() {
-    loadCalendarData(currentDate.getFullYear(), currentDate.getMonth());
-});
+        
+        calendar.render();
+        
+        window.refreshCalendar = function() {
+            calendar.refetchEvents();
+        };
+    });
 </script>
 @endpush

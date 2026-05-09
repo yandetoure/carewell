@@ -333,7 +333,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('medical-files.show', $patient->id) }}" class="btn btn-primary">
+                        <a href="{{ route('doctor.medical-files.show', $patient->id) }}" class="btn btn-primary">
                             <i class="fas fa-eye me-1"></i>Voir le dossier complet
                         </a>
                     </div>
@@ -364,7 +364,7 @@
                             <i class="fas fa-calendar-plus me-1"></i>Gérer les rendez-vous
                         </a>
                         @if($medicalFile)
-                        <a href="{{ route('medical-files.show', $patient->id) }}" class="btn btn-outline-warning">
+                        <a href="{{ route('doctor.medical-files.show', $patient->id) }}" class="btn btn-outline-warning">
                             <i class="fas fa-file-medical me-1"></i>Dossier médical
                         </a>
                         @endif

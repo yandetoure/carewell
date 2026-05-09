@@ -250,7 +250,7 @@
                         <a href="{{ route('doctor.patients.history', $patient) }}" class="btn btn-outline-info">
                             <i class="fas fa-history me-2"></i>Voir l'historique
                         </a>
-                        <a href="{{ route('medical-files.show', $patient->id) }}" class="btn btn-outline-warning">
+                        <a href="{{ route('doctor.medical-files.show', $patient->id) }}" class="btn btn-outline-warning">
                             <i class="fas fa-file-medical me-2"></i>Dossier médical
                         </a>
                         <a href="mailto:{{ $patient->email }}" class="btn btn-outline-secondary">

@@ -157,7 +157,7 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ route('medical-files.show', $medicalFile->id) }}" 
+                                                <a href="{{ route('doctor.medical-files.show', $medicalFile->user_id) }}" 
                                                    class="btn btn-info" 
                                                    title="Voir le dossier">
                                                     <i class="fas fa-eye"></i>

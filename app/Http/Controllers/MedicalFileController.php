@@ -189,13 +189,21 @@ class MedicalFileController extends Controller
      */
     public function show(string $id)
     {
-        $medicalFile = MedicalFile::with(['note', 'medicalHistories', 'medicalprescription.prescription', 'user', 'medicalexam.exam', 'medicaldisease.disease'])->find($id);
+        $medicalFile = MedicalFile::with(['note.doctor', 'medicalHistories.doctor', 'medicalprescription.prescription', 'user', 'medicalexam.exam', 'medicaldisease.disease'])->find($id);
     
         if (!$medicalFile) {
-            return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+            }
+            abort(404, 'Dossier médical non trouvé');
         }
     
-        return response()->json(['data' => $medicalFile]);
+        if (request()->expectsJson()) {
+            return response()->json(['data' => $medicalFile]);
+        }
+
+        // If it's a web request, redirect to the patient-specific view which is more complete
+        return $this->showPatientMedicalFile($medicalFile->user_id);
     }
     
     public function showAuthMedicalFile()
