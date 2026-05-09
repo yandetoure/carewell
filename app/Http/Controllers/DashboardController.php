@@ -211,6 +211,52 @@ class DashboardController extends Controller
         return view('admin.prescriptions.index', compact('prescriptions', 'totalPrescriptions', 'totalServices', 'prescriptionsByService'));
     }
 
+    public function showPrescription(Prescription $prescription)
+    {
+        $prescription->load('service');
+        return view('admin.prescriptions.show', compact('prescription'));
+    }
+
+    public function editPrescription(Prescription $prescription)
+    {
+        $services = Service::all();
+        return view('admin.prescriptions.edit', compact('prescription', 'services'));
+    }
+
+    public function storePrescription(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:0',
+            'price' => 'required|numeric|min:0',
+            'service_id' => 'required|exists:services,id',
+        ]);
+
+        Prescription::create($validated);
+
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription créée avec succès.');
+    }
+
+    public function updatePrescription(Request $request, Prescription $prescription)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:0',
+            'price' => 'required|numeric|min:0',
+            'service_id' => 'required|exists:services,id',
+        ]);
+
+        $prescription->update($validated);
+
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription mise à jour avec succès.');
+    }
+
+    public function destroyPrescription(Prescription $prescription)
+    {
+        $prescription->delete();
+        return redirect()->route('admin.prescriptions')->with('success', 'Prescription supprimée avec succès.');
+    }
+
     public function ordonnancesManagement()
     {
         $ordonnances = Ordonnance::with(['patient', 'medecin', 'medicaments'])->orderBy('date_prescription', 'desc')->paginate(20);
@@ -222,6 +268,78 @@ class DashboardController extends Controller
             ->count();
 
         return view('admin.ordonnances.index', compact('ordonnances', 'totalOrdonnances', 'activeOrdonnances', 'expiredOrdonnances', 'thisMonthOrdonnances'));
+    }
+
+    public function showOrdonnance(Ordonnance $ordonnance)
+    {
+        $ordonnance->load(['patient', 'medecin', 'medicaments']);
+        return view('admin.ordonnances.show', compact('ordonnance'));
+    }
+
+    public function editOrdonnance(Ordonnance $ordonnance)
+    {
+        $ordonnance->load(['patient', 'medecin', 'medicaments']);
+        $patients = User::role('Patient')->get();
+        $doctors = User::role('Doctor')->get();
+        $medicaments = Medicament::where('disponible', true)->get();
+        
+        return view('admin.ordonnances.edit', compact('ordonnance', 'patients', 'doctors', 'medicaments'));
+    }
+
+    public function storeOrdonnance(Request $request)
+    {
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'medecin_id' => 'required|exists:users,id',
+            'date_prescription' => 'required|date',
+            'date_validite' => 'nullable|date|after_or_equal:date_prescription',
+            'statut' => 'required|in:active,expiree,annulee',
+            'instructions' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $patient = User::findOrFail($request->patient_id);
+        $doctor = User::findOrFail($request->medecin_id);
+
+        $validated['patient_first_name'] = $patient->first_name;
+        $validated['patient_last_name'] = $patient->last_name;
+        $validated['medecin_first_name'] = $doctor->first_name;
+        $validated['medecin_last_name'] = $doctor->last_name;
+
+        Ordonnance::create($validated);
+
+        return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance créée avec succès.');
+    }
+
+    public function updateOrdonnance(Request $request, Ordonnance $ordonnance)
+    {
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:users,id',
+            'medecin_id' => 'required|exists:users,id',
+            'date_prescription' => 'required|date',
+            'date_validite' => 'nullable|date|after_or_equal:date_prescription',
+            'statut' => 'required|in:active,expiree,annulee',
+            'instructions' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $patient = User::findOrFail($request->patient_id);
+        $doctor = User::findOrFail($request->medecin_id);
+
+        $validated['patient_first_name'] = $patient->first_name;
+        $validated['patient_last_name'] = $patient->last_name;
+        $validated['medecin_first_name'] = $doctor->first_name;
+        $validated['medecin_last_name'] = $doctor->last_name;
+
+        $ordonnance->update($validated);
+
+        return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance mise à jour avec succès.');
+    }
+
+    public function destroyOrdonnance(Ordonnance $ordonnance)
+    {
+        $ordonnance->delete();
+        return redirect()->route('admin.ordonnances')->with('success', 'Ordonnance supprimée avec succès.');
     }
 
     public function doctorDashboard()
