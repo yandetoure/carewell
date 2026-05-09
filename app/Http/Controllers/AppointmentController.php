@@ -168,6 +168,44 @@ class AppointmentController extends \Illuminate\Routing\Controller
         return view('doctor.appointments.index', compact('appointments'));
     }
 
+    /**
+     * Display a listing of appointments for admin.
+     */
+    public function adminIndex()
+    {
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->orderBy('appointment_date', 'desc')
+            ->orderBy('appointment_time', 'desc')
+            ->paginate(20);
+
+        $todayAppointments = Appointment::whereDate('appointment_date', now()->toDateString())->count();
+        $pendingAppointments = Appointment::where('status', 'pending')->count();
+        $confirmedAppointments = Appointment::where('status', 'confirmed')->count();
+        $urgentAppointments = Appointment::where('is_urgent', true)->where('status', '!=', 'cancelled')->count();
+
+        return view('admin.appointments.index', compact(
+            'appointments',
+            'todayAppointments',
+            'pendingAppointments',
+            'confirmedAppointments',
+            'urgentAppointments'
+        ));
+    }
+
+    /**
+     * Display the schedule for admin.
+     */
+    public function adminSchedule()
+    {
+        $appointments = Appointment::with(['user', 'service', 'doctor'])
+            ->whereDate('appointment_date', '>=', now()->toDateString())
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+
+        return view('admin.appointments.schedule', compact('appointments'));
+    }
+
 
     public function doctorAppointments(Request $request)
     {

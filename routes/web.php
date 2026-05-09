@@ -1,3 +1,4 @@
+
 <?php declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,7 @@ use App\Http\Controllers\DiseaseController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\MedicalFileController;
 use App\Http\Controllers\AvailabilityController;
@@ -454,6 +456,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/ordonnances/{ordonnance}', [DashboardController::class, 'destroyOrdonnance'])->name('admin.ordonnances.destroy');
 
         Route::get('/categories', [ServiceController::class, 'getCategories'])->name('admin.categories');
+        Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('admin.categories.show');
+        Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('admin.categories.update');
         Route::get('/schedule', [AppointmentController::class, 'adminSchedule'])->name('admin.schedule');
         Route::get('/settings', [DashboardController::class, 'adminSettings'])->name('admin.settings');
         Route::get('/logs', [DashboardController::class, 'adminLogs'])->name('admin.logs');
